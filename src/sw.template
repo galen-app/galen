@@ -1,0 +1,45 @@
+/* Galen service worker: precache the shell and recordings (cache-first), runtime-cache fonts and Commons images (stale-while-revalidate), never cache Google APIs. Updates wait for the user to tap Update. */
+const VERSION = '__VERSION__';
+const SHELL = 'galen-shell-' + VERSION;
+const RUNTIME = 'galen-runtime-v1';
+const PRECACHE = __PRECACHE__;
+self.addEventListener('install', e => {
+  e.waitUntil((async () => {
+    const c = await caches.open(SHELL);
+    for (const url of PRECACHE) { try { await c.add(new Request(url, { cache: 'reload' })); } catch (err) { /* a missing recording must not block the install */ } }
+  })());
+});
+self.addEventListener('activate', e => {
+  e.waitUntil((async () => {
+    for (const k of await caches.keys()) if (k.startsWith('galen-shell-') && k !== SHELL) await caches.delete(k);
+    await self.clients.claim();
+  })());
+});
+self.addEventListener('message', e => { if (e.data === 'skipWaiting') self.skipWaiting(); });
+const isImg = u => /upload\.wikimedia\.org|commons\.wikimedia\.org\/wiki\/Special:FilePath|commons\.wikimedia\.org\/w\/thumb|fonts\.gstatic\.com|fonts\.googleapis\.com/.test(u);
+self.addEventListener('fetch', e => {
+  const req = e.request; if (req.method !== 'GET') return;
+  const url = req.url;
+  if (/googleapis\.com\/(drive|calendar|oauth2|upload)|accounts\.google\.com/.test(url)) return;
+  if (url.startsWith(self.registration.scope) || url.includes('/galen/')) {
+    e.respondWith((async () => {
+      const c = await caches.open(SHELL);
+      const key = url.replace(/\?v=.*$/, m => m); // keep the versioned key
+      const hit = await c.match(req, { ignoreSearch: false }) || await c.match(url.split('?')[0]);
+      if (hit) return hit;
+      try { const r = await fetch(req); if (r.ok && /\/rec\//.test(url)) c.put(req, r.clone()); return r; }
+      catch (err) { if (req.mode === 'navigate') return (await c.match('index.html')) || Response.error(); throw err; }
+    })());
+    return;
+  }
+  if (isImg(url)) {
+    e.respondWith((async () => {
+      const c = await caches.open(RUNTIME);
+      const hit = await c.match(req);
+      const net = fetch(req).then(r => { if (r.ok || r.type === 'opaque') c.put(req, r.clone()); return r; }).catch(() => null);
+      if (hit) { net.catch(() => {}); return hit; }
+      const r = await net; if (r) return r;
+      return Response.error();
+    })());
+  }
+});
