@@ -144,7 +144,7 @@ function buildCards(){
   Object.entries(ANAT).forEach(([key,a])=>a.pts.forEach(p=>add({id:`a:${key}:${p.k}`,type:"anat",sys:anatSys[key],ref:[key,p.k],label:p.n})));
   Object.entries(AREAS).forEach(([k,a])=>add({id:"ar:"+k,type:"area",sys:"cvs",ref:k,label:a.name}));
   Object.entries(LZONES).forEach(([k,a])=>add({id:"lz:"+k,type:"zone",sys:"resp",ref:k,label:a.name}));
-  const presSys={chest:"cvs",dysp:"resp",head:"neuro",abdo:"abd",back:"msk",sync:"cvs",dizz:"neuro",fever:"gen"};
+  const presSys=new Proxy({},{get:(o,k)=>(HIST.pres.find(p=>p.id===k)||{}).sys});
   HIST.pres.forEach(p=>{
     p.lr.forEach(([f,t,l],i)=>{if(l!=null)add({id:`h:${p.id}:${i}`,type:"hlr",sys:presSys[p.id]||"gen",ref:[p.id,i],label:f});});
     add({id:"r:"+p.id,type:"red",sys:presSys[p.id]||"gen",ref:p.id,label:p.name});
