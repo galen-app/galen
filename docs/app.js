@@ -1,4 +1,4 @@
-window.GALEN_PLATFORM="pages";window.GALEN_VERSION="6.0.0";window.GALEN_BUILD="2ebf5dc7d3";
+window.GALEN_PLATFORM="pages";window.GALEN_VERSION="6.0.0";window.GALEN_BUILD="b192b5a4df";
 "use strict";
 /* ================= UTILITIES ================= */
 const $=(s,el=document)=>el.querySelector(s), $$=(s,el=document)=>[...el.querySelectorAll(s)];
@@ -3848,6 +3848,7 @@ function buildCards(){
     add({id:"v:"+k,type:"verdict",sys:s.sys,reg,ref:k,label:s.name});
     add({id:"m:"+k,type:"mech",sys:s.sys,reg,ref:k,label:s.name});
     if(s.sens!=null&&s.spec!=null)add({id:"ss:"+k,type:"snsp",sys:s.sys,reg,ref:k,label:s.name});
+    if(typeof ANGLES!=="undefined"&&ANGLES[k]&&ANGLES[k].teachback)add({id:"tb:"+k,type:"teach",sys:s.sys,reg,ref:k,label:s.name});
   });
   SYSTEMS.forEach(m=>m.think.forEach(([f,t],i)=>add({id:`f:${m.id}:${i}`,type:"finding",sys:m.id,ref:[m.id,i],label:f})));
   const anatSys={chest:"cvs",abdomen:"abd",neck:"hn",back:"msk"};
@@ -3873,7 +3874,7 @@ function buildCards(){
   REGIONS.forEach(r=>r.tests.forEach(k=>C.forEach(c=>{if(c.ref===k&&!c.reg)c.reg=r.id;})));
   CARDS=C;return C;
 }
-const CARD_TYPE_LABEL={think:"What to think",verdict:"Test value",mech:"Mechanism",finding:"Finding",anat:"Surface anatomy",area:"Listening area",zone:"Lung zone",hlr:"History clue",red:"Red flags",sound:"Listen",snsp:"Rule in or out",derm:"Dermatome",myo:"Myotome",reflex:"Reflex root",rootnerve:"Root or nerve?",cranial:"Cranial nerve",dterm:"Skin term",dplate:"Name the rash"};
+const CARD_TYPE_LABEL={think:"What to think",verdict:"Test value",mech:"Mechanism",finding:"Finding",anat:"Surface anatomy",area:"Listening area",zone:"Lung zone",hlr:"History clue",red:"Red flags",sound:"Listen",snsp:"Rule in or out",derm:"Dermatome",myo:"Myotome",reflex:"Reflex root",rootnerve:"Root or nerve?",cranial:"Cranial nerve",dterm:"Skin term",dplate:"Name the rash",teach:"Teach it back"};
 const AUTO={verdict:1,mech:1,hlr:1,sound:1,snsp:1,myo:1,reflex:1,dplate:1};
 /* scope: "all", a system id, or "reg:<region>" */
 const inScope=(c,sys)=>!sys||sys==="all"||(sys.startsWith("reg:")?c.reg===sys.slice(4):c.sys===sys);
@@ -4148,9 +4149,10 @@ route("today:recap","Your week",(root)=>{
   $("#rc-copy").addEventListener("click",()=>{try{navigator.clipboard.writeText(text).then(()=>toast("Copied","good"),()=>toast("Couldn't copy"));}catch(e){toast("Couldn't copy");}});
 });
 function cardHome(c){
-  switch(c.type){case "think":case "verdict":case "mech":return `signs/sign/${c.ref}`;case "sound":return `sounds/sound/${c.ref}`;
+  switch(c.type){case "think":case "verdict":case "mech":case "snsp":case "teach":return `signs/sign/${c.ref}`;case "sound":return `sounds/sound/${c.ref}`;
    case "finding":return `learn/module/${c.ref[0]}/think`;case "anat":return `learn/module/${({chest:"cvs",abdomen:"abd",neck:"hn",back:"msk"})[c.ref[0]]}/anat`;
-   case "area":case "zone":return "sounds/map";case "hlr":return `learn/pres/${c.ref[0]}`;case "red":return `learn/pres/${c.ref}`;}
+   case "area":case "zone":return "sounds/map";case "hlr":return `learn/pres/${c.ref[0]}`;case "red":return `learn/pres/${c.ref}`;
+   case "dterm":return "learn/dmorph";case "dplate":return `learn/dcond/${c.ref}`;case "derm":return "learn/neuromap/derm";case "myo":case "reflex":return "learn/myotomes";case "rootnerve":return "learn/rootnerve";case "cranial":return "learn/cranial";}
   return "today";
 }
 
@@ -4220,7 +4222,8 @@ route("learn:module",(id)=>(SYSTEMS.find(s=>s.id===id)||{}).short||"Module",(roo
     if(s.anatomy)bindAnat(s.anatomy);
   }else if(tab==="hist"){
     const rel={cvs:["chest","sync"],resp:["dysp"],abd:["abdo"],neuro:["head","dizz"],msk:["back"],gen:["fever"],hn:[]}[id]||[];
-    B.innerHTML=`<div class="card"><div class="sec"><h3>The focused history</h3><ul class="prose" style="padding-left:1.1em">${s.hist.map(n=>`<li>${esc(n)}</li>`).join("")}</ul></div></div>
+    const why=s.histWhy||[];
+    B.innerHTML=`<div class="card"><div class="sec"><h3>The focused history</h3>${why.length?`<div class="stack" style="gap:4px">${why.map(w=>`<details class="acc why"><summary><span class="st"><b>${esc(w.item)}</b></span></summary><div class="acc-body"><div>${esc(w.why)}</div></div></details>`).join("")}</div>`:`<ul class="prose" style="padding-left:1.1em">${s.hist.map(n=>`<li>${esc(n)}</li>`).join("")}</ul>`}</div></div>
      ${rel.length?`<div class="section"><span class="label">Presentations with likelihood ratios</span><div class="list">${rel.map(pid=>{const p=HIST.pres.find(x=>x.id===pid);return `<button class="lrow" data-go="learn/pres/${pid}"><span class="txt"><b>${esc(p.name)}</b><span>${p.lr.length} clues · ${p.red.length} red flags</span></span>${ic("chev","chev")}</button>`;}).join("")}</div></div>`:""}`;
   }else if(tab==="think"){
     B.innerHTML=`<p class="muted small">Cover the right-hand column and say what you'd think before reading it. These come back in your daily session.</p><div class="think">${s.think.map(([f,t])=>`<div class="t"><b>${esc(f)}</b><span>${esc(t)}</span></div>`).join("")}</div>`;
@@ -4272,7 +4275,7 @@ function bindAnat(key){const a=ANAT[key];
 /* ---------- history ---------- */
 route("learn:frames","History frameworks",(root)=>{
   root.innerHTML=`<section class="ph"><span class="eyebrow">History taking</span><h1>Frameworks that hold up on a busy shift</h1></section>
-  <div class="stack">${HIST.frames.map((c,i)=>`<details class="acc"${i===0?" open":""}><summary><span class="n">${pad2(i+1)}</span><span class="st"><b>${esc(c.t)}</b></span></summary><div class="acc-body prose">${c.body}</div></details>`).join("")}</div>
+  <div class="stack">${HIST.frames.map((c,i)=>`<details class="acc"${i===0?" open":""}><summary><span class="n">${pad2(i+1)}</span><span class="st"><b>${esc(c.t)}</b></span></summary><div class="acc-body prose">${c.body}${c.why&&c.why.length?`<div class="stack" style="gap:4px;margin-top:8px">${c.why.map(w=>`<div class="lm"><b>${esc(w.item)}</b><span>${esc(w.why)}</span></div>`).join("")}</div>`:""}</div></details>`).join("")}</div>
   <button class="tile" data-go="learn/pres"><div class="t-top"><span class="icwrap">${ic("scale")}</span></div><b>Presentations</b><span class="sub">The clues that move probability for ${HIST.pres.length} common complaints.</span></button>`;
 });
 route("learn:pres",(id)=>id?(HIST.pres.find(p=>p.id===id)||{}).name:"Presentations",(root,id)=>{
@@ -4280,8 +4283,9 @@ route("learn:pres",(id)=>id?(HIST.pres.find(p=>p.id===id)||{}).name:"Presentatio
   if(!p){root.innerHTML=`<section class="ph"><span class="eyebrow">History taking</span><h1>The questions that move probability</h1><p class="lede">For each complaint: what to ask, which answers shift the odds and by how much, the red flags, and the differential to keep in view.</p></section>
     <div class="list">${HIST.pres.map(x=>`<button class="lrow" data-go="learn/pres/${x.id}"><span class="icwrap n">${ic("history")}</span><span class="txt"><b>${esc(x.name)}</b><span>${x.lr.length} clues · ${x.red.length} red flags · ${x.dd.length} differentials</span></span>${ic("chev","chev")}</button>`).join("")}</div>`;return;}
   root.innerHTML=`<section class="ph"><span class="eyebrow">History · presentation</span><h1>${esc(p.name)}</h1></section>
-   <div class="card"><div class="sec"><h3>Ask</h3><ul class="prose" style="padding-left:1.1em">${p.ask.map(a=>`<li>${esc(a)}</li>`).join("")}</ul></div></div>
-   <div class="section"><span class="label">Clues that shift probability</span><div class="tbl"><table><tr><th>Clue</th><th>Points to</th><th>LR</th></tr>${p.lr.map(([f,t,l])=>`<tr><td style="font-weight:700">${esc(f)}</td><td>${esc(t)}</td><td><span class="lr ${l==null?"weak":lrClass(l)}">${l==null?"strong, unquantified":l}</span></td></tr>`).join("")}</table></div></div>
+   ${p.frame?`<p class="quote">${esc(p.frame)}</p>`:""}
+   <div class="card stack" style="gap:6px"><span class="eyebrow">Ask, and why</span>${p.ask.map((a,i)=>typeof a==="string"?`<p class="small">${esc(a)}</p>`:`<details class="acc why"><summary><span class="st"><b>${esc(a.q)}</b>${a.lr!=null?`<span class="lr ${lrClass(a.lr)}" style="font-size:.72rem">LR ${a.lr}${a.target?" · "+esc(a.target):""}</span>`:""}</span></summary><div class="acc-body"><div><span class="k">Why</span>${esc(a.why)}</div>${a.changes?`<div><span class="k">What changes</span>${esc(a.changes)}</div>`:""}${a.src?`<div class="tiny muted">${esc(a.src)}</div>`:""}</div></details>`).join("")}</div>
+   <div class="section"><span class="label">Clues that shift probability</span><div class="tbl"><table><tr><th>Clue</th><th>Points to</th><th>LR</th></tr>${p.lr.map(([f,t,l])=>`<tr><td style="font-weight:700">${esc(f)}</td><td>${esc(t)}</td><td title="${esc((p.lrSrc||{})[f]||"")}"><span class="lr ${l==null?"weak":lrClass(l)}">${l==null?"strong, unquantified":l}</span></td></tr>`).join("")}</table></div></div>
    <div class="card stack"><h3>Red flags</h3>${p.red.map(r=>`<div class="redflag">${esc(r)}</div>`).join("")}</div>
    <div class="section"><span class="label">Differential to keep in view</span><div class="chips">${p.dd.map(d=>`<span class="chip">${esc(d)}</span>`).join("")}</div></div>`;
 });
@@ -4329,6 +4333,20 @@ function lrScale(s){if(s.p==null&&s.n==null)return "";
    <div class="scale-l"><span>0.01</span><span>0.1</span><span>1</span><span>10</span><span>100</span></div>
    <div class="scale-l" style="margin-top:0"><span>← rules out</span><span>no change</span><span>rules in →</span></div>
    <p class="small muted">${s.p!=null?`<b style="color:var(--accent-ink)">●</b> positive result (LR+ ${s.p}) `:""}${s.n!=null?`<b>●</b> negative result (LR− ${s.n}). `:""}LRs of 2–5 or 0.5–0.2 shift probability a little; 5–10 or 0.2–0.1 moderately; beyond 10 or 0.1, decisively.</p></div>`;}
+function anglesHTML(id){
+  const a=(typeof ANGLES!=="undefined")&&ANGLES[id];if(!a)return "";
+  const pair=a.pair&&SIGNS[a.pair.with]?`<div class="ang"><span class="k">Contrast with</span><div class="row-x">${signChip(a.pair.with)}<span class="small">${esc(a.pair.why)}</span></div></div>`:"";
+  return `<div class="card stack angles" style="gap:14px"><div class="ddh"><span class="eyebrow">${ic("mind")} From every angle</span><span class="tag">glue</span></div>
+   ${a.vignette?`<div class="ang"><span class="k">A case</span><p>${esc(a.vignette)}</p></div>`:""}
+   ${a.trap?`<div class="ang trap"><span class="k">The trap</span><p>${esc(a.trap)}</p></div>`:""}
+   ${a.analogy?`<div class="ang"><span class="k">Picture it</span><p class="hook">${esc(a.analogy)}</p></div>`:""}
+   ${a.number?`<div class="ang"><span class="k">The number</span><p class="mono">${esc(a.number)}</p></div>`:""}
+   ${a.history?`<div class="ang"><span class="k">Ask first</span><p>${esc(a.history)}</p></div>`:""}
+   ${pair}
+   ${a.patient?`<div class="ang"><span class="k">Say it to the patient</span><p>${esc(a.patient)}</p></div>`:""}
+   ${a.document?`<div class="ang"><span class="k">Write it in the notes</span><p class="mono small">${esc(a.document)}</p></div>`:""}
+   ${a.teachback?`<details class="acc"><summary><span class="st"><b>Teach it back</b><span>${esc(a.teachback.q)}</span></span></summary><div class="acc-body"><div><textarea class="inp" rows="3" placeholder="Explain it in your own words first…"></textarea></div><div><span class="k">Model answer</span>${esc(a.teachback.a)}</div></div></details>`:""}</div>`;
+}
 function ssBars(s){
   if(s.sens==null&&s.spec==null)return "";
   const bar=(l,v,c,t)=>`<div class="ssbar"><span>${l}</span><span class="tr">${v!=null?`<i style="width:${v}%;background:${c}"></i>`:""}</span><b class="num">${v!=null?v+"%":"–"}</b></div><p class="small muted" style="margin:-4px 0 4px 106px">${t}</p>`;
@@ -4352,6 +4370,7 @@ route("signs:sign",(id)=>SYS_SHORT[(SIGNS[id]||{}).sys]||"Sign",(root,id)=>{
    ${IMG_SUBJECTS[id]?Img.galleryHTML("s:"+id,IMG_SUBJECTS[id][1],{title:IMG_SUBJECTS[id][0]}):""}
    ${s.how||s.anat?`<div class="card stack" style="gap:16px">${sec("How to do it",s.how)}${sec("The anatomy",s.anat)}</div>`:""}
    <div class="card stack" style="gap:16px">${sec("Why it works",s.mech)}${sec("What to think",s.think)}</div>
+   ${anglesHTML(id)}
    ${deepDive(id)}
    ${ssBars(s)}
    ${lrScale(s)}
@@ -4675,6 +4694,7 @@ function cardBody(c){
      const L=[["out","A negative helps rule it out (SnNout)"],["in","A positive helps rule it in (SpPin)"],["both","Both: it rules in and out"],["neither","Neither on its own"]];
      return {q:`${esc(s.name)}<small>For ${esc(s.target)}: what can this test do for you?</small>`,opts:L.map(([k,l])=>({l,ok:k===ans})),
       explain:`<p class="small">Sensitivity <b class="mono">${s.sens}%</b>, specificity <b class="mono">${s.spec}%</b>. ${hi?"High sensitivity: few patients with the disease test negative, so a negative result is reassuring.":"Sensitivity below 90%: a negative result leaves the diagnosis open."} ${hs?"High specificity: few patients without it test positive, so a positive result is convincing.":"Specificity below 90%: false positives are common."}</p>${s.note?`<p class="small muted">${esc(s.note)}</p>`:""}`};}
+   case "teach":{const a=ANGLES[c.ref],s=SIGNS[c.ref];return {q:`${esc(a.teachback.q)}<small>${esc(s.name)}. Say it aloud in your own words, as if teaching a student.</small>`,a:`<p>${esc(a.teachback.a)}</p>${a.trap?`<p class="small muted"><b>The trap:</b> ${esc(a.trap)}</p>`:""}<button class="link small" data-go="signs/sign/${c.ref}" style="align-self:flex-start">Open the sign</button>`};}
    case "derm":{const d=DERM_INFO[c.ref];return {q:`${esc(d.n)}<small>Where is its key sensory point, and what area does it cover?</small>`,a:`<dl class="kv"><dt>Key point</dt><dd>${esc(d.k)}</dd><dt>Area</dt><dd>${esc(d.d)}</dd></dl>${d.w?`<p class="small">${esc(d.w)}</p>`:""}<button class="link small" data-go="learn/neuromap/derm" style="align-self:flex-start">Open the map</button>`};}
    case "myo":{const m=MYO[c.ref],roots=MYO.map(x=>x[0]),opts=shuf([m[0],...shuf(roots.filter(r=>r!==m[0])).slice(0,3)]);return {q:`${esc(m[1])}<small>Which root does this key muscle test?</small>`,opts:opts.map(r=>({l:r,ok:r===m[0]})),explain:`<p class="small"><b>${m[0]}.</b> ${esc(m[2])}. Reflex: ${esc(m[3])}.</p>`};}
    case "reflex":{const r=REFLEX[c.ref],roots=[...new Set(REFLEX.map(x=>x[1]))],opts=shuf([r[1],...shuf(roots.filter(x=>x!==r[1])).slice(0,3)]);return {q:`${esc(r[0])} reflex<small>Which segments?</small>`,opts:opts.map(x=>({l:x,ok:x===r[1]})),explain:`<p class="small">${esc(r[2])}. ${esc(r[3])}.</p>`};}
