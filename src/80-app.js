@@ -81,6 +81,11 @@ let PAL=null,PALIDX=null;
 function palIndex(){
   if(PALIDX)return PALIDX;const I=[];
   SYSTEMS.forEach(m=>I.push({t:m.name,s:"Examination module",k:"learn",go:`learn/module/${m.id}`,x:m.intro}));
+  CMAPS.forEach(m=>I.push({t:m.title,s:"Concept map",k:"map",go:`learn/map/${m.id}`,x:m.intro+" "+m.nodes.map(n=>n.label).join(" ")}));
+  TOOLS.forEach(t=>I.push({t:t.name,s:`${t.group} · ${t.kind}`,k:"scale",go:`tools/calc/${t.id}`,x:t.use}));
+  if(typeof LABS!=="undefined")LABS.forEach(p=>I.push({t:p.name,s:"Labs",k:"log",go:`tools/lab/${p.id}`,x:p.intro}));
+  Object.entries(IMG_SUBJECTS).forEach(([id,[n]])=>{if(!SIGNS[id])I.push({t:n,s:"Photographs",k:"eye",go:`signs/imgsub/${id}`,x:""});});
+  [["Spot diagnosis","Photographs, four names","practice/spot","eye"],["Narrated routine","Galen reads the examination aloud","tools/narrate","ear"],["Scores and calculators","HEART, Wells, NEWS2, GCS…","tools/calcs","scale"],["Your week","Weekly recap","today/recap","calendar"],["Settings","Daily load, theme, sound","tools/settings","gear"],["Google Drive and Citrus","Sync and the hub","tools/google","gear"],["Backup and export","Backup, Yuzu pack, repair","tools/data","log"]].forEach(([t,s2,go,k])=>I.push({t,s:s2,k,go,x:""}));
   [["Dermatomes and nerves","Neurology map and quiz","learn/neuromap",DERM_ORDER.join(" ")+" dermatome sensory key points nerve territory"],["Where is the lesion?","Localisation","learn/localise","UMN LMN cord syndrome Brown-Sequard central cord gait vascular territory MCA ACA PCA brainstem Weber Wallenberg locked-in INO"],["Localiser","Lesion localisation cases","practice/localiser","localise lesion pinpoint brain spinal cord stroke"],["Root or nerve?","Localisation","learn/rootnerve","foot drop wrist drop claw hand ulnar peroneal radial meralgia"],["Myotomes and reflexes","Neurology","learn/myotomes","reflex root biceps triceps knee ankle MRC grading"],["Cranial nerves","Neurology","learn/cranial","olfactory optic oculomotor trochlear trigeminal abducens facial vestibulocochlear glossopharyngeal vagus accessory hypoglossal"]].forEach(([t,s2,go,x])=>I.push({t,s:s2,k:"learn",go,x}));
   DCOND.forEach(c=>I.push({t:c.n,s:`Skin atlas · ${c.g}`,k:"eye",go:`learn/dcond/${c.id}`,x:c.m+" "+c.dd.join(" ")}));
   DVOCAB.forEach(v=>I.push({t:v[0],s:"Skin lesion term",k:"learn",go:"learn/dmorph",x:v[2]+" "+v[3]}));
@@ -202,9 +207,10 @@ route("today:recap","Your week",(root)=>{
   $("#rc-copy").addEventListener("click",()=>{try{navigator.clipboard.writeText(text).then(()=>toast("Copied","good"),()=>toast("Couldn't copy"));}catch(e){toast("Couldn't copy");}});
 });
 function cardHome(c){
-  switch(c.type){case "think":case "verdict":case "mech":return `signs/sign/${c.ref}`;case "sound":return `sounds/sound/${c.ref}`;
+  switch(c.type){case "think":case "verdict":case "mech":case "snsp":case "teach":return `signs/sign/${c.ref}`;case "sound":return `sounds/sound/${c.ref}`;
    case "finding":return `learn/module/${c.ref[0]}/think`;case "anat":return `learn/module/${({chest:"cvs",abdomen:"abd",neck:"hn",back:"msk"})[c.ref[0]]}/anat`;
-   case "area":case "zone":return "sounds/map";case "hlr":return `learn/pres/${c.ref[0]}`;case "red":return `learn/pres/${c.ref}`;}
+   case "area":case "zone":return "sounds/map";case "hlr":return `learn/pres/${c.ref[0]}`;case "red":return `learn/pres/${c.ref}`;
+   case "dterm":return "learn/dmorph";case "dplate":return `learn/dcond/${c.ref}`;case "derm":return "learn/neuromap/derm";case "myo":case "reflex":return "learn/myotomes";case "rootnerve":return "learn/rootnerve";case "cranial":return "learn/cranial";}
   return "today";
 }
 
@@ -212,6 +218,10 @@ function cardHome(c){
 route("learn:home","Learn",(root)=>{
   root.innerHTML=`<section class="ph"><span class="eyebrow">Learn</span><h1>Examine with reasons, not rituals</h1><p class="lede">Each module gives you the surface anatomy, the focused history, the examination sequence with the mechanism and evidence for every step, what to think with each finding, and where people go wrong.</p></section>
   <section class="section"><span class="label">Examination by system</span><div class="grid">${SYSTEMS.map(m=>{const ms=mastery(m.id);const rh=Store.s.rehearse[m.id];return `<button class="tile" data-go="learn/module/${m.id}"><div class="t-top"><span class="icwrap">${m.icon}</span>${ring(ms.pct,34,4)}</div><b>${esc(m.name)}</b><span class="sub">${m.seq.length} steps · ${m.think.length} findings${Store.s.mods.includes(m.id)?" · reviewed":""}${rh?` · rehearsed ${rh.best}/${m.seq.length}`:""}</span></button>`;}).join("")}</div></section>
+  <section class="section"><span class="label">See the connections</span><div class="grid">
+    <button class="tile" data-go="learn/maps"><div class="t-top"><span class="icwrap">${ic("map")}</span><span class="tag">${CMAPS.length} maps</span></div><b>Concept maps</b><span class="sub">Mechanism → sign → decision, tap by tap.</span></button>
+    <button class="tile" data-go="signs/images"><div class="t-top"><span class="icwrap">${ic("eye")}</span><span class="tag">live</span></div><b>Photo library</b><span class="sub">Real signs and skin, openly licensed, pin your favourites.</span></button>
+    <button class="tile" data-go="tools/labs"><div class="t-top"><span class="icwrap">${ic("log")}</span></div><b>Labs at the bedside</b><span class="sub">Patterns that confirm or refute what you found.</span></button></div></section>
   <section class="section"><span class="label">Dermatology</span><div class="grid">
     <button class="tile" data-go="learn/datlas"><div class="t-top"><span class="icwrap">${ic("eye")}</span><span class="tag">${DCOND.length} conditions × 6 skin tones</span></div><b>Skin atlas</b><span class="sub">Drawn plates, model descriptions, look-alikes, links to real photos.</span></button>
     <button class="tile" data-go="learn/describe"><div class="t-top"><span class="icwrap">${ic("learn")}</span></div><b>Describe like a dermatologist</b><span class="sub">The order, the sentence, a builder.</span></button>
@@ -270,7 +280,8 @@ route("learn:module",(id)=>(SYSTEMS.find(s=>s.id===id)||{}).short||"Module",(roo
     if(s.anatomy)bindAnat(s.anatomy);
   }else if(tab==="hist"){
     const rel={cvs:["chest","sync"],resp:["dysp"],abd:["abdo"],neuro:["head","dizz"],msk:["back"],gen:["fever"],hn:[]}[id]||[];
-    B.innerHTML=`<div class="card"><div class="sec"><h3>The focused history</h3><ul class="prose" style="padding-left:1.1em">${s.hist.map(n=>`<li>${esc(n)}</li>`).join("")}</ul></div></div>
+    const why=s.histWhy||[];
+    B.innerHTML=`<div class="card"><div class="sec"><h3>The focused history</h3>${why.length?`<div class="stack" style="gap:4px">${why.map(w=>`<details class="acc why"><summary><span class="st"><b>${esc(w.item)}</b></span></summary><div class="acc-body"><div>${esc(w.why)}</div></div></details>`).join("")}</div>`:`<ul class="prose" style="padding-left:1.1em">${s.hist.map(n=>`<li>${esc(n)}</li>`).join("")}</ul>`}</div></div>
      ${rel.length?`<div class="section"><span class="label">Presentations with likelihood ratios</span><div class="list">${rel.map(pid=>{const p=HIST.pres.find(x=>x.id===pid);return `<button class="lrow" data-go="learn/pres/${pid}"><span class="txt"><b>${esc(p.name)}</b><span>${p.lr.length} clues · ${p.red.length} red flags</span></span>${ic("chev","chev")}</button>`;}).join("")}</div></div>`:""}`;
   }else if(tab==="think"){
     B.innerHTML=`<p class="muted small">Cover the right-hand column and say what you'd think before reading it. These come back in your daily session.</p><div class="think">${s.think.map(([f,t])=>`<div class="t"><b>${esc(f)}</b><span>${esc(t)}</span></div>`).join("")}</div>`;
@@ -322,7 +333,7 @@ function bindAnat(key){const a=ANAT[key];
 /* ---------- history ---------- */
 route("learn:frames","History frameworks",(root)=>{
   root.innerHTML=`<section class="ph"><span class="eyebrow">History taking</span><h1>Frameworks that hold up on a busy shift</h1></section>
-  <div class="stack">${HIST.frames.map((c,i)=>`<details class="acc"${i===0?" open":""}><summary><span class="n">${pad2(i+1)}</span><span class="st"><b>${esc(c.t)}</b></span></summary><div class="acc-body prose">${c.body}</div></details>`).join("")}</div>
+  <div class="stack">${HIST.frames.map((c,i)=>`<details class="acc"${i===0?" open":""}><summary><span class="n">${pad2(i+1)}</span><span class="st"><b>${esc(c.t)}</b></span></summary><div class="acc-body prose">${c.body}${c.why&&c.why.length?`<div class="stack" style="gap:4px;margin-top:8px">${c.why.map(w=>`<div class="lm"><b>${esc(w.item)}</b><span>${esc(w.why)}</span></div>`).join("")}</div>`:""}</div></details>`).join("")}</div>
   <button class="tile" data-go="learn/pres"><div class="t-top"><span class="icwrap">${ic("scale")}</span></div><b>Presentations</b><span class="sub">The clues that move probability for ${HIST.pres.length} common complaints.</span></button>`;
 });
 route("learn:pres",(id)=>id?(HIST.pres.find(p=>p.id===id)||{}).name:"Presentations",(root,id)=>{
@@ -330,8 +341,9 @@ route("learn:pres",(id)=>id?(HIST.pres.find(p=>p.id===id)||{}).name:"Presentatio
   if(!p){root.innerHTML=`<section class="ph"><span class="eyebrow">History taking</span><h1>The questions that move probability</h1><p class="lede">For each complaint: what to ask, which answers shift the odds and by how much, the red flags, and the differential to keep in view.</p></section>
     <div class="list">${HIST.pres.map(x=>`<button class="lrow" data-go="learn/pres/${x.id}"><span class="icwrap n">${ic("history")}</span><span class="txt"><b>${esc(x.name)}</b><span>${x.lr.length} clues · ${x.red.length} red flags · ${x.dd.length} differentials</span></span>${ic("chev","chev")}</button>`).join("")}</div>`;return;}
   root.innerHTML=`<section class="ph"><span class="eyebrow">History · presentation</span><h1>${esc(p.name)}</h1></section>
-   <div class="card"><div class="sec"><h3>Ask</h3><ul class="prose" style="padding-left:1.1em">${p.ask.map(a=>`<li>${esc(a)}</li>`).join("")}</ul></div></div>
-   <div class="section"><span class="label">Clues that shift probability</span><div class="tbl"><table><tr><th>Clue</th><th>Points to</th><th>LR</th></tr>${p.lr.map(([f,t,l])=>`<tr><td style="font-weight:700">${esc(f)}</td><td>${esc(t)}</td><td><span class="lr ${l==null?"weak":lrClass(l)}">${l==null?"strong, unquantified":l}</span></td></tr>`).join("")}</table></div></div>
+   ${p.frame?`<p class="quote">${esc(p.frame)}</p>`:""}
+   <div class="card stack" style="gap:6px"><span class="eyebrow">Ask, and why</span>${p.ask.map((a,i)=>typeof a==="string"?`<p class="small">${esc(a)}</p>`:`<details class="acc why"><summary><span class="st"><b>${esc(a.q)}</b>${a.lr!=null?`<span class="lr ${lrClass(a.lr)}" style="font-size:.72rem">LR ${a.lr}${a.target?" · "+esc(a.target):""}</span>`:""}</span></summary><div class="acc-body"><div><span class="k">Why</span>${esc(a.why)}</div>${a.changes?`<div><span class="k">What changes</span>${esc(a.changes)}</div>`:""}${a.src?`<div class="tiny muted">${esc(a.src)}</div>`:""}</div></details>`).join("")}</div>
+   <div class="section"><span class="label">Clues that shift probability</span><div class="tbl"><table><tr><th>Clue</th><th>Points to</th><th>LR</th></tr>${p.lr.map(([f,t,l])=>`<tr><td style="font-weight:700">${esc(f)}</td><td>${esc(t)}</td><td title="${esc((p.lrSrc||{})[f]||"")}"><span class="lr ${l==null?"weak":lrClass(l)}">${l==null?"strong, unquantified":l}</span></td></tr>`).join("")}</table></div></div>
    <div class="card stack"><h3>Red flags</h3>${p.red.map(r=>`<div class="redflag">${esc(r)}</div>`).join("")}</div>
    <div class="section"><span class="label">Differential to keep in view</span><div class="chips">${p.dd.map(d=>`<span class="chip">${esc(d)}</span>`).join("")}</div></div>`;
 });

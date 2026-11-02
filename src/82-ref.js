@@ -32,6 +32,20 @@ function lrScale(s){if(s.p==null&&s.n==null)return "";
    <div class="scale-l"><span>0.01</span><span>0.1</span><span>1</span><span>10</span><span>100</span></div>
    <div class="scale-l" style="margin-top:0"><span>← rules out</span><span>no change</span><span>rules in →</span></div>
    <p class="small muted">${s.p!=null?`<b style="color:var(--accent-ink)">●</b> positive result (LR+ ${s.p}) `:""}${s.n!=null?`<b>●</b> negative result (LR− ${s.n}). `:""}LRs of 2–5 or 0.5–0.2 shift probability a little; 5–10 or 0.2–0.1 moderately; beyond 10 or 0.1, decisively.</p></div>`;}
+function anglesHTML(id){
+  const a=(typeof ANGLES!=="undefined")&&ANGLES[id];if(!a)return "";
+  const pair=a.pair&&SIGNS[a.pair.with]?`<div class="ang"><span class="k">Contrast with</span><div class="row-x">${signChip(a.pair.with)}<span class="small">${esc(a.pair.why)}</span></div></div>`:"";
+  return `<div class="card stack angles" style="gap:14px"><div class="ddh"><span class="eyebrow">${ic("mind")} From every angle</span><span class="tag">glue</span></div>
+   ${a.vignette?`<div class="ang"><span class="k">A case</span><p>${esc(a.vignette)}</p></div>`:""}
+   ${a.trap?`<div class="ang trap"><span class="k">The trap</span><p>${esc(a.trap)}</p></div>`:""}
+   ${a.analogy?`<div class="ang"><span class="k">Picture it</span><p class="hook">${esc(a.analogy)}</p></div>`:""}
+   ${a.number?`<div class="ang"><span class="k">The number</span><p class="mono">${esc(a.number)}</p></div>`:""}
+   ${a.history?`<div class="ang"><span class="k">Ask first</span><p>${esc(a.history)}</p></div>`:""}
+   ${pair}
+   ${a.patient?`<div class="ang"><span class="k">Say it to the patient</span><p>${esc(a.patient)}</p></div>`:""}
+   ${a.document?`<div class="ang"><span class="k">Write it in the notes</span><p class="mono small">${esc(a.document)}</p></div>`:""}
+   ${a.teachback?`<details class="acc"><summary><span class="st"><b>Teach it back</b><span>${esc(a.teachback.q)}</span></span></summary><div class="acc-body"><div><textarea class="inp" rows="3" placeholder="Explain it in your own words first…"></textarea></div><div><span class="k">Model answer</span>${esc(a.teachback.a)}</div></div></details>`:""}</div>`;
+}
 function ssBars(s){
   if(s.sens==null&&s.spec==null)return "";
   const bar=(l,v,c,t)=>`<div class="ssbar"><span>${l}</span><span class="tr">${v!=null?`<i style="width:${v}%;background:${c}"></i>`:""}</span><b class="num">${v!=null?v+"%":"–"}</b></div><p class="small muted" style="margin:-4px 0 4px 106px">${t}</p>`;
@@ -55,6 +69,7 @@ route("signs:sign",(id)=>SYS_SHORT[(SIGNS[id]||{}).sys]||"Sign",(root,id)=>{
    ${IMG_SUBJECTS[id]?Img.galleryHTML("s:"+id,IMG_SUBJECTS[id][1],{title:IMG_SUBJECTS[id][0]}):""}
    ${s.how||s.anat?`<div class="card stack" style="gap:16px">${sec("How to do it",s.how)}${sec("The anatomy",s.anat)}</div>`:""}
    <div class="card stack" style="gap:16px">${sec("Why it works",s.mech)}${sec("What to think",s.think)}</div>
+   ${anglesHTML(id)}
    ${deepDive(id)}
    ${ssBars(s)}
    ${lrScale(s)}

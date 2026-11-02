@@ -1,4 +1,4 @@
-window.GALEN_PLATFORM="pages";window.GALEN_VERSION="6.0.0";window.GALEN_BUILD="124fd79102";
+window.GALEN_PLATFORM="pages";window.GALEN_VERSION="6.0.0";window.GALEN_BUILD="2ebf5dc7d3";
 "use strict";
 /* ================= UTILITIES ================= */
 const $=(s,el=document)=>el.querySelector(s), $$=(s,el=document)=>[...el.querySelectorAll(s)];
@@ -4022,6 +4022,11 @@ let PAL=null,PALIDX=null;
 function palIndex(){
   if(PALIDX)return PALIDX;const I=[];
   SYSTEMS.forEach(m=>I.push({t:m.name,s:"Examination module",k:"learn",go:`learn/module/${m.id}`,x:m.intro}));
+  CMAPS.forEach(m=>I.push({t:m.title,s:"Concept map",k:"map",go:`learn/map/${m.id}`,x:m.intro+" "+m.nodes.map(n=>n.label).join(" ")}));
+  TOOLS.forEach(t=>I.push({t:t.name,s:`${t.group} · ${t.kind}`,k:"scale",go:`tools/calc/${t.id}`,x:t.use}));
+  if(typeof LABS!=="undefined")LABS.forEach(p=>I.push({t:p.name,s:"Labs",k:"log",go:`tools/lab/${p.id}`,x:p.intro}));
+  Object.entries(IMG_SUBJECTS).forEach(([id,[n]])=>{if(!SIGNS[id])I.push({t:n,s:"Photographs",k:"eye",go:`signs/imgsub/${id}`,x:""});});
+  [["Spot diagnosis","Photographs, four names","practice/spot","eye"],["Narrated routine","Galen reads the examination aloud","tools/narrate","ear"],["Scores and calculators","HEART, Wells, NEWS2, GCS…","tools/calcs","scale"],["Your week","Weekly recap","today/recap","calendar"],["Settings","Daily load, theme, sound","tools/settings","gear"],["Google Drive and Citrus","Sync and the hub","tools/google","gear"],["Backup and export","Backup, Yuzu pack, repair","tools/data","log"]].forEach(([t,s2,go,k])=>I.push({t,s:s2,k,go,x:""}));
   [["Dermatomes and nerves","Neurology map and quiz","learn/neuromap",DERM_ORDER.join(" ")+" dermatome sensory key points nerve territory"],["Where is the lesion?","Localisation","learn/localise","UMN LMN cord syndrome Brown-Sequard central cord gait vascular territory MCA ACA PCA brainstem Weber Wallenberg locked-in INO"],["Localiser","Lesion localisation cases","practice/localiser","localise lesion pinpoint brain spinal cord stroke"],["Root or nerve?","Localisation","learn/rootnerve","foot drop wrist drop claw hand ulnar peroneal radial meralgia"],["Myotomes and reflexes","Neurology","learn/myotomes","reflex root biceps triceps knee ankle MRC grading"],["Cranial nerves","Neurology","learn/cranial","olfactory optic oculomotor trochlear trigeminal abducens facial vestibulocochlear glossopharyngeal vagus accessory hypoglossal"]].forEach(([t,s2,go,x])=>I.push({t,s:s2,k:"learn",go,x}));
   DCOND.forEach(c=>I.push({t:c.n,s:`Skin atlas · ${c.g}`,k:"eye",go:`learn/dcond/${c.id}`,x:c.m+" "+c.dd.join(" ")}));
   DVOCAB.forEach(v=>I.push({t:v[0],s:"Skin lesion term",k:"learn",go:"learn/dmorph",x:v[2]+" "+v[3]}));
@@ -4153,6 +4158,10 @@ function cardHome(c){
 route("learn:home","Learn",(root)=>{
   root.innerHTML=`<section class="ph"><span class="eyebrow">Learn</span><h1>Examine with reasons, not rituals</h1><p class="lede">Each module gives you the surface anatomy, the focused history, the examination sequence with the mechanism and evidence for every step, what to think with each finding, and where people go wrong.</p></section>
   <section class="section"><span class="label">Examination by system</span><div class="grid">${SYSTEMS.map(m=>{const ms=mastery(m.id);const rh=Store.s.rehearse[m.id];return `<button class="tile" data-go="learn/module/${m.id}"><div class="t-top"><span class="icwrap">${m.icon}</span>${ring(ms.pct,34,4)}</div><b>${esc(m.name)}</b><span class="sub">${m.seq.length} steps · ${m.think.length} findings${Store.s.mods.includes(m.id)?" · reviewed":""}${rh?` · rehearsed ${rh.best}/${m.seq.length}`:""}</span></button>`;}).join("")}</div></section>
+  <section class="section"><span class="label">See the connections</span><div class="grid">
+    <button class="tile" data-go="learn/maps"><div class="t-top"><span class="icwrap">${ic("map")}</span><span class="tag">${CMAPS.length} maps</span></div><b>Concept maps</b><span class="sub">Mechanism → sign → decision, tap by tap.</span></button>
+    <button class="tile" data-go="signs/images"><div class="t-top"><span class="icwrap">${ic("eye")}</span><span class="tag">live</span></div><b>Photo library</b><span class="sub">Real signs and skin, openly licensed, pin your favourites.</span></button>
+    <button class="tile" data-go="tools/labs"><div class="t-top"><span class="icwrap">${ic("log")}</span></div><b>Labs at the bedside</b><span class="sub">Patterns that confirm or refute what you found.</span></button></div></section>
   <section class="section"><span class="label">Dermatology</span><div class="grid">
     <button class="tile" data-go="learn/datlas"><div class="t-top"><span class="icwrap">${ic("eye")}</span><span class="tag">${DCOND.length} conditions × 6 skin tones</span></div><b>Skin atlas</b><span class="sub">Drawn plates, model descriptions, look-alikes, links to real photos.</span></button>
     <button class="tile" data-go="learn/describe"><div class="t-top"><span class="icwrap">${ic("learn")}</span></div><b>Describe like a dermatologist</b><span class="sub">The order, the sentence, a builder.</span></button>
@@ -4584,6 +4593,8 @@ route("practice:home","Practice",(root)=>{
    ${T("practice/hdpe","target","predict first","Hypothesis-driven exam","Commit to hypotheses, choose a few manoeuvres, predict each finding, then see how far the evidence moved you.",`${hdDone}/${HDPE.length} cases done`)}
    ${T("practice/localiser","target","clue by clue","Localiser","Pinpoint the lesion in brain, brainstem, cord or nerve from a story told one clue at a time.",`${LCASES.filter(c=>(Store.s.loc[c.id]||{}).best>=85).length}/${LCASES.length} cases mastered`)}
    ${T("learn/neuromap","map","tap to learn","Dermatome quiz","Find the root or nerve on the body map.","")}
+   ${T("practice/spot","eye","perceptual","Spot diagnosis","A real photograph, four names; misses become lessons.","")}
+   ${T("tools/narrate","ear","hands-on","Narrated routine","Galen reads an examination aloud while you perform it.","")}
    ${T("practice/describe","eye","describe, then diagnose","Describe it","Describe a skin plate feature by feature, then name it.",`${Object.keys(Store.s.dprac||{}).length}/${DCOND.filter(c=>c.p&&c.d).length} plates tried`)}
    ${T("practice/er","case","applied","ER cases","Story and vitals, identify the sound, then choose the next step.",`${erDone}/${SCEN.length} done`)}
    ${T("practice/rehearse","mind","mental rehearsal","Rehearse a routine","Recall each step of a system's examination before you see it.","")}

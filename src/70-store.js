@@ -137,6 +137,7 @@ function buildCards(){
     add({id:"v:"+k,type:"verdict",sys:s.sys,reg,ref:k,label:s.name});
     add({id:"m:"+k,type:"mech",sys:s.sys,reg,ref:k,label:s.name});
     if(s.sens!=null&&s.spec!=null)add({id:"ss:"+k,type:"snsp",sys:s.sys,reg,ref:k,label:s.name});
+    if(typeof ANGLES!=="undefined"&&ANGLES[k]&&ANGLES[k].teachback)add({id:"tb:"+k,type:"teach",sys:s.sys,reg,ref:k,label:s.name});
   });
   SYSTEMS.forEach(m=>m.think.forEach(([f,t],i)=>add({id:`f:${m.id}:${i}`,type:"finding",sys:m.id,ref:[m.id,i],label:f})));
   const anatSys={chest:"cvs",abdomen:"abd",neck:"hn",back:"msk"};
@@ -162,7 +163,7 @@ function buildCards(){
   REGIONS.forEach(r=>r.tests.forEach(k=>C.forEach(c=>{if(c.ref===k&&!c.reg)c.reg=r.id;})));
   CARDS=C;return C;
 }
-const CARD_TYPE_LABEL={think:"What to think",verdict:"Test value",mech:"Mechanism",finding:"Finding",anat:"Surface anatomy",area:"Listening area",zone:"Lung zone",hlr:"History clue",red:"Red flags",sound:"Listen",snsp:"Rule in or out",derm:"Dermatome",myo:"Myotome",reflex:"Reflex root",rootnerve:"Root or nerve?",cranial:"Cranial nerve",dterm:"Skin term",dplate:"Name the rash"};
+const CARD_TYPE_LABEL={think:"What to think",verdict:"Test value",mech:"Mechanism",finding:"Finding",anat:"Surface anatomy",area:"Listening area",zone:"Lung zone",hlr:"History clue",red:"Red flags",sound:"Listen",snsp:"Rule in or out",derm:"Dermatome",myo:"Myotome",reflex:"Reflex root",rootnerve:"Root or nerve?",cranial:"Cranial nerve",dterm:"Skin term",dplate:"Name the rash",teach:"Teach it back"};
 const AUTO={verdict:1,mech:1,hlr:1,sound:1,snsp:1,myo:1,reflex:1,dplate:1};
 /* scope: "all", a system id, or "reg:<region>" */
 const inScope=(c,sys)=>!sys||sys==="all"||(sys.startsWith("reg:")?c.reg===sys.slice(4):c.sys===sys);
