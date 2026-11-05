@@ -14,7 +14,7 @@ async function mk(vp,scheme){const ctx=await b.newContext({viewport:vp,colorSche
 /* ---------- 1. all routes ---------- */
 const pg=await mk({width:390,height:844},'light');
 const routes=await pg.evaluate(()=>{const R=[];
-  const NEEDS_ID=['learn:module','learn:region','signs:sign','signs:imgsub','sounds:sound','practice:pocket','learn:dcond','learn:map','tools:calc','tools:lab'];for(const k of Object.keys(ROUTES)){if(NEEDS_ID.includes(k))continue;const [t,v]=k.split(':');R.push([t,v]);}
+  const NEEDS_ID=['learn:module','learn:region','signs:sign','signs:imgsub','sounds:sound','practice:pocket','learn:dcond','learn:map','tools:calc','tools:lab','learn:techpocket','practice:techwalk','practice:techorder','practice:techrep','practice:techmcq'];for(const k of Object.keys(ROUTES)){if(NEEDS_ID.includes(k))continue;const [t,v]=k.split(':');R.push([t,v]);}
   TOOLS.forEach(t=>R.push(['tools','calc',t.id]));LABS.forEach(l=>R.push(['tools','lab',l.id]));
   CMAPS.forEach(m=>R.push(['learn','map',m.id]));DCOND.forEach(c=>R.push(['learn','dcond',c.id]));
   Object.keys(SIGNS).forEach(k=>R.push(['signs','sign',k]));HIST.pres.forEach(p=>R.push(['learn','pres',p.id]));
