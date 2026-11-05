@@ -67,6 +67,7 @@ route("signs:sign",(id)=>SYS_SHORT[(SIGNS[id]||{}).sys]||"Sign",(root,id)=>{
     <h1>${esc(s.name)}</h1><p class="quote">Target: ${esc(s.target)}</p><div class="lrrow">${lrChips(s)}</div></section>
    ${s.fig?fig(s.fig):""}
    ${IMG_SUBJECTS[id]?Img.galleryHTML("s:"+id,IMG_SUBJECTS[id][1],{title:IMG_SUBJECTS[id][0]}):""}
+   ${(()=>{const T=typeof TECH!=="undefined"&&TECH.find(t=>(t.signs||[]).includes(id));return T?`<button class="tile" data-go="learn/tech/${T.id}" style="border-color:var(--accent)"><div class="t-top"><span class="icwrap">${ic("check")}</span><span class="tag">technique clinic</span></div><b>Master the technique: ${esc(T.name)}</b><span class="sub">Every step with its reason, the errors that fool good clinicians, and five drills until it is automatic.</span></button>`:"";})()}
    ${s.how||s.anat?`<div class="card stack" style="gap:16px">${sec("How to do it",s.how)}${sec("The anatomy",s.anat)}</div>`:""}
    <div class="card stack" style="gap:16px">${sec("Why it works",s.mech)}${sec("What to think",s.think)}</div>
    ${anglesHTML(id)}

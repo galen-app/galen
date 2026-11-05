@@ -139,6 +139,9 @@ function buildCards(){
     if(s.sens!=null&&s.spec!=null)add({id:"ss:"+k,type:"snsp",sys:s.sys,reg,ref:k,label:s.name});
     if(typeof ANGLES!=="undefined"&&ANGLES[k]&&ANGLES[k].teachback)add({id:"tb:"+k,type:"teach",sys:s.sys,reg,ref:k,label:s.name});
   });
+  if(typeof TECH!=="undefined")TECH.forEach(t=>{const sys=t.group==="Ear, nose and eye"?"hn":"neuro";
+    t.steps.forEach((st,i)=>add({id:`tw:${t.id}:${i}`,type:"twhy",sys,ref:[t.id,i],label:t.name}));
+    (t.mcq||[]).forEach((q,i)=>add({id:`te:${t.id}:${i}`,type:"terr",sys,ref:[t.id,i],label:t.name}));});
   SYSTEMS.forEach(m=>m.think.forEach(([f,t],i)=>add({id:`f:${m.id}:${i}`,type:"finding",sys:m.id,ref:[m.id,i],label:f})));
   const anatSys={chest:"cvs",abdomen:"abd",neck:"hn",back:"msk"};
   Object.entries(ANAT).forEach(([key,a])=>a.pts.forEach(p=>add({id:`a:${key}:${p.k}`,type:"anat",sys:anatSys[key],ref:[key,p.k],label:p.n})));

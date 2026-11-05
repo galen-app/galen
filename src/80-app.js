@@ -35,7 +35,7 @@ function render(fresh,keepScroll){
   Players.reset();closePalette();
   const r=cur(),key=NAV.tab+":"+r.v,fn=ROUTES[key];
   const y=keepScroll?window.scrollY:fresh?0:(r.scroll||0);
-  V.className="wrap enter";V.innerHTML="";
+  V.className="wrap enter";V.innerHTML="";if(typeof KEYS!=="undefined")KEYS.handler=null;
   try{if(!fn)throw new Error("Unknown view "+key);fn(V,r.a,r.b);}
   catch(e){console.error(e);V.innerHTML=`<div class="card stack"><h2>Something went wrong on this page</h2><p class="muted">${esc(e.message||e)}</p><div class="row-x"><button class="btn" data-act="home">Go to Today</button><button class="btn ghost" data-act="back">Back</button></div></div>`;}
   chrome();
@@ -81,6 +81,7 @@ let PAL=null,PALIDX=null;
 function palIndex(){
   if(PALIDX)return PALIDX;const I=[];
   SYSTEMS.forEach(m=>I.push({t:m.name,s:"Examination module",k:"learn",go:`learn/module/${m.id}`,x:m.intro}));
+  if(typeof TECH!=="undefined")TECH.forEach(t=>I.push({t:t.name,s:"Technique clinic · "+t.group,k:"check",go:`learn/tech/${t.id}`,x:t.purpose+" "+(t.hook||"")+" "+t.steps.map(s=>s.do).join(" ")}));
   CMAPS.forEach(m=>I.push({t:m.title,s:"Concept map",k:"map",go:`learn/map/${m.id}`,x:m.intro+" "+m.nodes.map(n=>n.label).join(" ")}));
   TOOLS.forEach(t=>I.push({t:t.name,s:`${t.group} · ${t.kind}`,k:"scale",go:`tools/calc/${t.id}`,x:t.use}));
   if(typeof LABS!=="undefined")LABS.forEach(p=>I.push({t:p.name,s:"Labs",k:"log",go:`tools/lab/${p.id}`,x:p.intro}));
@@ -161,7 +162,7 @@ route("today:home","Today",(root)=>{
   const ready=Object.keys(DCOND).length;
   const planLine=plan?(plan.blocks.length?`Citrus planned <b>${esc(plan.blocks[0].title)}</b> at ${esc(plan.blocks[0].start)} (${plan.blocks[0].minutes} min)`:plan.shift?`Today: <b>${esc(plan.shift.label||plan.shift.code||"shift")}</b>${plan.shift.start?` ${esc(plan.shift.start)}–${esc(plan.shift.end)}`:""}${light?" · after a night, three items are plenty":""}`:light?"After a night: three items are plenty today":""):"";
   const roundItems=ROUND.map(([k,t,sub,go,icn])=>{let g=go,s2=sub;if(k==="session"){s2=total?`${due} due, ${nw} new · about ${mins} min`:"Nothing due · learn 10 more";}if(k==="case"){const alt=["practice/hdpe/"+nextCase.id,"practice/er","practice/localiser"][new Date().getDate()%3];g=alt;s2=alt.startsWith("practice/er")?"An ER case":alt.endsWith("localiser")?"Pinpoint a lesion":esc(nextCase.title);}
-    if(k==="eye")g=new Date().getDate()%2?"practice/describe":"practice/spot";if(k==="read")g=new Date().getDate()%2?"signs/er":"learn/maps";if(k==="hands")g=["practice/rehearse","tools/narrate","practice/drill"][new Date().getDate()%3];
+    if(k==="eye")g=new Date().getDate()%2?"practice/describe":"practice/spot";if(k==="read")g=new Date().getDate()%2?"signs/er":"learn/maps";if(k==="hands"){const td=typeof techOfDay==="function"&&techOfDay();g=["practice/rehearse","tools/narrate","practice/drill",td?"learn/tech/"+td.id:"practice/drill"][new Date().getDate()%4];if(td&&new Date().getDate()%4===3)s2="Technique: "+td.name;}
     return `<button class="rnd${round[k]?" done":""}" data-go="${g}"><span class="rdot">${round[k]?ic("check"):ic(icn)}</span><span class="txt"><b>${t}</b><span>${s2}</span></span>${ic("chev","chev")}</button>`;}).join("");
   root.innerHTML=`
   <section class="hero">
@@ -173,6 +174,7 @@ route("today:home","Today",(root)=>{
       <select class="sel" id="focus" aria-label="Focus the session on one system" style="width:auto;min-width:0;flex:0 1 auto"><option value="">Focus: all systems</option>${Object.entries(SYS_NAME).map(([k,v])=>`<option value="${k}">${v}</option>`).join("")}</select></div>
   </section>
   <section class="section"><div class="row-x"><span class="label">Today's round</span><span class="spacer"></span>${ring(roundDone/roundN,26,4)}</div><div class="round">${roundItems}</div></section>
+  ${(()=>{const td=typeof techOfDay==="function"&&techOfDay();if(!td)return "";const c=techConf(td.id);return `<button class="tile" data-go="learn/tech/${td.id}"><div class="t-top"><span class="eyebrow">Technique of the day</span>${pips(td.id)}</div><b>${esc(td.name)}</b><span class="sub">${esc(td.hook||td.purpose)}</span><span class="small" style="font-weight:700;color:var(--accent-ink)">${c==null?"Rate your confidence, then walk it through":`Confidence ${c}/5 · ${techDone(td.id)}/5 milestones`}</span></button>`;})()}
   <section class="grid">
     <div class="tile" data-hint="This week|Days with any practice. Streaks count up to yesterday if today isn't done yet."><div class="t-top"><span class="eyebrow">This week</span><span class="pill acc">${ic("flame")}${st} day${st===1?"":"s"}</span></div><div class="week">${week}</div></div>
     <div class="tile" data-hint="Level|XP comes from every card, case, plate and routine. Levels grow with the square root, so early levels come fast."><span class="eyebrow">Level ${lv.l} · ${esc(lv.title)}</span><div class="meter" style="margin:8px 0 4px"><i style="width:${Math.round(lv.pct*100)}%"></i></div><span class="small muted">${Store.s.xp||0} XP · ${lv.next-(Store.s.xp||0)} to level ${lv.l+1}</span></div>
@@ -210,13 +212,14 @@ function cardHome(c){
   switch(c.type){case "think":case "verdict":case "mech":case "snsp":case "teach":return `signs/sign/${c.ref}`;case "sound":return `sounds/sound/${c.ref}`;
    case "finding":return `learn/module/${c.ref[0]}/think`;case "anat":return `learn/module/${({chest:"cvs",abdomen:"abd",neck:"hn",back:"msk"})[c.ref[0]]}/anat`;
    case "area":case "zone":return "sounds/map";case "hlr":return `learn/pres/${c.ref[0]}`;case "red":return `learn/pres/${c.ref}`;
-   case "dterm":return "learn/dmorph";case "dplate":return `learn/dcond/${c.ref}`;case "derm":return "learn/neuromap/derm";case "myo":case "reflex":return "learn/myotomes";case "rootnerve":return "learn/rootnerve";case "cranial":return "learn/cranial";}
+   case "dterm":return "learn/dmorph";case "dplate":return `learn/dcond/${c.ref}`;case "derm":return "learn/neuromap/derm";case "myo":case "reflex":return "learn/myotomes";case "rootnerve":return "learn/rootnerve";case "cranial":return "learn/cranial";case "twhy":case "terr":return `learn/tech/${c.ref[0]}`;}
   return "today";
 }
 
 /* ================= LEARN ================= */
 route("learn:home","Learn",(root)=>{
   root.innerHTML=`<section class="ph"><span class="eyebrow">Learn</span><h1>Examine with reasons, not rituals</h1><p class="lede">Each module gives you the surface anatomy, the focused history, the examination sequence with the mechanism and evidence for every step, what to think with each finding, and where people go wrong.</p></section>
+  ${typeof TECH!=="undefined"&&TECH.length?`<button class="tile" data-go="learn/tech" style="border-color:var(--accent)"><div class="t-top"><span class="icwrap">${ic("check")}</span><span class="tag">${TECH.length} techniques</span></div><b>Technique clinic</b><span class="sub">Otoscopy, fundoscopy, rhinoscopy, Tinel, reflexes, plantar, Dix–Hallpike, HINTS and more: the proper way, the reason for every move, and drills until you are certain.</span></button>`:""}
   <section class="section"><span class="label">Examination by system</span><div class="grid">${SYSTEMS.map(m=>{const ms=mastery(m.id);const rh=Store.s.rehearse[m.id];return `<button class="tile" data-go="learn/module/${m.id}"><div class="t-top"><span class="icwrap">${m.icon}</span>${ring(ms.pct,34,4)}</div><b>${esc(m.name)}</b><span class="sub">${m.seq.length} steps · ${m.think.length} findings${Store.s.mods.includes(m.id)?" · reviewed":""}${rh?` · rehearsed ${rh.best}/${m.seq.length}`:""}</span></button>`;}).join("")}</div></section>
   <section class="section"><span class="label">See the connections</span><div class="grid">
     <button class="tile" data-go="learn/maps"><div class="t-top"><span class="icwrap">${ic("map")}</span><span class="tag">${CMAPS.length} maps</span></div><b>Concept maps</b><span class="sub">Mechanism → sign → decision, tap by tap.</span></button>
