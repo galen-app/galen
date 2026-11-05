@@ -1,4 +1,4 @@
-window.GALEN_PLATFORM="pages";window.GALEN_VERSION="6.0.1";window.GALEN_BUILD="f2f984ee2e";
+window.GALEN_PLATFORM="pages";window.GALEN_VERSION="6.0.1";window.GALEN_BUILD="c2cb899eb0";
 "use strict";
 /* ================= UTILITIES ================= */
 const $=(s,el=document)=>el.querySelector(s), $$=(s,el=document)=>[...el.querySelectorAll(s)];
@@ -5734,7 +5734,6 @@ route("practice:techrep",(id)=>"Bedside rep",(root,id)=>{
       ticked.clear();obs=false;if(techConf(id)!=null&&cl>=3&&techConf(id)<5)setTimeout(()=>toast("Rate your confidence again on the technique page"),2600);draw();window.scrollTo(0,0);});
   };draw();
 });
-const fmtDate=t=>{const d=new Date(t);return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;};
 
 /* ---------- spaced cards: why each step, and the error behind each fix ---------- */
 CARD_TYPE_LABEL.twhy="Why this step";CARD_TYPE_LABEL.terr="Technique error";AUTO.terr=1;
