@@ -1,8 +1,8 @@
 /* Galen service worker: precache the shell and recordings (cache-first), runtime-cache fonts and Commons images (stale-while-revalidate), never cache Google APIs. Updates wait for the user to tap Update. */
-const VERSION = 'c2cb899eb0';
+const VERSION = '9c5d96dd3a';
 const SHELL = 'galen-shell-' + VERSION;
 const RUNTIME = 'galen-runtime-v1';
-const PRECACHE = ["./", "index.html", "app.css?v=c2cb899eb0", "app.js?v=c2cb899eb0", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "rec/40638274_9.7_1_p2_1719.wav", "rec/41173389_4.1_1_p3_1554.wav", "rec/41226005_3.9_1_p4_980.wav", "rec/41261802_10.5_0_p2_222.wav", "rec/41267028_0.2_0_p1_2439.wav", "rec/41273341_6.9_0_p1_2201.wav", "rec/41274453_4.3_1_p1_1390.wav", "rec/63613821_9.2_1_p1_1300.wav", "rec/64743918_7.0_0_p2_2625.wav", "rec/64913238_0.6_1_p2_2997.wav", "rec/65042563_9.6_1_p3_239.wav", "rec/65060531_7.7_0_p3_735.wav", "rec/AR_052_sit_Pul.wav", "rec/AR_068_sit_Aor.wav", "rec/AS_015_sit_Aor.wav", "rec/AS_054_sit_Aor.wav", "rec/MR_011_sup_Mit.wav", "rec/MR_040_sup_Mit.wav", "rec/MS_012_sup_Mit.wav", "rec/MS_041_sup_Mit.wav", "rec/N_089_sup_Mit.wav", "rec/N_090_sup_Aor.wav"];
+const PRECACHE = ["./", "index.html", "app.css?v=9c5d96dd3a", "app.js?v=9c5d96dd3a", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "rec/40638274_9.7_1_p2_1719.wav", "rec/41173389_4.1_1_p3_1554.wav", "rec/41226005_3.9_1_p4_980.wav", "rec/41261802_10.5_0_p2_222.wav", "rec/41267028_0.2_0_p1_2439.wav", "rec/41273341_6.9_0_p1_2201.wav", "rec/41274453_4.3_1_p1_1390.wav", "rec/63613821_9.2_1_p1_1300.wav", "rec/64743918_7.0_0_p2_2625.wav", "rec/64913238_0.6_1_p2_2997.wav", "rec/65042563_9.6_1_p3_239.wav", "rec/65060531_7.7_0_p3_735.wav", "rec/AR_052_sit_Pul.wav", "rec/AR_068_sit_Aor.wav", "rec/AS_015_sit_Aor.wav", "rec/AS_054_sit_Aor.wav", "rec/MR_011_sup_Mit.wav", "rec/MR_040_sup_Mit.wav", "rec/MS_012_sup_Mit.wav", "rec/MS_041_sup_Mit.wav", "rec/N_089_sup_Mit.wav", "rec/N_090_sup_Aor.wav"];
 self.addEventListener('install', e => {
   e.waitUntil((async () => {
     const c = await caches.open(SHELL);

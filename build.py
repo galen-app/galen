@@ -53,8 +53,9 @@ if ('serviceWorker' in navigator) {{
     window.GALEN_SW = reg;
     reg.addEventListener('updatefound', () => {{ const w = reg.installing; w && w.addEventListener('statechange', () => {{ if (w.state === 'installed' && navigator.serviceWorker.controller) document.dispatchEvent(new CustomEvent('galen:update', {{ detail: reg }})); }}); }});
   }}).catch(e => console.warn('sw', e)));
-  let refreshing = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {{ if (refreshing) return; refreshing = true; location.reload(); }});
+  /* reload only when an update replaces a worker that was already in control (the user tapped Update), never on the first install */
+  let refreshing = false; const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {{ if (refreshing || !hadController) return; refreshing = true; location.reload(); }});
 }}
 </script>
 </body>

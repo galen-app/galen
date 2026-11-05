@@ -21,7 +21,7 @@ Object.assign(FIG,{
  ${P.r(222,10,30,18,"var(--surface2)","var(--ink2)",4)}${P.t(258,24,"ophthalmoscope")}
  ${P.c(270,120,30,"var(--surface)","var(--line)")}${P.c(262,120,7,"var(--warn-soft)","var(--warn)")}${P.c(286,120,4,"var(--bad-soft)","var(--bad)")}
  ${P.t(262,162,"disc (nasal)","middle")}${P.t(292,108,"fovea","middle")}${P.t(270,182,"right fundus","middle")}`},
-"tech-rhinoscopy":{t:"Anterior rhinoscopy: lift the tip, look along the floor",c:"Push the nasal tip up with your thumb: the vestibule straightens and you can already see Little's area on the anterior septum. Open the speculum vertically (blades up and down) so neither blade presses on the septum, which is tender and bleeds. Look along the floor to the inferior turbinate, then tilt the head back to see the middle turbinate and the meatus.",
+"tech-rhinoscopy":{t:"Anterior rhinoscopy: lift the tip, look along the floor",c:"Push the nasal tip up with your thumb: the vestibule straightens and you can already see Little's area on the anterior septum. Keep the speculum blades in the hair-bearing vestibule and open them so the movement lifts the mobile ala, never pressing on the septum, which is tender and bleeds from Little's area. Textbooks differ on the exact blade orientation; the principle doesn't. Look along the floor to the inferior turbinate, then tilt the head back to see the middle turbinate and the meatus.",
  s:()=>`${P.pa("M40 40 Q60 30 80 52 L140 140 Q150 160 132 168 L60 168 Q46 150 52 128 Z","var(--skin)","var(--line)",1.3)}
  ${P.e(118,154,14,8,"var(--surface2)","var(--ink2)")}
  ${P.ar(150,186,140,166)}${P.t(154,192,"thumb lifts the tip")}
