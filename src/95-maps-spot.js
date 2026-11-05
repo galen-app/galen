@@ -14,10 +14,17 @@ function layoutMap(m){
 function mapSVG(m,sel){
   const {pos,W,H}=layoutMap(m);const bw=128,bh=40;
   const wrap=(t)=>{const words=t.split(" ");const lines=[];let cur="";words.forEach(w=>{if((cur+" "+w).trim().length>18){lines.push(cur.trim());cur=w;}else cur+=" "+w;});if(cur.trim())lines.push(cur.trim());return lines.slice(0,2);};
-  const edges=m.edges.map(e=>{const a=pos[e.from],b=pos[e.to];if(!a||!b)return "";const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;const d=`M${a.x} ${a.y+bh/2} C ${a.x} ${my}, ${b.x} ${my}, ${b.x} ${b.y-bh/2}`;
-    return `<path class="ed" d="${d}" marker-end="url(#arr)"/>${e.label?`<text class="el" x="${mx}" y="${my-3}" text-anchor="middle">${esc(e.label)}</text>`:""}`;}).join("");
+  /* edge labels: place at the curve midpoint, nudge to avoid collisions with other labels and nodes, drop if no room (the note still names every link) */
+  const boxes=Object.values(pos).map(p=>[p.x-bw/2-2,p.y-bh/2-2,p.x+bw/2+2,p.y+bh/2+2]);
+  const hit=r=>boxes.some(q=>r[0]<q[2]&&r[2]>q[0]&&r[1]<q[3]&&r[3]>q[1]);
+  const paths=[],labels=[];
+  m.edges.forEach(e=>{const a=pos[e.from],b=pos[e.to];if(!a||!b)return;const my=(a.y+b.y)/2;
+    paths.push(`<path class="ed" d="M${a.x} ${a.y+bh/2} C ${a.x} ${my}, ${b.x} ${my}, ${b.x} ${b.y-bh/2}" marker-end="url(#arr)"/>`);
+    if(!e.label)return;const w=e.label.length*5.9+6,mx=(a.x+b.x)/2;
+    for(const [dx,dy] of [[0,0],[0,-11],[0,11],[-w/2-4,0],[w/2+4,0],[0,-22],[0,22]]){const x=mx+dx,y=my+dy,r=[x-w/2,y-9,x+w/2,y+3];if(!hit(r)){boxes.push(r);labels.push(`<text class="el" x="${x}" y="${y}" text-anchor="middle">${esc(e.label)}</text>`);break;}}});
+  const edges=paths.join("")+labels.join("");
   const nodes=m.nodes.map(n=>{const p=pos[n.id];const lines=wrap(n.label);return `<g class="nd t-${n.type}${sel===n.id?" sel":""}" data-n="${n.id}" transform="translate(${p.x-bw/2} ${p.y-bh/2})"><rect width="${bw}" height="${bh}"/>${lines.map((l,i)=>`<text x="${bw/2}" y="${lines.length===1?25:17+i*14}" text-anchor="middle">${esc(l)}</text>`).join("")}${n.link?`<circle cx="${bw-8}" cy="8" r="3" fill="var(--accent)"/>`:""}</g>`;}).join("");
-  return `<svg class="cmap" viewBox="0 0 ${W} ${H}" style="min-width:${Math.min(W,900)}px"><defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>${edges}${nodes}</svg>`;
+  return `<svg class="cmap" viewBox="0 0 ${W} ${H}" style="min-width:${Math.min(W,620)}px"><defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>${edges}${nodes}</svg>`;
 }
 route("learn:maps","Concept maps",(root)=>{
   const by={};CMAPS.forEach(m=>(by[m.sys]||(by[m.sys]=[])).push(m));

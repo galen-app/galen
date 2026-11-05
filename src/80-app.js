@@ -168,7 +168,7 @@ route("today:home","Today",(root)=>{
     <svg class="trace" viewBox="0 0 260 60" aria-hidden="true"><path d="M0 34h46l7-5 7 5h22l5 6 7-34 7 40 5-12h30l9-6 10 6h36l7-5 7 5h22l5 6 7-34 7 40" fill="none" stroke="currentColor" stroke-width="2"/></svg>
     <div class="stack" style="gap:6px"><span class="eyebrow">${WD[new Date().getDay()]} · ${fmtDate(Date.now())}${planLine?` · <span style="text-transform:none;letter-spacing:0">${planLine}</span>`:""}</span><h1>${greet()}${name?", "+esc(name):""}.</h1>
     <p class="muted">${roundDone>=roundN?"Today's round is done. Anything more is a bonus.":`${roundDone} of ${roundN} on today's round. ${total?`Start with the session: ${due?`${due} review${due>1?"s":""}`:""}${due&&nw?" and ":""}${nw?`${nw} new`:""}.`:"Nothing is due: pick a case or a plate."}`}</p></div>
-    <div class="counts"><div><b>${due}</b><span>due</span></div><div><b>${st}</b><span>day streak</span></div><div><b>${lv.l}</b><span>${esc(lv.title)}</span></div></div>
+    <div class="counts"><div><b>${due}</b><span>due</span></div><div><b>${st}</b><span>day streak</span></div><div><b>${Store.s.xp||0}</b><span>XP · ${esc(lv.title)}</span></div></div>
     <div class="row-x">${total?`<button class="btn" data-go="practice/session/all">${ic("play")}Start today's session</button>`:`<button class="btn" data-act="extra">${ic("play")}Learn 10 more</button>`}
       <select class="sel" id="focus" aria-label="Focus the session on one system" style="width:auto;min-width:0;flex:0 1 auto"><option value="">Focus: all systems</option>${Object.entries(SYS_NAME).map(([k,v])=>`<option value="${k}">${v}</option>`).join("")}</select></div>
   </section>

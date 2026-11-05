@@ -460,7 +460,7 @@ canvas.plate{width:100%;height:auto;aspect-ratio:3/2;display:block;border-radius
 .cmap{width:100%;height:auto;display:block;background:var(--surface2);border-radius:var(--r);touch-action:pan-y}
 .cmap .nd{cursor:pointer}.cmap .nd rect{stroke-width:1.4;rx:10}.cmap .nd text{font:600 11.5px var(--f-body);fill:var(--ink);pointer-events:none}
 .cmap .nd.sel rect{stroke:var(--accent);stroke-width:2.5}
-.cmap .ed{fill:none;stroke:var(--muted);stroke-width:1.3;opacity:.75}.cmap .el{font:500 9.5px var(--f-mono);fill:var(--muted)}
+.cmap .ed{fill:none;stroke:var(--muted);stroke-width:1.3;opacity:.75}.cmap .el{font:500 9.5px var(--f-mono);fill:var(--muted);paint-order:stroke;stroke:var(--surface2);stroke-width:4px;stroke-linejoin:round}
 .cmap .t-symptom rect{fill:var(--warn-soft);stroke:var(--warn)}.cmap .t-mechanism rect{fill:var(--surface);stroke:var(--line)}.cmap .t-sign rect{fill:var(--accent-soft);stroke:var(--accent)}.cmap .t-diagnosis rect{fill:var(--good-soft);stroke:var(--good)}.cmap .t-test rect{fill:var(--surface3);stroke:var(--muted)}.cmap .t-decision rect{fill:var(--bad-soft);stroke:var(--bad)}.cmap .t-anatomy rect{fill:var(--bone);stroke:var(--bone-line)}.cmap .t-history rect{fill:var(--surface);stroke:var(--insp)}
 .cmwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .legend{display:flex;gap:8px;flex-wrap:wrap;font-size:.75rem;color:var(--muted)}.legend i{display:inline-block;width:12px;height:12px;border-radius:4px;vertical-align:-1px;margin-right:4px;border:1px solid}

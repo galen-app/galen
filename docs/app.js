@@ -1,4 +1,4 @@
-window.GALEN_PLATFORM="pages";window.GALEN_VERSION="6.0.0";window.GALEN_BUILD="a5a2ffb7cf";
+window.GALEN_PLATFORM="pages";window.GALEN_VERSION="6.0.1";window.GALEN_BUILD="7a752f8cf7";
 "use strict";
 /* ================= UTILITIES ================= */
 const $=(s,el=document)=>el.querySelector(s), $$=(s,el=document)=>[...el.querySelectorAll(s)];
@@ -332,7 +332,7 @@ function setOutMode(m){
   try{E.gain.disconnect();}catch(e){}
   E.gain.connect(E.chains[m==="phones"?"phones":"speaker"].input);E.mode=m;
 }
-function route(){
+function routeAudio(){
   if(!E.src)return;try{E.src.disconnect();}catch(e){}if(E.node){try{E.node.disconnect();}catch(e){}E.node=null;}
   const m=E.box.piece;
   if(m==="open"){E.src.connect(E.gain);return;}
@@ -344,7 +344,7 @@ function startBox(box){
   if(!c){if(typeof toast==="function")toast("Audio isn't available in this browser.");return;}
   if(!box.data){if(box.err)return;box.pending=true;box.setPlaying(true);return;}
   box.pending=false;const d=box.data;if(!d.ab){d.ab=c.createBuffer(1,d.buf.length,SR);d.ab.getChannelData(0).set(d.buf);}
-  try{E.src=c.createBufferSource();E.src.buffer=d.ab;E.src.loop=true;E.box=box;route();E.src.start();}
+  try{E.src=c.createBufferSource();E.src.buffer=d.ab;E.src.loop=true;E.box=box;routeAudio();E.src.start();}
   catch(e){console.warn(e);E.src=null;E.box=null;box.setPlaying(false);if(typeof toast==="function")toast("Couldn't start playback. Tap play again.");return;}
   E.t0=c.currentTime+.02;box.setPlaying(true);
   const loop=()=>{if(!E.box||!E.box.data)return;if(!E.box.cv.isConnected){stopAll();return;}E.box.draw(((E.ctx.currentTime-E.t0)%E.box.data.dur+E.box.data.dur)%E.box.data.dur);E.raf=requestAnimationFrame(loop);};loop();
@@ -395,7 +395,7 @@ class Player{
         .catch(()=>{if(this.id!==id)return;this.err=true;this.pending=false;this.setPlaying(false);this.draw(null);});return;}
     this.data=getData(id,this.hr);this.draw(null);}
   destroy(){try{this.ro.disconnect();}catch(e){}if(E.box===this)stopAll();this.dead=true;}
-  setPiece(p){this.piece=p;this.updSeg();if(E.box===this)route();else this.draw(null);}
+  setPiece(p){this.piece=p;this.updSeg();if(E.box===this)routeAudio();else this.draw(null);}
   updSeg(){this.segEl.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.p===this.piece));
     const s=item(this.id);if(REAL[this.id]){this.hint.textContent="Real recording: the bell and diaphragm settings filter it the same way a chest piece would.";return;}const rec=PIECE[s.piece].label;
     this.hint.textContent=this.piece===s.piece?`${rec} is the recommended chest piece for this sound.`:`Recommended: ${rec}. Compare how the trace and sound change.`;}
@@ -4125,7 +4125,7 @@ route("today:home","Today",(root)=>{
     <svg class="trace" viewBox="0 0 260 60" aria-hidden="true"><path d="M0 34h46l7-5 7 5h22l5 6 7-34 7 40 5-12h30l9-6 10 6h36l7-5 7 5h22l5 6 7-34 7 40" fill="none" stroke="currentColor" stroke-width="2"/></svg>
     <div class="stack" style="gap:6px"><span class="eyebrow">${WD[new Date().getDay()]} · ${fmtDate(Date.now())}${planLine?` · <span style="text-transform:none;letter-spacing:0">${planLine}</span>`:""}</span><h1>${greet()}${name?", "+esc(name):""}.</h1>
     <p class="muted">${roundDone>=roundN?"Today's round is done. Anything more is a bonus.":`${roundDone} of ${roundN} on today's round. ${total?`Start with the session: ${due?`${due} review${due>1?"s":""}`:""}${due&&nw?" and ":""}${nw?`${nw} new`:""}.`:"Nothing is due: pick a case or a plate."}`}</p></div>
-    <div class="counts"><div><b>${due}</b><span>due</span></div><div><b>${st}</b><span>day streak</span></div><div><b>${lv.l}</b><span>${esc(lv.title)}</span></div></div>
+    <div class="counts"><div><b>${due}</b><span>due</span></div><div><b>${st}</b><span>day streak</span></div><div><b>${Store.s.xp||0}</b><span>XP · ${esc(lv.title)}</span></div></div>
     <div class="row-x">${total?`<button class="btn" data-go="practice/session/all">${ic("play")}Start today's session</button>`:`<button class="btn" data-act="extra">${ic("play")}Learn 10 more</button>`}
       <select class="sel" id="focus" aria-label="Focus the session on one system" style="width:auto;min-width:0;flex:0 1 auto"><option value="">Focus: all systems</option>${Object.entries(SYS_NAME).map(([k,v])=>`<option value="${k}">${v}</option>`).join("")}</select></div>
   </section>
@@ -4414,7 +4414,7 @@ route("signs:imgsub",(id)=>(IMG_SUBJECTS[id]||[id])[0],(root,id)=>{
 route("signs:atlas","Atlas",(root)=>{
   const users={};Object.entries(SIGNS).forEach(([k,s])=>{if(s.fig)(users[s.fig]||(users[s.fig]=[])).push(k);});
   root.innerHTML=`<section class="ph"><span class="eyebrow">Atlas</span><h1>The anatomy behind the exam</h1><p class="lede">${Object.keys(FIG).length} illustrations of the structures and physiology each manoeuvre relies on. Tap one to see the tests that use it.</p></section>
-   <div class="atlas">${Object.keys(FIG).map(k=>{const u=users[k]||[];const reg=REGIONS.find(r=>r.fig===k);const go=reg?`learn/region/${reg.id}`:u.length?`signs/sign/${u[0]}`:"";return `<div data-go="${go}" role="button" tabindex="0">${fig(k,{small:true})}</div>`;}).join("")}</div>`;
+   <div class="atlas">${Object.keys(FIG).map(k=>{const u=users[k]||[];const reg=REGIONS.find(r=>r.fig===k);const NF={cord:"learn/localise/cord","cn-brainstem":"learn/cranial",homunculus:"learn/localise/rules","vasc-territories":"learn/localise/vessels","medulla-x":"learn/localise/stem"};const go=reg?`learn/region/${reg.id}`:u.length?`signs/sign/${u[0]}`:NF[k]||"";if(!go)return `<div>${fig(k,{small:true})}</div>`;return `<div data-go="${go}" role="button" tabindex="0">${fig(k,{small:true})}</div>`;}).join("")}</div>`;
 });
 route("signs:er","ER essentials",(root)=>{
   const ids=Object.keys(DEEP).filter(k=>SIGNS[k]);
@@ -6020,10 +6020,17 @@ function layoutMap(m){
 function mapSVG(m,sel){
   const {pos,W,H}=layoutMap(m);const bw=128,bh=40;
   const wrap=(t)=>{const words=t.split(" ");const lines=[];let cur="";words.forEach(w=>{if((cur+" "+w).trim().length>18){lines.push(cur.trim());cur=w;}else cur+=" "+w;});if(cur.trim())lines.push(cur.trim());return lines.slice(0,2);};
-  const edges=m.edges.map(e=>{const a=pos[e.from],b=pos[e.to];if(!a||!b)return "";const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;const d=`M${a.x} ${a.y+bh/2} C ${a.x} ${my}, ${b.x} ${my}, ${b.x} ${b.y-bh/2}`;
-    return `<path class="ed" d="${d}" marker-end="url(#arr)"/>${e.label?`<text class="el" x="${mx}" y="${my-3}" text-anchor="middle">${esc(e.label)}</text>`:""}`;}).join("");
+  /* edge labels: place at the curve midpoint, nudge to avoid collisions with other labels and nodes, drop if no room (the note still names every link) */
+  const boxes=Object.values(pos).map(p=>[p.x-bw/2-2,p.y-bh/2-2,p.x+bw/2+2,p.y+bh/2+2]);
+  const hit=r=>boxes.some(q=>r[0]<q[2]&&r[2]>q[0]&&r[1]<q[3]&&r[3]>q[1]);
+  const paths=[],labels=[];
+  m.edges.forEach(e=>{const a=pos[e.from],b=pos[e.to];if(!a||!b)return;const my=(a.y+b.y)/2;
+    paths.push(`<path class="ed" d="M${a.x} ${a.y+bh/2} C ${a.x} ${my}, ${b.x} ${my}, ${b.x} ${b.y-bh/2}" marker-end="url(#arr)"/>`);
+    if(!e.label)return;const w=e.label.length*5.9+6,mx=(a.x+b.x)/2;
+    for(const [dx,dy] of [[0,0],[0,-11],[0,11],[-w/2-4,0],[w/2+4,0],[0,-22],[0,22]]){const x=mx+dx,y=my+dy,r=[x-w/2,y-9,x+w/2,y+3];if(!hit(r)){boxes.push(r);labels.push(`<text class="el" x="${x}" y="${y}" text-anchor="middle">${esc(e.label)}</text>`);break;}}});
+  const edges=paths.join("")+labels.join("");
   const nodes=m.nodes.map(n=>{const p=pos[n.id];const lines=wrap(n.label);return `<g class="nd t-${n.type}${sel===n.id?" sel":""}" data-n="${n.id}" transform="translate(${p.x-bw/2} ${p.y-bh/2})"><rect width="${bw}" height="${bh}"/>${lines.map((l,i)=>`<text x="${bw/2}" y="${lines.length===1?25:17+i*14}" text-anchor="middle">${esc(l)}</text>`).join("")}${n.link?`<circle cx="${bw-8}" cy="8" r="3" fill="var(--accent)"/>`:""}</g>`;}).join("");
-  return `<svg class="cmap" viewBox="0 0 ${W} ${H}" style="min-width:${Math.min(W,900)}px"><defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>${edges}${nodes}</svg>`;
+  return `<svg class="cmap" viewBox="0 0 ${W} ${H}" style="min-width:${Math.min(W,620)}px"><defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>${edges}${nodes}</svg>`;
 }
 route("learn:maps","Concept maps",(root)=>{
   const by={};CMAPS.forEach(m=>(by[m.sys]||(by[m.sys]=[])).push(m));
@@ -6231,7 +6238,7 @@ const Hands=(()=>{
 /* grade with undo: wrap gradeCard */
 (()=>{const orig=gradeCard;window.gradeCard=function(g){const S=SES,c=S.queue[S.i];if(!c)return orig(g);const prev=Store.s.srs[c.id]?JSON.parse(JSON.stringify(Store.s.srs[c.id])):null,i=S.i,res=S.res.slice(),q=S.queue.slice(),rl=Object.assign({},S.relearn);
   orig(g);if(g===0)return;Store.s.xp=(Store.s.xp||0)+(g>=2?2:1);
-  const n=+localStorage.getItem("galen.swipes")||0;if(n<5&&!document.querySelector(".swipe-tip")){const tip=document.createElement("p");tip.className="tiny muted swipe-tip";tip.style.textAlign="center";tip.textContent="Tip: swipe the card ← Again · ↓ Hard · → Good · ↑ Easy";const fc=document.querySelector(".fc");if(fc)fc.after(tip);}
+  const n=+localStorage.getItem("galen.swipes")||0;if(n<5&&!document.querySelector(".swipe-tip")&&document.querySelector("#reveal")){const tip=document.createElement("p");tip.className="tiny muted swipe-tip";tip.style.textAlign="center";tip.textContent="Tip: swipe the card ← Again · ↓ Hard · → Good · ↑ Easy";const fc=document.querySelector(".fc");if(fc)fc.after(tip);}
   Hands.undo(["Again","Hard","Good","Easy"][g]+" recorded",()=>{if(prev)Store.s.srs[c.id]=prev;else delete Store.s.srs[c.id];S.i=i;S.res=res;S.queue=q;S.relearn=rl;Store.save();drawSession(V);});};})();
 
 "use strict";

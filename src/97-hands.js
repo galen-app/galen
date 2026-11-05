@@ -82,5 +82,5 @@ const Hands=(()=>{
 /* grade with undo: wrap gradeCard */
 (()=>{const orig=gradeCard;window.gradeCard=function(g){const S=SES,c=S.queue[S.i];if(!c)return orig(g);const prev=Store.s.srs[c.id]?JSON.parse(JSON.stringify(Store.s.srs[c.id])):null,i=S.i,res=S.res.slice(),q=S.queue.slice(),rl=Object.assign({},S.relearn);
   orig(g);if(g===0)return;Store.s.xp=(Store.s.xp||0)+(g>=2?2:1);
-  const n=+localStorage.getItem("galen.swipes")||0;if(n<5&&!document.querySelector(".swipe-tip")){const tip=document.createElement("p");tip.className="tiny muted swipe-tip";tip.style.textAlign="center";tip.textContent="Tip: swipe the card ← Again · ↓ Hard · → Good · ↑ Easy";const fc=document.querySelector(".fc");if(fc)fc.after(tip);}
+  const n=+localStorage.getItem("galen.swipes")||0;if(n<5&&!document.querySelector(".swipe-tip")&&document.querySelector("#reveal")){const tip=document.createElement("p");tip.className="tiny muted swipe-tip";tip.style.textAlign="center";tip.textContent="Tip: swipe the card ← Again · ↓ Hard · → Good · ↑ Easy";const fc=document.querySelector(".fc");if(fc)fc.after(tip);}
   Hands.undo(["Again","Hard","Good","Easy"][g]+" recorded",()=>{if(prev)Store.s.srs[c.id]=prev;else delete Store.s.srs[c.id];S.i=i;S.res=res;S.queue=q;S.relearn=rl;Store.save();drawSession(V);});};})();

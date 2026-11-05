@@ -278,7 +278,7 @@ function setOutMode(m){
   try{E.gain.disconnect();}catch(e){}
   E.gain.connect(E.chains[m==="phones"?"phones":"speaker"].input);E.mode=m;
 }
-function route(){
+function routeAudio(){
   if(!E.src)return;try{E.src.disconnect();}catch(e){}if(E.node){try{E.node.disconnect();}catch(e){}E.node=null;}
   const m=E.box.piece;
   if(m==="open"){E.src.connect(E.gain);return;}
@@ -290,7 +290,7 @@ function startBox(box){
   if(!c){if(typeof toast==="function")toast("Audio isn't available in this browser.");return;}
   if(!box.data){if(box.err)return;box.pending=true;box.setPlaying(true);return;}
   box.pending=false;const d=box.data;if(!d.ab){d.ab=c.createBuffer(1,d.buf.length,SR);d.ab.getChannelData(0).set(d.buf);}
-  try{E.src=c.createBufferSource();E.src.buffer=d.ab;E.src.loop=true;E.box=box;route();E.src.start();}
+  try{E.src=c.createBufferSource();E.src.buffer=d.ab;E.src.loop=true;E.box=box;routeAudio();E.src.start();}
   catch(e){console.warn(e);E.src=null;E.box=null;box.setPlaying(false);if(typeof toast==="function")toast("Couldn't start playback. Tap play again.");return;}
   E.t0=c.currentTime+.02;box.setPlaying(true);
   const loop=()=>{if(!E.box||!E.box.data)return;if(!E.box.cv.isConnected){stopAll();return;}E.box.draw(((E.ctx.currentTime-E.t0)%E.box.data.dur+E.box.data.dur)%E.box.data.dur);E.raf=requestAnimationFrame(loop);};loop();
@@ -341,7 +341,7 @@ class Player{
         .catch(()=>{if(this.id!==id)return;this.err=true;this.pending=false;this.setPlaying(false);this.draw(null);});return;}
     this.data=getData(id,this.hr);this.draw(null);}
   destroy(){try{this.ro.disconnect();}catch(e){}if(E.box===this)stopAll();this.dead=true;}
-  setPiece(p){this.piece=p;this.updSeg();if(E.box===this)route();else this.draw(null);}
+  setPiece(p){this.piece=p;this.updSeg();if(E.box===this)routeAudio();else this.draw(null);}
   updSeg(){this.segEl.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.p===this.piece));
     const s=item(this.id);if(REAL[this.id]){this.hint.textContent="Real recording: the bell and diaphragm settings filter it the same way a chest piece would.";return;}const rec=PIECE[s.piece].label;
     this.hint.textContent=this.piece===s.piece?`${rec} is the recommended chest piece for this sound.`:`Recommended: ${rec}. Compare how the trace and sound change.`;}

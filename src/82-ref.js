@@ -98,7 +98,7 @@ route("signs:imgsub",(id)=>(IMG_SUBJECTS[id]||[id])[0],(root,id)=>{
 route("signs:atlas","Atlas",(root)=>{
   const users={};Object.entries(SIGNS).forEach(([k,s])=>{if(s.fig)(users[s.fig]||(users[s.fig]=[])).push(k);});
   root.innerHTML=`<section class="ph"><span class="eyebrow">Atlas</span><h1>The anatomy behind the exam</h1><p class="lede">${Object.keys(FIG).length} illustrations of the structures and physiology each manoeuvre relies on. Tap one to see the tests that use it.</p></section>
-   <div class="atlas">${Object.keys(FIG).map(k=>{const u=users[k]||[];const reg=REGIONS.find(r=>r.fig===k);const go=reg?`learn/region/${reg.id}`:u.length?`signs/sign/${u[0]}`:"";return `<div data-go="${go}" role="button" tabindex="0">${fig(k,{small:true})}</div>`;}).join("")}</div>`;
+   <div class="atlas">${Object.keys(FIG).map(k=>{const u=users[k]||[];const reg=REGIONS.find(r=>r.fig===k);const NF={cord:"learn/localise/cord","cn-brainstem":"learn/cranial",homunculus:"learn/localise/rules","vasc-territories":"learn/localise/vessels","medulla-x":"learn/localise/stem"};const go=reg?`learn/region/${reg.id}`:u.length?`signs/sign/${u[0]}`:NF[k]||"";if(!go)return `<div>${fig(k,{small:true})}</div>`;return `<div data-go="${go}" role="button" tabindex="0">${fig(k,{small:true})}</div>`;}).join("")}</div>`;
 });
 route("signs:er","ER essentials",(root)=>{
   const ids=Object.keys(DEEP).filter(k=>SIGNS[k]);
