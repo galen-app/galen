@@ -162,7 +162,7 @@ new MutationObserver(ms=>{for(const m of ms){const el=m.target;if(!(el instanceo
 function eggFound(id){return !!Store.s.notes["egg:"+id];}
 function findEgg(id,quiet){const e=EGGS.find(x=>x.id===id);if(!e)return;const first=!eggFound(id);
   if(first){Store.s.notes["egg:"+id]={t:Date.now(),v:1};Store.save();SND.fx("bell");}
-  if(quiet&&!first)return;
+  if(quiet){if(first)toast(`Written in the margin: ${e.t} · find it in the codex`);return;}
   showEgg(e,first);}
 function showEgg(e,first){const el=document.createElement("div");el.className="helpov";el.setAttribute("role","dialog");el.setAttribute("aria-label",e.t);
   const n=EGGS.filter(x=>eggFound(x.id)).length;

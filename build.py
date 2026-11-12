@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Build Galen.
-  index.html        the claude.ai artifact (single file, no doctype; the publisher adds the skeleton)
+  artifact.html     the claude.ai artifact (single file, no doctype; the publisher adds the skeleton)
+  index.html        root redirect to docs/ (so Pages works whether it serves / or /docs)
   docs/             the GitHub Pages PWA: index.html + app.css + app.js + sw.js + manifest + icons + rec/
 """
 import glob, os, re, hashlib, json
@@ -22,7 +23,15 @@ def strict_strip(s):  # one "use strict" per file is fine inside a single bundle
 # ---- artifact (claude.ai) ----
 art = head.replace('</style>', extra_css + '</style>\n<script>window.GALEN_PLATFORM="artifact";window.GALEN_VERSION=%s;</script>' % json.dumps(VERSION), 1)
 art += '\n<script>\n' + js + '\n</script>'
-open('index.html', 'w', encoding='utf-8').write(art)
+open('artifact.html', 'w', encoding='utf-8').write(art)
+open('index.html', 'w', encoding='utf-8').write('''<!doctype html>
+<html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Galen</title><meta name="robots" content="noindex">
+<script>location.replace("docs/"+location.search+location.hash)</script>
+<meta http-equiv="refresh" content="0; url=docs/">
+<style>body{font:16px/1.5 Georgia,serif;background:#efe6d4;color:#2a1c11;display:grid;place-items:center;min-height:100vh;margin:0}a{color:#963c08}</style>
+</head><body><p>Opening <a href="docs/">Galen</a>…</p></body></html>
+''')
 
 # ---- GitHub Pages PWA ----
 os.makedirs('docs', exist_ok=True)

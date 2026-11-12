@@ -27,7 +27,7 @@ async function handle(route){
   const st=JSON.parse(Object.values(drive.files).find(f=>f.name==="status.json").content);console.log('status.json',st.title,st.due,st.estimatedMinutes,st.asks.length,st.summary);
   // plan from Citrus
   const hub=Object.values(drive.files).find(f=>f.name==="hub"&&f.mimeType===FOLDER);const citrus=mk("citrus",hub.id,FOLDER,"");
-  const today=new Date().toISOString().slice(0,10);mk("plan.json",citrus.id,"application/json",JSON.stringify({app:"citrus",updatedAt:new Date().toISOString(),days:{[today]:{shift:{code:"N",label:"Night",overnight:true,start:"19:00",end:"07:00"},blocks:[{app:"galen",title:"Galen: daily round",date:today,start:"16:00",end:"16:20",minutes:20}]}}}));
+  const _d=new Date(),today=`${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,"0")}-${String(_d.getDate()).padStart(2,"0")}`;mk("plan.json",citrus.id,"application/json",JSON.stringify({app:"citrus",updatedAt:new Date().toISOString(),days:{[today]:{shift:{code:"N",label:"Night",overnight:true,start:"19:00",end:"07:00"},blocks:[{app:"galen",title:"Galen: daily round",date:today,start:"16:00",end:"16:20",minutes:20}]}}}));
   // device B signs in, should receive A's progress merged with its own
   const B=await dev("B");await B.evaluate(()=>{schedule("t:murphy",2);});await B.click('#g-in');await B.waitForTimeout(2500);
   console.log('B srs',await B.evaluate(()=>Object.keys(Store.s.srs).sort()),'log',await B.evaluate(()=>Store.s.log.length));

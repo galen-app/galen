@@ -30,3 +30,7 @@ src/71-tools-data.js  scores and formulas (declarative)
 src/80–98             views: shell, signs & sounds, practice, neuro, localiser, memory, skin, images, hub, tools, calculators, hands kit, narration & sketch
 docs/rec/             heart and lung recordings (BMD-HS CC BY-NC-ND, SPRSound CC BY)
 ```
+
+
+## Publishing
+GitHub Pages: Settings → Pages → Deploy from a branch → `main`, folder `/docs`. The root `index.html` is only a redirect to `docs/`, so the app also works if Pages serves `/ (root)`. The Claude preview build is `artifact.html`.
