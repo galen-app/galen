@@ -1,9 +1,9 @@
 /* Build-time consistency check: LR vs sens/spec drift, missing fields, dangling ids, figure/plate references. */
 const fs=require("fs"),vm=require("vm");const d=__dirname+"/src/";
 const ctx={console,window:{},document:{},navigator:{},localStorage:{getItem(){return null},setItem(){}}};vm.createContext(ctx);
-const files=fs.readdirSync(d).filter(f=>f.endsWith(".js")&&(f<"70"||f.startsWith("71"))).sort();
-vm.runInContext(files.map(f=>fs.readFileSync(d+f,"utf8").replace(/^"use strict";/,"")).join("\n;\n")+";this.X={SIGNS,DCOND,CMAPS,REGIONS,HIST,FIG,IMG_SUBJECTS,TOOLS:typeof TOOLS!=='undefined'?TOOLS:[],TECH:typeof TECH!=='undefined'?TECH:[]};",ctx);
-const {SIGNS,DCOND,CMAPS,REGIONS,HIST,FIG,IMG_SUBJECTS,TOOLS,TECH}=ctx.X;let bad=0;const warn=(...a)=>{bad++;console.log("•",...a);};
+const files=fs.readdirSync(d).filter(f=>f.endsWith(".js")&&(f<"70"||f.startsWith("71")||f.startsWith("72"))).sort();
+vm.runInContext(files.map(f=>fs.readFileSync(d+f,"utf8").replace(/^"use strict";/,"")).join("\n;\n")+";this.X={SIGNS,DCOND,CMAPS,REGIONS,HIST,FIG,IMG_SUBJECTS,TOOLS:typeof TOOLS!=='undefined'?TOOLS:[],TECH:typeof TECH!=='undefined'?TECH:[],OUTLINE:typeof OUTLINE!=='undefined'?OUTLINE:{},LORE:typeof LORE!=='undefined'?LORE:[],LORE_OUT:typeof LORE_OUT!=='undefined'?LORE_OUT:{},HALLS:typeof HALLS!=='undefined'?HALLS:[],EGGS:typeof EGGS!=='undefined'?EGGS:[],HDPE,SCEN,SOUNDS,LABS:typeof LABS!=='undefined'?LABS:[]};",ctx);
+const {SIGNS,DCOND,CMAPS,REGIONS,HIST,FIG,IMG_SUBJECTS,TOOLS,TECH,OUTLINE,LORE,LORE_OUT,HALLS,EGGS,HDPE,SCEN,SOUNDS,LABS}=ctx.X;let bad=0;const warn=(...a)=>{bad++;console.log("•",...a);};
 for(const [k,s] of Object.entries(SIGNS)){
   if(s.sens!=null&&s.spec!=null&&s.sens>0&&s.spec>0&&s.spec<100){const p=s.sens/(100-s.spec),n=(100-s.sens)/s.spec;
     if(s.p!=null&&(s.p/p>2.2||p/s.p>2.2))warn(k,"LR+",s.p,"vs sens/spec imply",p.toFixed(1));
@@ -24,4 +24,18 @@ TOOLS.forEach(t=>{if(t.kind==="score"){const max=t.items.reduce((a,i)=>a+Math.ma
   (t.signs||[]).forEach(x=>{if(!SIGNS[x])warn("tech",t.id,"unknown sign",x);});
   (t.mcq||[]).forEach((q,i)=>{if(!Array.isArray(q.opts)||q.opts.length<3||!(q.a>=0&&q.a<q.opts.length)||!q.why)warn("tech",t.id,"mcq",i,"malformed");});
   const txt=JSON.stringify(t);if(/\u2014|—/.test(txt))warn("tech",t.id,"em dash");});}
+
+/* Galen 7: halls, outline chapters, codex */
+{const hallIds=new Set(HALLS.map(h=>h.id));
+ const has={signs:x=>!!SIGNS[x],tech:x=>TECH.some(t=>t.id===x),pres:x=>HIST.pres.some(p=>p.id===x),sounds:x=>!!SOUNDS[x],maps:x=>CMAPS.some(m=>m.id===x),tools:x=>TOOLS.some(t=>t.id===x),labs:x=>LABS.some(l=>l.id===x),cases:x=>HDPE.some(c=>c.id===x),scen:x=>SCEN.some(c=>c.id===x)};
+ HALLS.forEach(h=>{if(!OUTLINE[h.id])warn("hall",h.id,"has no outline");if(!h.intro||h.intro.length<2||!h.maxim)warn("hall",h.id,"intro/maxim");});
+ Object.entries(OUTLINE).forEach(([h,chs])=>{if(!hallIds.has(h))warn("outline for unknown hall",h);
+  chs.forEach((c,i)=>{if(!c.t||!c.aim||!c.master||!c.master.length||!c.trap||!c.pearl)warn("outline",h,i,"needs t/aim/master/trap/pearl");
+   Object.keys(has).forEach(k=>(c[k]||[]).forEach(x=>{if(!has[k](x))warn("outline",h,c.t,"unknown",k,x);}));
+   const n=["signs","tech","pres","sounds","cases","scen","go","tools","maps","labs"].reduce((a,k)=>a+(c[k]||[]).length,0);if(!n)warn("outline",h,c.t,"links to nothing");
+   if(/\u2014|—/.test(JSON.stringify(c)))warn("outline",h,c.t,"em dash");});});
+ const lids=new Set();LORE.forEach(l=>{if(lids.has(l.id))warn("lore dup",l.id);lids.add(l.id);if(!hallIds.has(l.hall))warn("lore",l.id,"hall",l.hall);
+  ["t","yr","who","sum","fact","galen","src","k"].forEach(f=>{if(!l[f])warn("lore",l.id,"missing",f);});if(!l.body||l.body.length<2)warn("lore",l.id,"short body");if(!LORE_OUT[l.id]||LORE_OUT[l.id].length!==3)warn("lore",l.id,"needs an outline");
+  (l.signs||[]).forEach(x=>{if(!SIGNS[x])warn("lore",l.id,"unknown sign",x);});if(/\u2014|—/.test(JSON.stringify(l)))warn("lore",l.id,"em dash");});
+ console.log("galen 7:",HALLS.length,"halls,",Object.values(OUTLINE).reduce((a,c)=>a+c.length,0),"chapters,",LORE.length,"stories,",EGGS.length,"secrets");}
 console.log(bad?`${bad} issue(s)`:"all consistent",Object.keys(SIGNS).length,"signs",DCOND.length,"derm",CMAPS.length,"maps",TOOLS.length,"tools",TECH.length,"techniques");

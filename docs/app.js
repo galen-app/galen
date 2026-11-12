@@ -1,4 +1,934 @@
-window.GALEN_PLATFORM="pages";window.GALEN_VERSION="6.1.0";window.GALEN_BUILD="9c5d96dd3a";
+window.GALEN_PLATFORM="pages";window.GALEN_VERSION="7.0.0";window.GALEN_BUILD="3ae2818e69";
+"use strict";
+/* ================= THE WORLD: the anatomical theatre =================
+   The Table in the centre (the whole patient) and twelve halls around it, each bound to a body system.
+   Membership is computed from the real content (signs, techniques, histories, cards), so nothing is duplicated. */
+
+const EMB={ /* engraved emblems, viewBox 0 0 64 64, stroke only */
+table:'<path d="M8 30h48M12 30v20M52 30v20M10 50h8M46 50h8"/><path d="M14 30c2-6 8-8 14-8h14c4 0 8 2 9 8"/><circle cx="46" cy="21" r="4"/><path d="M20 16v6M44 8v6"/><path d="M20 12c-1.2 1.4-1.2 2.8 0 4 1.2-1.2 1.2-2.6 0-4zM44 4c-1.2 1.4-1.2 2.8 0 4 1.2-1.2 1.2-2.6 0-4z"/><path d="M17 22h6M41 14h6"/>',
+heart:'<path d="M32 54c-14-9-22-17-22-28 0-7 5-12 11-12 5 0 9 3 11 7 2-4 6-7 11-7 6 0 11 5 11 12 0 11-8 19-22 28z"/><path d="M28 14c0-6 2-9 6-10M36 14c1-5 4-8 9-8M24 16c-3-4-7-5-10-4"/><path d="M32 22v14M26 30c3 3 9 3 12 0"/>',
+vessels:'<path d="M32 6v14M32 20c-8 4-12 10-14 18M32 20c8 4 12 10 14 18M18 38c-4 4-6 9-6 16M18 38c2 5 2 10 0 16M46 38c4 4 6 9 6 16M46 38c-2 5-2 10 0 16M25 28c-3 0-6 2-8 4M39 28c3 0 6 2 8 4"/><circle cx="32" cy="6" r="2"/>',
+lungs:'<path d="M32 6v20M32 26l-6 4M32 26l6 4"/><path d="M26 18c-8 0-14 10-15 22-1 9 2 14 7 14 6 0 9-4 9-12V22"/><path d="M38 18c8 0 14 10 15 22 1 9-2 14-7 14-6 0-9-4-9-12V22"/><path d="M18 40c3-1 5 0 6 2M46 40c-3-1-5 0-6 2"/>',
+belly:'<path d="M22 8c-6 2-8 8-6 14 2 5 8 6 12 4s8-8 14-6c6 2 8 8 6 14"/><path d="M20 30c-4 4-4 10 0 14s10 4 14 0 10-4 14 0 4 10 0 14"/><path d="M26 38c2 2 6 2 8 0M30 44c2 2 6 2 8 0"/><circle cx="46" cy="10" r="3"/>',
+neck:'<path d="M24 6c0 10-2 18-4 52M40 6c0 10 2 18 4 52"/><path d="M28 10h8M28 16h8M28 22h8"/><path d="M32 34c-3-6-12-8-14-2s2 14 8 14c3 0 5-4 6-8 1 4 3 8 6 8 6 0 10-8 8-14s-11-4-14 2z"/>',
+senses:'<path d="M6 32s10-14 26-14 26 14 26 14-10 14-26 14S6 32 6 32z"/><circle cx="32" cy="32" r="8"/><circle cx="32" cy="32" r="3"/><path d="M14 18l4 5M50 18l-4 5M32 10v6"/>',
+cranial:'<path d="M18 22c0-8 6-14 14-14s14 6 14 14c0 6-4 10-8 12v6H26v-6c-4-2-8-6-8-12z"/><path d="M26 40c-6 4-12 6-18 6M38 40c6 4 12 6 18 6M28 40c-2 6-6 12-10 16M36 40c2 6 6 12 10 16M32 40v18"/><path d="M26 20c2-2 4-2 6 0 2-2 4-2 6 0"/>',
+mind:'<path d="M32 10c-4-4-12-2-12 4-6 0-9 6-6 10-4 3-3 10 2 11 0 5 6 8 10 5 2 3 4 4 6 4s4-1 6-4c4 3 10 0 10-5 5-1 6-8 2-11 3-4 0-10-6-10 0-6-8-8-12-4z"/><path d="M32 10v34M24 20c3 1 5 3 5 6M40 20c-3 1-5 3-5 6M22 32c3 0 5 2 6 4M42 32c-3 0-5 2-6 4"/><path d="M32 44v14"/>',
+spine:'<path d="M30 4h4M28 10h8l-1 4h-6zM27 18h10l-1 5h-8zM26 27h12l-1 5H27zM26 36h12l-1 5H27zM27 45h10l-1 5h-8zM29 54h6l-1 5h-4z"/><path d="M24 12l-4-2M40 12l4-2M23 20l-5-1M41 20l5-1M22 29l-6 0M42 29l6 0"/>',
+arm:'<path d="M22 58V38c-4-3-6-8-6-12V16a3 3 0 0 1 6 0v10M22 26V10a3 3 0 0 1 6 0v16M28 24V8a3 3 0 0 1 6 0v16M34 24V12a3 3 0 0 1 6 0v18c2-4 4-6 7-6 2 0 3 2 2 4l-7 12c-2 4-6 6-10 6"/><path d="M22 46h14"/>',
+leg:'<path d="M26 4v20c0 4-2 8-2 12s2 6 2 10v4c0 2-2 4-4 6h-6c-2 0-3 2-2 3h20c2 0 3-2 2-4l-2-5V46c0-4 2-6 2-10s-2-8-2-12V4"/><circle cx="31" cy="35" r="4"/>',
+skin:'<path d="M4 20c8-4 16 4 28 0s20 4 28 0"/><path d="M4 30h56M4 44h56"/><path d="M22 30v-14M22 16c-2-4 0-8 4-10"/><circle cx="22" cy="34" r="3"/><path d="M40 44c0-4 4-6 4-10s-4-4-4-4M12 52c4-2 8 2 12 0s8 2 12 0 8 2 12 0 8 2 12 0"/>'
+};
+
+const HALLS=[
+{id:"table",rn:"·",n:"The Table",short:"Table",la:"Mensa",patron:"Hippocrates of Kos",sys:"gen",tint:"rgb(212 98 26 / .10)",
+ maxim:["Ars longa, vita brevis.","The art is long, and life is short."],
+ intro:["In the middle of the theatre stands the table, and on it the whole patient: the face, the hands, the breathing, the story. Every hall around it borrows from this one.",
+ "Before anatomy, there was looking. The Hippocratic physicians of Kos wrote down what they saw at the bedside, without gods and without spells, and the habit has never been bettered. Start here, and come back here."]},
+{id:"heart",rn:"I",n:"Hall of the Heart",short:"Heart",la:"Aula Cordis",patron:"William Harvey",sys:"cvs",tint:"rgb(180 40 30 / .12)",
+ maxim:["Cor fundamentum vitae.","The heart is the foundation of life."],
+ intro:["A dissected heart lies in a dish of brine under the candles. For fourteen centuries students were told that blood seeped through invisible pores in its septum, as I taught. Nobody could find the pores; they found them anyway.",
+ "In 1628 an Englishman trained in this very theatre counted, measured and tied off arms, and the blood went round. Here you learn to hear what Harvey saw: the pulse, the impulse, the sounds and the silences between them."]},
+{id:"vessels",rn:"II",n:"Hall of Vessels",short:"Vessels",la:"Aula Vasorum",patron:"Stephen Hales",sys:"cvs",tint:"rgb(60 90 160 / .12)",
+ maxim:["Sanguis numquam quiescit.","The blood never rests."],
+ intro:["Glass tubes hang on the wall of this hall, taller than a man. In 1733 a country parson tied a mare down, opened the artery of her leg into one of them, and watched the blood climb past eight feet.",
+ "Pressure, flow and obstruction are judged here: the pulses you can feel and the ones you cannot, the swollen leg, the bruit, the cuff. Arteries do not lie, but they do whisper."]},
+{id:"lungs",rn:"III",n:"Hall of Breath",short:"Lungs",la:"Aula Pulmonum",patron:"René Laennec",sys:"resp",tint:"rgb(90 130 150 / .12)",
+ maxim:["Pectus loquitur.","The chest speaks."],
+ intro:["Wooden cylinders sit on a shelf by the window, each turned on a lathe by a Breton physician who would die of the disease he taught us to hear. He rolled a quire of paper in 1816 because he was too embarrassed to press his ear to a young woman's chest.",
+ "Before him, an innkeeper's son had learned to tap barrels to judge the wine. This hall is theirs: percussion, the voice through the chest wall, the crackle and the wheeze."]},
+{id:"belly",rn:"IV",n:"Hall of the Belly",short:"Belly",la:"Aula Ventris",patron:"Charles McBurney",sys:"abd",tint:"rgb(150 110 40 / .12)",
+ maxim:["Venter non mentitur.","The belly does not lie."],
+ intro:["Surgeons once waited for the belly to declare itself, and many patients died while it did. An inflamed appendix was called 'perityphlitis' and treated with leeches and opium until 1886, when Reginald Fitz named it appendicitis and told surgeons to operate early.",
+ "Here the hands learn to read guarding, rebound and the quiet abdomen that is worse than a loud one. Inspect before you touch; touch gently before you press."]},
+{id:"neck",rn:"V",n:"Hall of the Neck and Glands",short:"Neck",la:"Aula Colli",patron:"Theodor Kocher",sys:"hn",tint:"rgb(120 90 150 / .12)",
+ maxim:["Parva glandula, magna res.","A small gland, a great matter."],
+ intro:["In the Alpine valleys, whole villages once carried goitres the size of fists, and children were born who never grew. A Swiss surgeon took out thousands of thyroids and then noticed what happened to the patients who lost all of theirs.",
+ "This hall holds the thyroid, the lymph nodes, the parathyroids and their twitching signs. A swallow, a stethoscope on the gland, a tap on the cheek."]},
+{id:"senses",rn:"VI",n:"Hall of the Senses",short:"Senses",la:"Aula Sensuum",patron:"Hermann von Helmholtz",sys:"hn",tint:"rgb(60 120 120 / .12)",
+ maxim:["Oculus animi index.","The eye is the index of the mind."],
+ intro:["The retina was the only living vessel no one could see until 1851, when a young physiologist stacked plates of glass and a candle and looked in. Von Graefe, the great eye surgeon, is said to have cried that a new world had been opened.",
+ "Eye, ear, nose and throat: the instruments that frighten students most and reward them most. Here you learn to hold them properly, and why each step is where it is."]},
+{id:"cranial",rn:"VII",n:"Hall of the Twelve Roads",short:"Cranial",la:"Aula Nervorum",patron:"Thomas Willis",sys:"neuro",tint:"rgb(110 100 60 / .12)",
+ maxim:["Duodecim viae.","Twelve roads."],
+ intro:["I counted seven pairs of nerves leaving the brain, and I was proud of the number. Willis counted nine in 1664, with drawings by the man who later built St Paul's Cathedral. Soemmerring settled on twelve in 1778. I was not entirely wrong; I was merely early.",
+ "Pupils, fields, eye movements, the face, the swallow, the dizzy patient. Each road has a toll-gate where a lesion gives itself away."]},
+{id:"mind",rn:"VIII",n:"Hall of Mind and Motion",short:"Motion",la:"Aula Motus",patron:"Joseph Babinski",sys:"neuro",tint:"rgb(70 70 120 / .14)",
+ maxim:["Ex motu, sedes.","From the movement, the seat of the lesion."],
+ intro:["Charcot's Paris was full of patients whose paralysis came and went, and no one could tell the real from the hysterical. In 1896 his pupil stroked the sole of a foot and watched the great toe rise.",
+ "Power, tone, reflexes, sensation, coordination, gait and the conscious level. Neurology rewards the methodical and punishes the hurried."]},
+{id:"spine",rn:"IX",n:"Hall of the Column",short:"Spine",la:"Aula Spinae",patron:"Percivall Pott",sys:"msk",tint:"rgb(140 120 90 / .12)",
+ maxim:["Columna vitae.","The column of life."],
+ intro:["A London surgeon gave his name to tuberculosis of the spine, and in 1775 noticed that boys sent up chimneys grew cancers of the scrotum. It was the first occupational cancer ever described, long before anyone knew what soot contained.",
+ "Back pain, the trapped root, the cord in danger and the cauda equina that must never be missed. Most backs need reassurance; a few need a scanner tonight."]},
+{id:"arm",rn:"X",n:"Hall of the Hand",short:"Hand",la:"Aula Manus",patron:"Jules Tinel",sys:"msk",tint:"rgb(160 90 60 / .12)",
+ maxim:["Manus instrumentum instrumentorum.","The hand is the instrument of instruments."],
+ intro:["In 1915 the trenches sent back young men with shattered arms. In Paris and in Germany two doctors, on opposite sides of the war, both tapped over regrowing nerves and felt the patients flinch with tingling.",
+ "Shoulder, elbow, wrist and hand, and the three nerves that run through them. The hand is the instrument you examine with; learn to examine it."]},
+{id:"leg",rn:"XI",n:"Hall of the Gait",short:"Leg",la:"Aula Pedis",patron:"Friedrich Trendelenburg",sys:"msk",tint:"rgb(110 120 60 / .12)",
+ maxim:["Solvitur ambulando.","It is solved by walking."],
+ intro:["Before ether, a leg came off in under three minutes or the patient died of the shock. Surgeons were praised for speed, not care. Since 1846 we have had time to think, and the knee and ankle deserve it.",
+ "Hip, knee, ankle and foot, the rules that spare X-rays, and the walk itself, which tells you more than any single test."]},
+{id:"skin",rn:"XII",n:"Hall of the Skin",short:"Skin",la:"Aula Cutis",patron:"Robert Willan",sys:"derm",tint:"rgb(170 110 80 / .12)",
+ maxim:["Cutis speculum corporis.","The skin is the mirror of the body."],
+ intro:["Until a Quaker physician sorted rashes by their shape between 1798 and 1808, every eruption had a dozen names and none of them helped. He fixed what papule, vesicle and pustule mean, and the words still work.",
+ "Here are the plates, the vocabulary, and the rashes that can kill by morning. Describe first; name second."]}
+];
+const HALL=Object.fromEntries(HALLS.map(h=>[h.id,h]));
+
+/* ---- membership ---- */
+const HALL_SIGNS={
+ vessels:"pedal-pulses oedema homans carotid-bruit abi wells-dvt radio-femoral bp-arms aaa-palp abd-bruit plr",
+ neck:"lymph-supraclav thyroid-palp pemberton hyperthyroid-signs hypothyroid-signs trousseau chvostek lymph-nodes",
+ mind:"battle",
+ senses:"rinne-weber otoscopy centor red-eye fundoscopy whisper-test visual-acuity transillumination",
+ cranial:"rapd visual-fields facial-palsy gag water-swallow ice-pack horner hints dix-hallpike epley",
+ spine:"slr cauda waddell schober spurling ultt c-spine-rule crossed-slr femoral-stretch lumbar-roots si-cluster",
+ arm:"finkelstein scaphoid froment",
+ leg:"ottawa-ankle thompson lachman mcmurray knee-effusion trendelenburg",
+ table:"gals"
+};
+const _SH={};Object.entries(HALL_SIGNS).forEach(([h,s])=>s.split(" ").forEach(id=>_SH[id]=h));
+const REG_HALL={shoulder:"arm",elbow:"arm",wrist:"arm",hand:"arm",spine:"spine",back:"spine",hip:"leg",knee:"leg",ankle:"leg",foot:"leg"};
+const SYS_HALL={gen:"table",cvs:"heart",resp:"lungs",abd:"belly",neuro:"mind",msk:"spine",hn:"neck",derm:"skin"};
+function signHall(id){const s=typeof SIGNS!=="undefined"&&SIGNS[id];if(_SH[id])return _SH[id];if(!s)return null;if(s.reg&&REG_HALL[s.reg])return REG_HALL[s.reg];return SYS_HALL[s.sys]||"table";}
+const TECH_HALL_GROUP={"Ear, nose and eye":"senses","Peripheral nerve":"arm","Sensory":"mind","Reflexes and tone":"mind","Coordination and gait":"mind","Vestibular and eye movements":"cranial","Meninges and functional":"mind"};
+const TECH_HALL_ID={"swinging-torch":"cranial","confrontation-fields":"cranial","eye-movements":"cranial"};
+function techHall(t){if(typeof t==="string")t=(typeof TECH!=="undefined")&&TECH.find(x=>x.id===t);if(!t)return null;return TECH_HALL_ID[t.id]||TECH_HALL_GROUP[t.group]||"mind";}
+const PRES_HALL={};/* filled lazily: by the presentation's system, with a few turned towards a finer hall */
+const PRES_HINT=[[/back/i,"spine"],[/joint|knee|ankle|limp|hip/i,"leg"],[/hand|wrist|shoulder|arm/i,"arm"],[/neck lump|thyroid|lump in the neck|goitre/i,"neck"],[/red eye|vision|visual|\bears?\b|hearing|sore throat|\bnose\b/i,"senses"],[/dizz|vertigo|diplopia|double vision|facial/i,"cranial"],[/leg swell|calf|claudication/i,"vessels"],[/rash|itch|skin/i,"skin"]];
+function presHall(p){if(typeof p==="string")p=HIST.pres.find(x=>x.id===p);if(!p)return "table";if(PRES_HALL[p.id])return PRES_HALL[p.id];
+  let h=null;for(const [re,hh] of PRES_HINT)if(re.test(p.name)){h=hh;break;}
+  return PRES_HALL[p.id]=h||SYS_HALL[p.sys]||"table";}
+function cardHall(c){
+  switch(c.type){
+    case "think":case "verdict":case "mech":case "snsp":case "teach":return signHall(c.ref)||SYS_HALL[c.sys]||"table";
+    case "twhy":case "terr":return techHall(c.ref[0])||"mind";
+    case "sound":return c.sys==="cvs"?"heart":"lungs";
+    case "area":return "heart";case "zone":return "lungs";
+    case "anat":return {chest:"heart",abdomen:"belly",neck:"neck",back:"spine"}[c.ref[0]]||SYS_HALL[c.sys];
+    case "cranial":return "cranial";
+    case "myo":case "reflex":case "derm":return "mind";
+    case "rootnerve":return "arm";
+    case "dterm":case "dplate":return "skin";
+    case "hlr":case "red":return presHall(Array.isArray(c.ref)?c.ref[0]:c.ref);
+    case "finding":return SYS_HALL[c.sys]||"table";
+    default:return SYS_HALL[c.sys]||"table";
+  }
+}
+function hallSigns(h){return Object.keys(SIGNS).filter(k=>!SIGNS[k].hide&&signHall(k)===h);}
+function hallTech(h){return typeof TECH==="undefined"?[]:TECH.filter(t=>techHall(t)===h);}
+function hallPres(h){return HIST.pres.filter(p=>presHall(p)===h);}
+function hallMastery(h){if(!CARDS)buildCards();const cs=CARDS.filter(c=>cardHall(c)===h);if(!cs.length)return {pct:0,seen:0,n:0};
+  let m=0,seen=0;cs.forEach(c=>{const r=Store.s.srs[c.id];if(r){seen++;if(r.iv>=7)m++;else if(r.iv>=2)m+=.4;}});return {pct:m/cs.length,seen,n:cs.length};}
+
+/* ---- Galen's voice: demanding, a little vain, fair; the sting always ends with the fix ---- */
+const GALEN={
+ morning:[["Mane surgendum.","Up early. The sick do not wait for you to wake."],["Nulla dies sine linea.","Not a day without a line. Begin."],[null,"Morning. In Pergamon I had dissected an ape before breakfast."],[null,"The light is good. Use it before the ward eats your day."]],
+ afternoon:[["Festina lente.","Make haste slowly. One sign, properly."],[null,"Afternoon. A short round now beats a long one never."],["Repetitio mater studiorum.","Repetition is the mother of learning."],[null,"I lectured in the Temple of Peace in Rome. You have a phone. Fewer excuses."]],
+ evening:[["Docendo discimus.","We learn by teaching. Explain one sign aloud tonight."],[null,"Evening. The candles are lit. Something short and sharp."],["Experientia docet.","Experience teaches, but only those who look back at it."],[null,"Review what you saw today, while it is still warm."]],
+ night:[[null,"The lucubration hour. Hippocrates slept at this time. You should consider it."],["Vigilate.","Keep watch. But briefly: a tired brain stores nothing."],[null,"Night watch. Three cards, then sleep. I am not asking."]],
+ afterNight:[[null,"You have been up all night. Three items, then sleep. That is an order, not advice."],[null,"After a night shift, memory is a leaking jar. Keep today light."]],
+ first:[[null,"So. Another student. I am Galen of Pergamon, physician to emperors. Sit, look, and do not touch anything yet."]],
+ back:[[null,"You were away. The signs did not forget you; you forgot them. We begin again, gently."],[null,"Ah. You return. The gladiators of Pergamon trained daily. Shall we?"]],
+ right:[[null,"Correct."],[null,"Adequate."],[null,"Good. Again tomorrow and I may believe you."],[null,"Yes. Even Vesalius would nod."],[null,"Right. Now say why."],[null,"That is how it is done."],[null,"Better."]],
+ wrong:[[null,"No. A first-year would not miss this."],[null,"No. Read the reason, then try again."],[null,"Wrong. Look again; the fix is below."],[null,"That is my kind of error: confident. Read it."],[null,"No. Slower this time."],[null,"Wrong, and that is how you learn. Read why."]],
+ done:[[null,"Enough for today. What you did will be there tomorrow."],["Bene.","Well done. I do not say it often."],[null,"Finished. Go and examine a real patient."]],
+ idle:[["Mortui vivos docent.","The dead teach the living. That is the motto over this theatre's door."],["Hic locus est ubi mors gaudet succurrere vitae.","This is the place where death delights to help the living."],[null,"Nearly three million of my words survive. You can manage one sign."],["Optimus medicus philosophus.","The best physician is also a philosopher. I wrote a book saying so."],[null,"Look at the patient before the monitor. The monitor has never been ill."],["Primum non nocere.","First, do no harm. It is not in the Hippocratic oath, by the way. Look it up."],[null,"I bled patients. I was wrong about that. The evidence won, and it should."],["Audi, vide, tace.","Listen, look, and keep quiet until you are sure."]],
+ hall:{
+  table:[null,"Here is the patient, whole. Every hall borrows from this table."],
+  heart:[null,"Harvey studied here and then proved me wrong about the blood. I have forgiven him. Mostly."],
+  vessels:[null,"A parson and a mare taught the world blood pressure. Do not look so surprised."],
+  lungs:[null,"Laennec's wooden tube made doctors listen. Most still listen badly. Not you."],
+  belly:[null,"Inspect. Then touch. Then press. In that order, or the belly closes its doors to you."],
+  neck:[null,"A small gland can ruin a whole life. Palpate it from behind, gently."],
+  senses:[null,"The ophthalmoscope frightens students. It is only a light and a hole. Hold it properly."],
+  cranial:[null,"I counted seven pairs. There are twelve. We do not speak of it."],
+  mind:[null,"Neurology punishes the hurried. Take your time and test both sides."],
+  spine:[null,"Most backs need reassurance. A few need a scanner tonight. Learn which."],
+  arm:[null,"The hand examines everything else. Examine it."],
+  leg:[null,"Watch them walk before you touch them. The gait tells half the story."],
+  skin:[null,"Describe first. Name second. Guess never."]
+ },
+ lore:[null,"History is a list of confident men who were wrong. Read it, and stay humble."]
+};
+function galenPick(arr,seed){if(!arr||!arr.length)return [null,""];const i=seed==null?Math.floor(Math.random()*arr.length):Math.abs(seed)%arr.length;return arr[i];}
+
+/* ---- easter eggs: found ones are kept in Store.s.notes["egg:<id>"] (merges per record) ---- */
+const EGGS=[
+ {id:"apes",hint:"The medallion does not like to be poked.",t:"The Barbary apes",x:"Very well. In Rome no one could open a human body, so I opened Barbary macaques, pigs and oxen, and wrote what I found as if it were human. For thirteen centuries no one checked. Then Vesalius did. Do not mention him."},
+ {id:"rete",hint:"Search for a wonderful net.",t:"The rete mirabile",x:"The 'wonderful net' of vessels at the base of the brain. It exists, I promise you. In oxen. Vesalius looked for it in a man and found nothing. I may have been generous in assuming you were built like cattle."},
+ {id:"humours",hint:"Ask about the four.",t:"The four humours",x:"Blood, phlegm, yellow bile, black bile. Fourteen centuries of physicians bled, purged and starved patients to balance them, on my authority. Then came the microscope, the germ and the trial. I was magnificent, and I was wrong."},
+ {id:"skull",hint:"Something on the table is looking at you.",t:"Memento mori",x:"The skull on the table belonged to someone who never consented to teach you. Before the Anatomy Act of 1832, many such bodies came from the gallows or the grave. Learn well enough to deserve them."},
+ {id:"ape",hint:"Someone small is hiding in the engraving.",t:"My best teacher",x:"Shh. He is a Barbary macaque. Half of what medicine believed about the human body until 1543 was really about him."},
+ {id:"konami",hint:"The old code, on keys or a controller.",t:"The theatre at night",x:"↑↑↓↓←→←→ B A. So, you are a gamer as well as a physician. The candles are yours tonight."},
+ {id:"night",hint:"Open the theatre in the small hours.",t:"Lucubration",x:"Working by lamplight: lucubratio. The Romans thought it noble. Your hippocampus thinks it is a disaster. Go to bed."},
+ {id:"vesalius",hint:"Say the name I will not say.",t:"That name",x:"Andreas Vesalius, 1543, De humani corporis fabrica. Twenty-eight years old and he corrected some two hundred of my errors. He was right. I will not say it twice."},
+ {id:"galen",hint:"Call me by name.",t:"You called?",x:"Claudius Galenus, born in Pergamon in 129. Surgeon to gladiators, physician to Marcus Aurelius, author of more surviving words than any other ancient writer. Yes, I am still here."},
+ {id:"paper",hint:"Search for what Laennec rolled.",t:"A quire of paper",x:"Paris, 1816. A young woman with heart disease, a physician too shy to put his ear to her chest, and a rolled sheaf of paper. It carried the heart sounds better than an ear ever had. The stethoscope began as embarrassment."},
+ {id:"birthday",hint:"Visit on the birthday of a man with a famous toe.",t:"Babinski's birthday",x:"Joseph Babinski was born in Paris on 17 November 1857. Today, stroke a sole in his honour. Gently: it is a reflex, not a tickle contest."},
+ {id:"oath",hint:"Hold the serpent in the corner.",t:"The first line",x:"Ὁ βίος βραχύς, ἡ δὲ τέχνη μακρή. Life is short, the art long, opportunity fleeting, experience misleading, judgement difficult. The first aphorism of Hippocrates. Every word is still true."}
+];
+const BIRTHDAYS={"17/11":["Babinski","Joseph Babinski was born today in 1857. Stroke a sole in his honour."],"17/02":["Laennec","René Laennec was born today in 1781. Listen to a chest properly."],"01/04":["Harvey","William Harvey was born today in 1578. The blood still goes round."],"31/12":["Vesalius","Vesalius was born today in 1514. I suppose I should say something kind."],"01/07":["Semmelweis","Ignaz Semmelweis was born today in 1818. Wash your hands, and think of him."],"12/05":["Nightingale","Florence Nightingale was born today in 1820. She counted the dead and changed the army."],"27/12":["Pasteur","Louis Pasteur was born today in 1822. The germ won the argument."],"17/05":["Jenner","Edward Jenner was born today in 1749. Smallpox is gone; remember who started it."]};
+
+"use strict";
+/* ================= THE OUTLINE: each hall as a course =================
+   Chapters in teaching order. Each: the aim, what you must be able to do, the exact signs / techniques / histories / sounds / tools,
+   the trap that catches people, and a pearl. Ids are checked by check.js. These chapters become the gated chapters of 7.1. */
+const OUTLINE={
+table:[
+ {t:"The end of the bed",aim:"Decide in thirty seconds how sick the patient is.",
+  master:["Name the four things you judge before touching: colour, work of breathing, conscious level, position","Count a respiratory rate for 30 seconds without the patient noticing","Say what each smell tells you: ketones, uraemia, melaena, alcohol"],
+  signs:["resp-rate","cyanosis","kussmaul-breathing"],go:[["learn/module/gen","General survey and vital signs"]],
+  trap:"Being reassured by a normal oxygen saturation in a patient breathing at 30 a minute.",pearl:"Respiratory rate is the vital sign most often guessed and most predictive of deterioration."},
+ {t:"Vital signs, read together",aim:"Turn numbers into a physiology: perfused or not, compensating or failing.",
+  master:["Calculate the shock index and know when it misleads (beta-blockers, pacing, the elderly)","Take postural vitals correctly: 2 minutes lying, 1 minute standing","Score NEWS2 and qSOFA and know what each is for"],
+  signs:["shock-index","postural","cap-refill","temp","passive-leg-mottling","qsofa","news2"],tools:["news2","qsofa","shock-index","map"],
+  trap:"A 'normal' blood pressure in a young bleeding patient: they hold it until they lose about a third of their volume.",pearl:"Tachycardia without fever or pain is hypovolaemia, sepsis, PE or arrhythmia until shown otherwise."},
+ {t:"The hands, the face, the eyes",aim:"Read systemic disease from the periphery before you reach the organ.",
+  master:["Grade clubbing and test the Schamroth window","Look for pallor in the conjunctiva, not the skin","See icterus in natural light at the sclera"],
+  signs:["clubbing","conj-pallor","jaundice","acanthosis"],
+  trap:"Calling jaundice under yellow artificial light.",pearl:"New clubbing in an adult: think lung cancer, bronchiectasis, endocarditis, cirrhosis, IBD."},
+ {t:"Volume status",aim:"Synthesise hydration from several weak signs, never one.",
+  master:["Combine postural vitals, mucous membranes, axilla, JVP and urine output","Know that skin turgor is useful in children, not adults"],
+  signs:["dry-axilla","skin-turgor","postural"],
+  trap:"Relying on skin turgor in the elderly.",pearl:"A dry axilla raises the likelihood of hypovolaemia; a moist one barely lowers it."},
+ {t:"The rash that cannot wait",aim:"Recognise the non-blanching rash and act within minutes.",
+  master:["Do the glass test and interpret it","Know the first dose of antibiotic for suspected meningococcal disease outside hospital"],
+  signs:["purpura-glass"],tools:["qsofa"],
+  trap:"Waiting for a rash before suspecting meningococcal sepsis; it may come late or never.",pearl:"Cold hands and feet, leg pain and abnormal colour come before the rash in children."},
+ {t:"The history as a hypothesis",aim:"Take a history that tests diagnoses instead of collecting words.",
+  master:["Open with an open question and wait","Use SOCRATES for pain, and an occupational history for every working adult","Build a differential before the examination and use the examination to test it"],
+  pres:["fever","trauma","febchild","occ"],go:[["learn/frames","History frameworks"],["practice/er","ER cases"]],
+  trap:"Asking closed questions too early, then examining everything.",pearl:"In occupational medicine the job is often the diagnosis: ask what they do, with what, and since when."},
+ {t:"Screening the joints",aim:"Screen the musculoskeletal system in two minutes.",
+  master:["Perform GALS: gait, arms, legs, spine","Know when a screen becomes a regional examination"],
+  signs:["gals","bmi-waist"],
+  trap:"Skipping the gait.",pearl:"Watching the patient walk into the room is the first part of GALS."}
+],
+heart:[
+ {t:"The pulse",aim:"Feel rate, rhythm, volume and character, and know which artery tells you what.",
+  master:["Time the radial for 30 seconds; count apically if irregular","Judge character at the carotid: slow-rising, collapsing, bisferiens","Feel for radio-radial and radio-femoral delay"],
+  signs:["irregular-pulse","carotid-upstroke","pulsus-paradoxus"],go:[["learn/module/cvs","The cardiovascular examination"]],
+  trap:"Judging character at the radial.",pearl:"A regular pulse almost excludes atrial fibrillation; an irregular one needs an ECG."},
+ {t:"The jugular venous pressure",aim:"See the right atrium in the neck and tell it from the carotid.",
+  master:["Position at 45° with tangential light and find the double waveform","Measure height above the sternal angle; add 5 cm for right atrial pressure","Use abdominojugular reflux and Kussmaul's sign correctly"],
+  signs:["jvp","ajr","kussmaul-sign"],maps:["jvp-physiology"],
+  trap:"Calling the carotid the JVP: the JVP is not palpable, has two waves and falls on inspiration.",pearl:"A raised JVP with clear lungs and hypotension: think tamponade, RV infarction, PE."},
+ {t:"Inspection and palpation",aim:"Find the apex and feel for heaves and thrills before you listen.",
+  master:["Locate the apex with the patient left lateral if needed","Distinguish a sustained (pressure) from a displaced, diffuse (volume) apex","Feel parasternal heave and thrills (grade 4 murmurs)"],
+  signs:["apex-displaced","heave-thrill","cardiac-dullness"],
+  trap:"Calling an apex displaced in a patient who is lying rotated.",pearl:"A displaced apex predicts reduced ejection fraction better than most other signs."},
+ {t:"Heart sounds",aim:"Hear S1, S2, its splitting, and the extra sounds.",
+  master:["Time S1 with the carotid pulse","Hear physiological, wide, fixed and reversed splitting","Hear S3 (ken-TUC-ky) and S4 (TEN-nes-see) with the bell"],
+  signs:["s3","s4","a2-soft"],sounds:["normal","physio-split","wide-split","fixed-split","paradox-split","s3","s4"],go:[["sounds/map","Where to listen, and why"]],
+  trap:"Listening with the diaphragm for S3 and S4: they are low-pitched; use the bell lightly.",pearl:"A soft or absent A2 in aortic stenosis is a sign of severity."},
+ {t:"Murmurs",aim:"Describe any murmur by timing, site, radiation, grade and manoeuvres.",
+  master:["Time against the carotid; describe shape","Use manoeuvres: inspiration, sitting forward, left lateral, Valsalva, handgrip","Differentiate AS, MR, AR, MS, HOCM and the innocent flow murmur"],
+  signs:["mr-murmur","ar-murmur","ar-eponyms","valsalva-murmur","handgrip"],sounds:["as","mr","ar","ms","hocm","innocent","mvp","tr","vsd"],maps:["murmurs"],go:[["sounds/compare","Look-alike sounds side by side"],["practice/drill","Sound drills"]],
+  trap:"Naming a valve from the site alone: radiation and manoeuvres decide.",pearl:"A murmur that gets louder with Valsalva and softer with squatting: HOCM or MVP."},
+ {t:"Emergencies at the bedside",aim:"Recognise tamponade, endocarditis and acute valve failure clinically.",
+  master:["Name Beck's triad and why it is often incomplete","Look for the stigmata of endocarditis in fever with a murmur","Recognise acute MR: pulmonary oedema with a soft or absent murmur"],
+  signs:["tamponade-signs","endocarditis-stigmata","pulsus-paradoxus"],sounds:["acute-mr","rub"],
+  pres:["chest","sync","palp"],cases:["tamp","as"],scen:["tamp","pmi-mr","pmi-vsd","as-syncope"],maps:["heart-failure","chest-pain","shock"],tools:["heart"],
+  trap:"Waiting for the full Beck's triad.",pearl:"Fever plus a new murmur is endocarditis until blood cultures say otherwise."}
+],
+vessels:[
+ {t:"Blood pressure, done properly",aim:"Measure a pressure you would trust.",
+  master:["Choose the cuff: bladder covering 80% of the arm","Measure both arms the first time; use the higher arm thereafter","Know what a difference over 20 mmHg means"],
+  signs:["bp-arms"],
+  trap:"A small cuff on a large arm reads falsely high.",pearl:"Chest pain with an inter-arm difference: think aortic dissection."},
+ {t:"The arteries",aim:"Find and grade peripheral pulses, bruits and the aneurysm.",
+  master:["Feel femoral, popliteal, posterior tibial and dorsalis pedis","Calculate and interpret an ABI","Palpate the aorta for an expansile mass"],
+  signs:["pedal-pulses","abi","aaa-palp","carotid-bruit","abd-bruit","radio-femoral"],tools:["abi"],
+  trap:"A falsely high ABI in diabetes from stiff arteries (over 1.4).",pearl:"Abdominal or back pain, hypotension and a pulsatile mass: ruptured AAA until proven otherwise."},
+ {t:"The swollen leg",aim:"Separate DVT, cellulitis, heart failure and lymphoedema.",
+  master:["Score Wells for DVT and use D-dimer properly","Know why Homans' sign is abandoned","Grade pitting oedema and look for its cause above the legs"],
+  signs:["wells-dvt","homans","oedema"],pres:["legswell"],tools:["wells-dvt","age-adjusted-ddimer"],
+  trap:"Treating bilateral oedema as two DVTs.",pearl:"Bilateral oedema is systemic (heart, liver, kidney, drugs) until proven otherwise."},
+ {t:"Fluid responsiveness",aim:"Decide whether more fluid will help.",
+  master:["Perform a passive leg raise with a measure of output","Know its limits in raised intra-abdominal pressure"],
+  signs:["plr"],
+  trap:"Giving fluid because the pressure is low without asking if the heart can use it.",pearl:"The passive leg raise is a reversible fluid challenge."}
+],
+lungs:[
+ {t:"Inspect and count",aim:"Read work of breathing and pattern before touching.",
+  master:["Count rate, judge depth and pattern","Spot paradoxical abdominal movement and accessory muscle use","Measure a peak flow and a forced expiratory time"],
+  signs:["paradox-abdomen","peak-flow","fet","laryngeal-height","hoover"],go:[["learn/module/resp","The respiratory examination"]],
+  trap:"A quiet, tired asthmatic who is about to stop breathing.",pearl:"A silent chest in asthma is life-threatening."},
+ {t:"The trachea and expansion",aim:"Feel the mediastinum and the movement of each side.",
+  master:["Feel the trachea gently in the suprasternal notch","Compare expansion with your thumbs on the back"],
+  signs:["tracheal-deviation","chest-expansion"],
+  trap:"Pressing too hard on the trachea.",pearl:"Trachea away from a white-out: effusion or tension. Towards it: collapse."},
+ {t:"Percussion",aim:"Hear and feel resonance, dullness and stony dullness.",
+  master:["Strike the middle phalanx with the wrist, not the elbow","Compare side to side, top to bottom","Percuss diaphragmatic excursion"],
+  signs:["percussion-dull","auscultatory-percussion"],
+  trap:"Comparing apices with bases instead of side with side.",pearl:"Stony dullness at a base is effusion until shown otherwise."},
+ {t:"Breath sounds and added sounds",aim:"Hear vesicular, bronchial, crackles, wheeze, stridor and rubs.",
+  master:["Recognise bronchial breathing at the periphery","Time crackles: early, late, fine, coarse","Tell stridor from wheeze"],
+  signs:["bronchial-breathing","crackles","wheeze","stridor-sign"],sounds:["vesicular","bronchial","fine-crackles","coarse-crackles","wheeze","stridor","pleural-rub","diminished","silent-chest"],go:[["sounds/map","Lung zones"]],
+  trap:"Calling transmitted upper airway sounds wheeze.",pearl:"Fine late inspiratory crackles that do not clear with coughing: fibrosis or early oedema."},
+ {t:"The voice through the chest",aim:"Use the voice to confirm consolidation.",
+  master:["Test vocal resonance or fremitus, egophony and whispered pectoriloquy","Explain why consolidation conducts and fluid does not"],
+  signs:["fremitus","egophony","whisper"],maps:["pneumonia-vs-effusion-vs-pneumothorax"],
+  trap:"Expecting increased resonance over an effusion.",pearl:"Egophony has one of the highest LR+ of any chest sign for pneumonia."},
+ {t:"Synthesis and severity",aim:"Turn findings into a diagnosis and a severity.",
+  master:["Use CURB-65 and its limits","Use the PERC rule only in low pretest probability","Recognise tension pneumothorax clinically"],
+  signs:["curb65","wells-pe"],pres:["dysp","cough"],cases:["pna","eff","copd"],scen:["ptx","asthma","anaph","ape"],maps:["dyspnoea","pneumonia-vs-effusion-vs-pneumothorax"],tools:["curb65","wells-pe","perc","years"],
+  trap:"Waiting for an X-ray to diagnose tension pneumothorax.",pearl:"Hypotension, raised JVP, absent breath sounds, hyperresonance: decompress."}
+],
+belly:[
+ {t:"Inspect and look for liver disease",aim:"Read the abdomen and the hands before palpating.",
+  master:["Expose from nipples to knees, with a chaperone offered","Find stigmata of chronic liver disease","Elicit asterixis properly"],
+  signs:["cirrhosis-signs","asterixis","cullen"],go:[["learn/module/abd","The abdominal examination"]],
+  trap:"Examining a patient who is not lying flat and relaxed.",pearl:"Asterixis is not specific to the liver: think CO₂ retention and uraemia."},
+ {t:"Palpation that the patient allows",aim:"Palpate painlessly and learn the most from it.",
+  master:["Start away from the pain, watch the face","Distinguish guarding from rigidity","Use the cough and percussion tests instead of rebound"],
+  signs:["rebound","cough-test","heel-drop","carnett","rlq-tender"],
+  trap:"Digging for rebound: it hurts and adds little over percussion tenderness.",pearl:"Carnett's sign: pain worse when tensing the abdominal wall suggests the wall, not the viscera."},
+ {t:"Organs and masses",aim:"Feel liver, spleen, kidneys and the aorta.",
+  master:["Palpate from the right iliac fossa upward with breathing","Percuss liver span","Tell spleen from kidney"],
+  signs:["liver-palp","spleen-palp","courvoisier","murphy","aaa-palp"],
+  trap:"Starting palpation in the right upper quadrant and missing a huge liver.",pearl:"Spleen: moves with respiration, has a notch, you cannot get above it, dull to percussion."},
+ {t:"Ascites",aim:"Detect fluid and judge how much.",
+  master:["Perform shifting dullness","Know why the fluid wave needs a third hand"],
+  signs:["shifting-dullness","fluid-wave","puddle"],
+  trap:"Calling ascites from flank fullness alone.",pearl:"Absent flank dullness makes ascites unlikely."},
+ {t:"The acute abdomen",aim:"Find appendicitis, cholecystitis and peritonitis at the bedside.",
+  master:["Elicit Rovsing, psoas and obturator signs and know their weight","Score Alvarado","Check hernial orifices and genitalia in every acute abdomen"],
+  signs:["rovsing","psoas","obturator","alvarado","hernia-cough","cremasteric","cva","bowel-sounds"],pres:["abdo","dysuria"],cases:["app","chole"],scen:["boerhaave"],maps:["acute-abdomen","gi-bleed-and-liver"],tools:["alvarado","air","glasgow-7","gbs"],
+  trap:"Missing testicular torsion or an incarcerated hernia because the groin was not examined.",pearl:"Pain out of proportion to the findings: mesenteric ischaemia."},
+ {t:"The intimate examinations",aim:"Perform rectal and pelvic examination when they change management.",
+  master:["Explain, consent and offer a chaperone","Know when a DRE adds information","Recognise cervical motion tenderness"],
+  signs:["dre","cmt"],
+  trap:"Doing a DRE that will not change anything.",pearl:"Melaena on the glove settles an upper GI bleed in seconds."}
+],
+neck:[
+ {t:"The thyroid",aim:"Examine the thyroid from behind and decide what kind of goitre it is.",
+  master:["Inspect with a swallow of water","Palpate from behind, then percuss for retrosternal extension","Do Pemberton's manoeuvre"],
+  signs:["thyroid-palp","pemberton"],maps:["thyroid"],go:[["learn/module/hn","Head, neck and endocrine"]],
+  trap:"Forgetting the water: a goitre moves on swallowing.",pearl:"A thyroglossal cyst moves with tongue protrusion; a thyroid nodule does not."},
+ {t:"Thyroid status",aim:"Judge the patient's thyroid function from the hands, eyes and reflexes.",
+  master:["Look for lid retraction and lid lag","Time the relaxation of the ankle reflex"],
+  signs:["hyperthyroid-signs","hypothyroid-signs"],labs:["thyroid"],
+  trap:"Ascribing tachycardia to anxiety in a thin, tremulous patient.",pearl:"Proptosis means Graves' disease; lid retraction occurs in any thyrotoxicosis."},
+ {t:"Lymph nodes",aim:"Examine nodes systematically and judge which need a biopsy.",
+  master:["Examine all levels of the neck from behind","Describe size, consistency, tenderness, fixity","Find Virchow's node"],
+  signs:["lymph-nodes","lymph-supraclav"],
+  trap:"Reassuring about a hard, fixed node because it is painless.",pearl:"A left supraclavicular node points to the abdomen."},
+ {t:"Calcium",aim:"Elicit the signs of hypocalcaemia and trust the right one.",
+  master:["Perform Trousseau's sign safely","Know why Chvostek's sign is unreliable"],
+  signs:["trousseau","chvostek"],labs:["calcium-bone"],tools:["corrected-ca"],
+  trap:"Reassurance from a negative Chvostek.",pearl:"After neck surgery, tingling around the mouth is low calcium until measured."}
+],
+senses:[
+ {t:"The ear",aim:"See the whole drum and know what you are looking at.",
+  master:["Hold the otoscope pen-wise with your hand braced on the head","Straighten the canal: up and back in adults, down and back in children","Identify the light reflex, handle of malleus and pars flaccida"],
+  tech:["otoscopy"],signs:["otoscopy"],
+  trap:"Missing the pars flaccida, where cholesteatoma hides.",pearl:"A bulging drum is the most useful sign of acute otitis media."},
+ {t:"Hearing",aim:"Separate conductive from sensorineural loss with a fork.",
+  master:["Use a 512 Hz fork, struck on your knee","Perform Weber and Rinne and read them together","Do a whispered voice test"],
+  tech:["tuning-fork"],signs:["rinne-weber","whisper-test"],
+  trap:"A 'negative Rinne' from a fork that is too low.",pearl:"Sudden sensorineural hearing loss is an emergency: steroids within days."},
+ {t:"The nose and sinuses",aim:"Look inside the nose without hurting.",
+  master:["Keep the speculum blades in the vestibule and open against the ala, never the septum","Identify septum, inferior turbinate and Little's area"],
+  tech:["anterior-rhinoscopy"],signs:["transillumination"],
+  trap:"Mistaking a swollen inferior turbinate for a polyp.",pearl:"Polyps are grey, insensate and mobile; turbinates are pink and tender."},
+ {t:"The eye",aim:"Test vision, see the red reflex and examine the fundus.",
+  master:["Measure acuity with pinhole","Elicit a red reflex at arm's length","Find the disc by following a vessel towards the nose"],
+  tech:["red-reflex","direct-ophthalmoscopy"],signs:["visual-acuity","fundoscopy","red-eye"],pres:["redeye"],
+  trap:"Calling papilloedema from a single look in a small pupil.",pearl:"Red eye with pain, reduced vision or photophobia is not conjunctivitis."},
+ {t:"The throat",aim:"Decide who needs antibiotics for a sore throat.",
+  master:["Score Centor or FeverPAIN","Look for quinsy: trismus, uvula deviation, hot potato voice"],
+  signs:["centor"],pres:["throat"],tools:["centor","feverpain"],
+  trap:"Missing epiglottitis because you could not see the throat.",pearl:"Never put a spatula in a child with drooling and stridor."}
+],
+cranial:[
+ {t:"The pupils",aim:"Find an afferent defect and a Horner's syndrome.",
+  master:["Swing a torch two to three seconds per eye in a dim room","Distinguish anisocoria worse in light (parasympathetic) from worse in dark (sympathetic)"],
+  tech:["swinging-torch"],signs:["rapd","horner"],
+  trap:"Swinging too fast or in a bright room.",pearl:"New Horner's with neck pain is carotid dissection until imaged."},
+ {t:"The fields",aim:"Map a field defect to a place in the visual pathway.",
+  master:["Test each quadrant of each eye by confrontation","Localise bitemporal, homonymous and altitudinal defects"],
+  tech:["confrontation-fields"],signs:["visual-fields"],
+  trap:"Testing both eyes together.",pearl:"Homonymous defect: behind the chiasm. Bitemporal: at it."},
+ {t:"Eye movements",aim:"Find a palsy, an INO or a skew.",
+  master:["Use the H pattern slowly, asking about diplopia","Name III, IV and VI palsies from the cover test"],
+  tech:["eye-movements"],go:[["learn/cranial","The cranial nerves"]],
+  trap:"Missing a pupil-involving third nerve palsy: aneurysm until proved otherwise.",pearl:"A painful third nerve palsy with a dilated pupil is a neurosurgical emergency."},
+ {t:"The face and the swallow",aim:"Tell central from peripheral facial palsy and screen the swallow.",
+  master:["Test the forehead: spared in UMN, involved in LMN","Perform a water swallow test before feeding a stroke patient"],
+  signs:["facial-palsy","water-swallow","gag"],
+  trap:"Relying on the gag reflex to judge swallowing.",pearl:"The gag reflex is absent in many healthy people and present in many who aspirate."},
+ {t:"The dizzy patient",aim:"Separate BPPV, vestibular neuritis and stroke.",
+  master:["Classify dizziness by timing and trigger, not by the word used","Perform Dix–Hallpike and Epley","Perform HINTS in the acute continuous vestibular syndrome only"],
+  tech:["dix-hallpike","hints"],signs:["dix-hallpike","epley","hints","ice-pack"],pres:["dizz"],cases:["vert"],maps:["vertigo"],
+  trap:"Using HINTS in a patient without nystagmus.",pearl:"A normal head impulse in acute continuous vertigo is a red flag for stroke."}
+],
+mind:[
+ {t:"The conscious level",aim:"Score GCS precisely and spot the head injury that needs a scan.",
+  master:["Score eyes, verbal and motor separately","Apply the Canadian CT head rule","See Battle's sign and raccoon eyes"],
+  signs:["gcs","ct-head-rule","battle"],tools:["gcs","cchr"],
+  trap:"Reporting a GCS total without the parts.",pearl:"The motor score carries most of the prognosis."},
+ {t:"Tone, power and drift",aim:"Find weakness and say whether it is UMN or LMN.",
+  master:["Grade MRC power against a fixed joint","Elicit pronator drift with eyes closed","Feel tone and clonus"],
+  tech:["mrc-power","pronator-drift","clonus-tone"],signs:["pronator-drift","clonus"],go:[["learn/module/neuro","The neurological examination"]],
+  trap:"Grading power without stabilising the proximal joint.",pearl:"Pronator drift is one of the most sensitive signs of a mild UMN lesion."},
+ {t:"Reflexes",aim:"Elicit reflexes every time and interpret asymmetry.",
+  master:["Let the hammer fall; reinforce with Jendrassik","Elicit plantar responses and Hoffmann's sign"],
+  tech:["tendon-reflexes","plantar-response","hoffmann"],signs:["reflexes","babinski","hoffmann"],go:[["learn/myotomes","Myotomes and reflexes"]],
+  trap:"Calling a reflex absent without reinforcement.",pearl:"Asymmetry matters more than briskness."},
+ {t:"Sensation",aim:"Map sensory loss to root, nerve, cord or cortex.",
+  master:["Test vibration at 128 Hz and proprioception from distal to proximal","Find a sensory level with pinprick","Screen diabetic feet with a 10 g monofilament"],
+  tech:["vibration-proprioception","pinprick-sensory-level","monofilament","two-point"],signs:["monofilament"],go:[["learn/neuromap","Dermatomes and nerves"]],
+  trap:"Testing sensation from normal to abnormal.",pearl:"Go from abnormal to normal to find the boundary."},
+ {t:"Coordination and gait",aim:"Separate cerebellar, sensory and functional unsteadiness.",
+  master:["Perform finger-nose, heel-shin, rapid alternating movements","Do Romberg properly and know what it tests","Watch tandem gait"],
+  tech:["cerebellar-tests","romberg","tandem-gait"],signs:["finger-nose","romberg","tandem","bradykinesia","glabellar"],
+  trap:"Calling a positive Romberg cerebellar.",pearl:"Romberg tests proprioception: a cerebellar patient is unsteady with eyes open too."},
+ {t:"Meninges and functional signs",aim:"Know what meningism signs can and cannot do, and show functional weakness kindly.",
+  master:["Perform neck stiffness, Kernig and Brudziński","Perform Hoover's sign and explain it to the patient"],
+  tech:["meningism","hoover"],signs:["neck-stiffness","kernig","hoover-functional"],cases:["mening"],
+  trap:"Using negative Kernig to exclude meningitis.",pearl:"If you suspect meningitis, treat first, then investigate."},
+ {t:"Stroke and localisation",aim:"Recognise stroke and say where the lesion is.",
+  master:["Use BE-FAST","Localise from signs: cortex, internal capsule, brainstem, cord","Know the time windows"],
+  signs:["befast"],pres:["head","weak","mse"],cases:["stroke"],maps:["stroke-localisation","weakness-localisation","headache-red-flags"],tools:["abcd2","ottawa-sah"],go:[["learn/localise","Localisation"],["practice/localiser","Localiser cases"]],
+  trap:"Calling a posterior circulation stroke 'just vertigo'.",pearl:"Crossed signs (face one side, body the other) point to the brainstem."}
+],
+spine:[
+ {t:"The back in the room",aim:"Sort back pain into mechanical, radicular and serious.",
+  master:["Ask the red-flag questions every time","Inspect, palpate and measure lumbar flexion with Schober"],
+  signs:["schober","si-cluster"],pres:["back"],maps:["back-pain"],go:[["learn/region/spine","Neck and back"]],
+  trap:"Scanning every back.",pearl:"Night pain, weight loss, fever, a history of cancer or IV drug use: image."},
+ {t:"The trapped root",aim:"Find which root, and how badly.",
+  master:["Perform SLR, crossed SLR and femoral stretch","Screen L4, L5 and S1 by power, reflex and sensation"],
+  signs:["slr","crossed-slr","femoral-stretch","lumbar-roots"],go:[["learn/rootnerve","Root or nerve?"]],
+  trap:"Calling foot drop L5 without checking the peroneal nerve.",pearl:"L5 weakness spares ankle reflex; S1 loses it."},
+ {t:"Cauda equina",aim:"Never miss it.",
+  master:["Ask about saddle sensation, bladder and bowel every time","Examine saddle sensation and anal tone when in doubt"],
+  signs:["cauda"],
+  trap:"Waiting for retention: by then function may not return.",pearl:"Bilateral sciatica is cauda equina until proved otherwise."},
+ {t:"The neck",aim:"Clear the cervical spine and find a cervical radiculopathy.",
+  master:["Apply the Canadian C-spine rule or NEXUS","Perform Spurling's test and the upper limb tension test"],
+  signs:["c-spine-rule","spurling","ultt"],tools:["ccsr","nexus"],
+  trap:"Rotating the neck of a patient who should be immobilised.",pearl:"Dangerous mechanism, age over 65 or paraesthesia in the limbs: image."},
+ {t:"Interpreting distress",aim:"Recognise psychosocial overlay without accusing.",
+  master:["Elicit Waddell signs and interpret them as distress, not malingering"],
+  signs:["waddell"],
+  trap:"Writing 'malingering' on the basis of Waddell signs.",pearl:"In occupational assessment, function and the patient's own goals matter more than signs."}
+],
+arm:[
+ {t:"The shoulder",aim:"Separate cuff, impingement, instability, ACJ and frozen shoulder.",
+  master:["Assess active and passive movement first","Test supraspinatus, infraspinatus and subscapularis separately","Know which tests are sensitive and which are specific"],
+  signs:["painful-arc","drop-arm","er-lag","empty-can","lift-off","hawkins","neer","apprehension","cross-body","speed","frozen"],maps:["shoulder-pain"],go:[["learn/region/shoulder","Shoulder"]],
+  trap:"Calling a frozen shoulder a cuff tear: loss of passive external rotation is the key.",pearl:"Painful arc, drop arm and external rotation weakness together strongly suggest a full-thickness tear."},
+ {t:"The elbow",aim:"Rule out a fracture and find tendinopathy.",
+  master:["Use the elbow extension test after trauma","Elicit Cozen's test"],
+  signs:["elbow-ext","cozen"],go:[["learn/region/elbow","Elbow"]],
+  trap:"X-raying every elbow.",pearl:"Full extension after trauma makes a significant fracture unlikely."},
+ {t:"The wrist and the scaphoid",aim:"Never miss a scaphoid fracture.",
+  master:["Press the snuffbox, the tubercle and compress the thumb","Perform Finkelstein's test"],
+  signs:["scaphoid","finkelstein","thumb-grind"],go:[["learn/region/wrist","Wrist and hand"]],
+  trap:"A normal first X-ray does not exclude a scaphoid fracture.",pearl:"Snuffbox tenderness after a fall: immobilise and re-image or MRI."},
+ {t:"The nerves of the hand",aim:"Test median, ulnar and radial nerves quickly and accurately.",
+  master:["Test thenar power and median sensation","Perform Tinel, Phalen and Durkan","Perform Froment's sign"],
+  tech:["tinel","phalen-durkan","froment","mrc-power"],signs:["tinel-wrist","phalen","flick","cts-hypalgesia","froment"],go:[["learn/rootnerve","Root or nerve?"]],
+  trap:"Relying on Tinel alone.",pearl:"Hypalgesia in the median territory and thenar weakness are more useful than Tinel or Phalen."},
+ {t:"The tendons",aim:"Test every flexor tendon after a cut.",
+  master:["Isolate FDS and FDP for each finger"],
+  signs:["fdp-fds"],
+  trap:"Missing a partial tendon injury because the finger still moves.",pearl:"Pain on resisted flexion after a cut means a partial division until explored."}
+],
+leg:[
+ {t:"The hip",aim:"Separate hip joint, impingement and referred pain.",
+  master:["Examine passive rotation with the hip flexed","Perform FADIR and the log roll","Watch for the Trendelenburg gait"],
+  signs:["fadir","hip-oa","log-roll","trendelenburg","patellar-pubic"],go:[["learn/region/hip","Hip"]],
+  trap:"Missing a hip fracture because the patient can walk.",pearl:"Loss of internal rotation is the earliest sign of hip OA."},
+ {t:"The knee after injury",aim:"Find effusion, ligament and meniscal injury, and decide on an X-ray.",
+  master:["Detect effusion with the bulge sign and patellar tap","Perform Lachman, anterior drawer, pivot shift, posterior sag","Apply the Ottawa knee rule"],
+  signs:["knee-effusion","lachman","ant-drawer-knee","pivot-shift","post-drawer","valgus-stress","ottawa-knee"],cases:["acl"],maps:["knee-injury"],tools:["ottawa-knee","pittsburgh-knee"],go:[["learn/region/knee","Knee"]],
+  trap:"Calling an ACL intact from a negative anterior drawer in a guarded knee.",pearl:"Lachman is the most accurate ACL test; pivot shift is the most specific."},
+ {t:"The meniscus and patella",aim:"Find meniscal tears and patellar instability.",
+  master:["Perform McMurray, Thessaly and joint-line tenderness","Perform patellar apprehension"],
+  signs:["mcmurray","thessaly","joint-line","patellar-app"],
+  trap:"Over-calling a meniscal tear from joint-line tenderness alone.",pearl:"Combine tests: a single meniscal test is weak."},
+ {t:"The ankle and foot",aim:"X-ray only those who need it and never miss an Achilles rupture.",
+  master:["Apply the Ottawa ankle and foot rules","Perform Thompson's test","Test the syndesmosis and plantar fascia"],
+  signs:["ottawa-ankle","thompson","ankle-drawer","squeeze","windlass","mulder"],tools:["ottawa-ankle"],go:[["learn/region/ankle","Ankle and foot"]],
+  trap:"Missing an Achilles rupture because the patient can plantarflex.",pearl:"Thompson's test: no plantarflexion on calf squeeze means rupture."},
+ {t:"The hot joint",aim:"Treat a single hot joint as septic until proved otherwise.",
+  master:["Aspirate before antibiotics when possible","Use the Kocher criteria in children"],
+  pres:["joint"],tools:["kocher"],
+  trap:"Calling it gout without aspirating.",pearl:"A septic joint destroys cartilage within days."}
+],
+skin:[
+ {t:"Describing a lesion",aim:"Describe any rash so that a dermatologist can picture it.",
+  master:["Name the primary lesion: macule, papule, plaque, vesicle, bulla, pustule, nodule","Add colour, shape, configuration, distribution","Use diascopy to see blanching"],
+  signs:["diascopy"],maps:["the-rash-approach"],go:[["learn/dmorph","The words of the skin"],["learn/describe","Describe like a dermatologist"],["practice/describe","Describe it (practice)"]],
+  trap:"Calling everything 'erythematous rash'.",pearl:"Describe first; the description often suggests the name."},
+ {t:"Signs that help name it",aim:"Use bedside signs to separate look-alikes.",
+  master:["Elicit Nikolsky's sign safely","Know Auspitz and Koebner","Use Wood's lamp"],
+  signs:["nikolsky","auspitz","koebner","woods"],pres:["rash"],go:[["learn/datlas","Skin atlas"]],
+  trap:"Rubbing hard enough to create a blister.",pearl:"A positive Nikolsky with mucosal involvement: think SJS/TEN or pemphigus."},
+ {t:"Pigmented lesions",aim:"Decide which mole needs urgent referral.",
+  master:["Apply ABCDE and the 7-point checklist","Use dermoscopy to look for an atypical network"],
+  signs:["abcde","dermoscopy"],maps:["pigmented-lesion"],
+  trap:"Reassuring a changing lesion because it is small.",pearl:"Change is the single most important feature."},
+ {t:"Skin that can kill",aim:"Recognise the dermatological emergencies.",
+  master:["Recognise SJS/TEN, DRESS, necrotising fasciitis and erythroderma","Score SCORTEN and LRINEC"],
+  tools:["scorten","lrinec"],go:[["learn/demerg","Skin that can kill"]],
+  trap:"Treating pain out of proportion to a red leg as cellulitis.",pearl:"Severe pain, rapid spread and systemic illness: necrotising fasciitis. Call the surgeons."}
+]};
+
+"use strict";
+/* ================= THE CODEX: medical history, dark and bright =================
+   k: theatre (Galen's world) · eponym (the person behind the sign) · dark (harm from false belief) · triumph (discovery that won)
+   Every entry belongs to a hall; signs[] link the story to the bedside. Legends are labelled as legends. */
+const LORE_KIND={theatre:"The theatre",eponym:"Behind the name",dark:"The dark",triumph:"Triumph"};
+const LORE=[
+/* ---------- THE TABLE ---------- */
+{id:"galen-pergamon",hall:"table",k:"theatre",t:"Surgeon to the gladiators",yr:"c. 157",who:"Galen of Pergamon",
+ sum:"A young physician learns anatomy through the wounds of fighting men.",
+ body:["At about twenty-eight, Galen was appointed physician to the gladiators kept by the high priest of Asia at Pergamon. He later called their wounds 'windows into the body': opened bellies, severed tendons, chests laid bare by tridents.",
+ "He boasted that far fewer of his gladiators died than under his predecessor. Whether or not his numbers were honest, the lesson stuck with him: look closely, and treat what you see.",
+ "He went on to Rome, to public demonstrations of anatomy, and to the household of Marcus Aurelius. His authority would outlive the empire by a thousand years."],
+ fact:"Inspection is the oldest diagnostic tool and still the fastest. Look before you touch.",signs:[],galen:"They were the finest teachers I ever had. Most of them were bleeding.",src:"Nutton, Galen: A Thinking Doctor in Imperial Rome (2020)"},
+{id:"humours",hall:"table",k:"dark",t:"Fourteen centuries of balance",yr:"c. 400 BC – 1850s",who:"Hippocratic writers, Galen",
+ sum:"The theory of four humours, and the patients it bled.",
+ body:["Health, said the Hippocratic writers, was a balance of four humours: blood, phlegm, yellow bile and black bile. Galen made the idea a system so complete that questioning it seemed absurd.",
+ "If disease was excess, the cure was removal. For centuries patients were bled, purged, blistered and made to vomit. Children with fever, women after childbirth and old men with failing hearts were all drained of blood they could not spare.",
+ "The theory did not fall because someone argued better. It fell because Pierre Louis counted outcomes in the 1830s, because microscopes showed cells and germs, and because the numbers kept saying the same thing."],
+ fact:"A theory that explains everything and is never tested is the most dangerous kind. Ask for outcomes.",signs:[],galen:"I was magnificent, and I was wrong. Both can be true.",src:"Porter, The Greatest Benefit to Mankind (1997)"},
+{id:"washington",hall:"table",k:"dark",t:"The bleeding of a president",yr:"14/12/1799",who:"George Washington",
+ sum:"A sore throat, a confident medical team, and about two and a half litres of blood.",
+ body:["George Washington woke with a severe sore throat and difficulty breathing, most likely acute epiglottitis. Over about twelve hours his physicians removed roughly 80 ounces of blood, around 40 per cent of his volume, along with blisters, purges and an emetic.",
+ "One young doctor, Elisha Dick, argued against further bleeding and suggested opening the windpipe. He was outvoted.",
+ "Washington died that night. His doctors published a defence of their treatment, and most physicians of the time agreed with them."],
+ fact:"Stridor and drooling in an adult are an airway emergency. The treatment is the airway, not the patient's blood.",signs:["stridor-sign"],galen:"Bleeding him was my advice, carried down seventeen centuries. I would rather not discuss it.",src:"Morens, N Engl J Med 1999;341:1845"},
+{id:"semmelweis",hall:"table",k:"dark",t:"The doctor who said wash",yr:"1847",who:"Ignaz Semmelweis",
+ sum:"He halved the deaths of mothers, and it destroyed him.",
+ body:["In Vienna's General Hospital, women begged not to be admitted to the First Clinic, where doctors and students delivered babies. Childbed fever killed them there at several times the rate of the midwives' clinic next door.",
+ "When a colleague died after cutting his finger at an autopsy, Semmelweis saw it: the students came straight from the dead to the labouring women. He ordered hands washed in chlorinated lime. In 1848 maternal deaths in his clinic fell to about one per cent.",
+ "Senior doctors were offended at being called carriers of death. Semmelweis was not reappointed, grew bitter, wrote furious open letters, and in 1865 was committed to an asylum. He died there within two weeks, of an infected wound, after a beating by the guards."],
+ fact:"Hand hygiene before every examination is part of the examination. It is the oldest evidence-based intervention you perform.",signs:[],galen:"Proud men killed those mothers. I know the type. I was one.",src:"Nuland, The Doctors' Plague (2003)"},
+{id:"mesmer",hall:"table",k:"triumph",t:"The first blind test",yr:"1784",who:"Benjamin Franklin, Antoine Lavoisier",
+ sum:"A king's commission blindfolds the patients, and an invisible fluid disappears.",
+ body:["Franz Mesmer filled Paris salons with patients who fainted and convulsed around his tubs of 'animal magnetism'. Louis XVI appointed a commission that included Benjamin Franklin, the chemist Lavoisier and Dr Guillotin.",
+ "They did something new: they blindfolded the subjects. Told they were being magnetised when they were not, people convulsed. Magnetised without knowing, they felt nothing.",
+ "The commission concluded that the effects came from imagination. It was one of the first uses of blinding and sham treatment, the backbone of every trial you read."],
+ fact:"Expectation changes findings, in patients and in examiners. It is why we blind trials and why a test's accuracy is measured against a reference standard.",signs:["hoover-functional","waddell"],galen:"A blindfold defeated a fashionable theory. I find that unsettling.",src:"Franklin Commission report (1784); Herr, Am J Psychiatry 2005"},
+{id:"osler",hall:"table",k:"eponym",t:"Listen to the patient",yr:"1893",who:"William Osler",
+ sum:"The physician who took students out of the lecture hall and onto the ward.",
+ body:["At Johns Hopkins, William Osler put medical students on the wards to clerk real patients, an idea so obvious now that it is hard to imagine it was new.",
+ "He is remembered for the line 'Listen to your patient, he is telling you the diagnosis', though it is attributed rather than proven. The point holds: most diagnoses come from the history.",
+ "Osler also gave his name to the tender nodes of endocarditis, and to a hundred other observations, because he wrote down what he saw."],
+ fact:"The history makes most diagnoses; the examination confirms or refutes. Take the history like a hypothesis.",signs:["endocarditis-stigmata"],galen:"He made students sit with patients. I approve. I made them sit with apes.",src:"Bliss, William Osler: A Life in Medicine (1999)"},
+{id:"theriac",hall:"table",k:"dark",t:"The cure for everything",yr:"c. 170 – 1880s",who:"Galen, apothecaries of Europe",
+ sum:"Sixty-four ingredients, including viper flesh, for every disease.",
+ body:["Theriac began as an antidote against poisons and became a cure for everything. Galen prepared it for Marcus Aurelius and wrote whole treatises on it: dozens of ingredients, opium among them, and the flesh of vipers.",
+ "Venice made theriac a public ceremony, mixed in the square under official eyes. Apothecaries sold it across Europe for over 1,500 years, for plague, fever, melancholy and snakebite.",
+ "It probably did make people feel better: it contained opium. Feeling better and getting better are not the same thing, which is a lesson we keep having to relearn."],
+ fact:"Symptom relief is not evidence of cure. Ask what happened to the disease, not only to the complaint.",signs:[],galen:"The emperor slept well on it. I took that as proof. It was the opium.",src:"Nutton (2020); Griffin, Br J Clin Pharmacol 2004"},
+/* ---------- HEART ---------- */
+{id:"harvey",hall:"heart",k:"triumph",t:"The blood goes round",yr:"1628",who:"William Harvey",
+ sum:"A man with a ligature and a calculation overturns Galen.",
+ body:["Galen taught that blood was made in the liver, carried outward and consumed by the body, and that some seeped through invisible pores between the ventricles. Harvey, who had trained at Padua, did arithmetic instead: even a modest volume per beat added up to more blood in an hour than a man could make in a week.",
+ "Then he tied a band round an arm. Above it the veins swelled; pushing blood along them against their valves failed. Blood could only be going one way, back to the heart.",
+ "His book De Motu Cordis appeared in 1628. A contemporary wrote that Harvey 'fell mightily in his practice' because patients thought him crack-brained. He was right anyway."],
+ fact:"You can repeat Harvey's experiment at any bedside: occlude a forearm vein and strip it; the valves show the direction of flow.",signs:["jvp"],galen:"He was trained in this very theatre. Under my statue, so to speak. Ungrateful.",src:"Harvey, De Motu Cordis (1628); Aubrey, Brief Lives"},
+{id:"forssmann",hall:"heart",k:"triumph",t:"A catheter in his own heart",yr:"1929",who:"Werner Forssmann",
+ sum:"A junior surgeon is told no, so he does it to himself.",
+ body:["At twenty-five, Werner Forssmann wanted to pass a tube through a vein into the living heart. His chief refused: it would kill the patient. So he tied up the nurse who was meant to help, then thought better of it, released her, numbed his own arm, and pushed a urinary catheter 65 centimetres up his own vein.",
+ "He walked down stairs to the X-ray room and photographed the catheter sitting in his right atrium.",
+ "He was ridiculed and left cardiology. In 1956 he shared the Nobel Prize for the technique that became cardiac catheterisation."],
+ fact:"The tip of a central line belongs at the junction of the superior vena cava and right atrium; Forssmann's film was the first to show it.",signs:[],galen:"Reckless, unauthorised, and correct. The worst combination for his superiors.",src:"Forssmann, Klin Wochenschr 1929;8:2085; Nobel lecture 1956"},
+{id:"corrigan",hall:"heart",k:"eponym",t:"The water-hammer pulse",yr:"1832",who:"Dominic Corrigan",
+ sum:"A Dublin physician describes a pulse that slaps the fingers.",
+ body:["Dominic Corrigan worked among the Dublin poor and described patients whose pulse rose violently and collapsed. He linked it to a leaking aortic valve, and the collapsing pulse still carries his name.",
+ "The other name, water-hammer, comes from a Victorian toy: a sealed glass tube half full of water that strikes the glass with a sharp tap when inverted.",
+ "The signs of aortic regurgitation multiplied into a list of eponyms: Quincke's capillary pulse, Duroziez's femoral murmur, Traube's pistol shots, and de Musset's nodding head."],
+ fact:"A wide pulse pressure with a collapsing pulse suggests aortic regurgitation; listen for the early diastolic murmur sitting forward in held expiration.",signs:["ar-murmur","ar-eponyms"],galen:"I described the pulse in sixteen books. None of them mention toys.",src:"Corrigan, Edinb Med Surg J 1832;37:225"},
+{id:"musset",hall:"heart",k:"eponym",t:"The nodding poet",yr:"1830s – 1857",who:"Alfred de Musset",
+ sum:"A French poet's brother notices his head bobbing with every heartbeat.",
+ body:["Alfred de Musset, poet and lover of George Sand, had aortic regurgitation, probably from syphilis. His brother Paul noticed that Alfred's head nodded slightly with each heartbeat.",
+ "The sign carries a poet's name rather than a physician's: one of the very few in medicine.",
+ "Syphilitic aortitis was common in the nineteenth century. Penicillin has made de Musset's sign rare, but it still turns up."],
+ fact:"Head bobbing with the pulse is a sign of severe aortic regurgitation; it is specific but insensitive. Do not wait for it.",signs:["ar-eponyms"],galen:"A poet with a leaking valve. At least his head kept time.",src:"Sapira, South Med J 1981"},
+{id:"kussmaul",hall:"heart",k:"eponym",t:"The paradoxical pulse",yr:"1873",who:"Adolf Kussmaul",
+ sum:"One man names three signs, and none of them are the same.",
+ body:["Adolf Kussmaul, of Heidelberg and Strasbourg, named the 'pulsus paradoxus' in 1873: a pulse that vanished on inspiration while the heart was still audibly beating. The paradox was that the heart and the pulse disagreed.",
+ "The same year he described the JVP rising on inspiration in constrictive pericarditis: Kussmaul's sign. In 1874 he described the deep, sighing breathing of diabetic coma: Kussmaul breathing.",
+ "Students mix them up constantly. Kussmaul would have been pleased to be remembered three times."],
+ fact:"Pulsus paradoxus over 10 mmHg in a hypotensive patient suggests tamponade; get an echo. Kussmaul's sign points to constriction, not tamponade.",signs:["pulsus-paradoxus","kussmaul-sign","kussmaul-breathing","tamponade-signs"],galen:"Three eponyms for one man. I have more, of course, but mine are diseases.",src:"Kussmaul, Berl Klin Wochenschr 1873"},
+/* ---------- VESSELS ---------- */
+{id:"hales",hall:"vessels",k:"triumph",t:"A mare, a tube and eight feet of blood",yr:"1733",who:"Stephen Hales",
+ sum:"A country parson makes the first measurement of blood pressure.",
+ body:["Stephen Hales was the vicar of Teddington and a relentless experimenter. He had a mare tied down, opened the artery of her leg, and fitted a brass pipe to a glass tube nine feet tall.",
+ "The blood rose to eight feet three inches and bobbed with each heartbeat. He had measured arterial pressure, and seen that it pulsed.",
+ "He published it in Haemastaticks in 1733. It would be nearly 150 years before anyone found a practical way to measure it without opening an artery."],
+ fact:"Blood pressure is a pressure in a column of fluid; a cuff that is too small reads falsely high because it cannot compress the artery properly.",signs:["bp-arms"],galen:"A parson. Measuring a horse. And he was right. The English are strange.",src:"Hales, Statical Essays vol. II (1733)"},
+{id:"korotkoff",hall:"vessels",k:"eponym",t:"Two hundred words that changed the clinic",yr:"1905",who:"Nikolai Korotkoff",
+ sum:"A military surgeon puts a stethoscope under the cuff.",
+ body:["Scipione Riva-Rocci gave medicine the inflatable cuff in 1896, but it could only find the systolic pressure, by feeling for the pulse to return.",
+ "In 1905 a young Russian surgeon, Nikolai Korotkoff, reported to the Imperial Military Academy in St Petersburg that a stethoscope over the artery below the cuff heard sounds appear and disappear. His report was less than a page long.",
+ "The phases of sound he described still give us systolic and diastolic pressure on every ward in the world."],
+ fact:"Systolic is the first of at least two consecutive sounds; diastolic is their disappearance (phase V). Deflate at 2–3 mmHg per second.",signs:["bp-arms"],galen:"Less than a page. I needed hundreds of books.",src:"Korotkoff, Izv Imp Voenno-Med Akad 1905;11:365"},
+{id:"virchow",hall:"vessels",k:"eponym",t:"Stasis, injury, thick blood",yr:"1856",who:"Rudolf Virchow",
+ sum:"The father of pathology explains why clots form, and who gets them.",
+ body:["Rudolf Virchow showed that clots in the lungs had travelled from the veins of the legs, and named the process embolism. The three conditions for thrombosis, stasis, vessel injury and hypercoagulability, are taught as his triad, though he never set them out quite so neatly.",
+ "He also described the left supraclavicular node that enlarges with abdominal cancer, and argued that medicine was a social science.",
+ "Virchow resisted some ideas that proved right, including parts of germ theory, but his triad still decides who gets prophylaxis on your ward."],
+ fact:"Calf signs alone are poor at diagnosing DVT; the Wells score and D-dimer are better than Homans' sign, which has been abandoned.",signs:["homans","wells-dvt","lymph-supraclav"],galen:"He thought in cells. I thought in humours. He wins.",src:"Virchow, Gesammelte Abhandlungen (1856)"},
+/* ---------- LUNGS ---------- */
+{id:"laennec",hall:"lungs",k:"triumph",t:"A quire of paper",yr:"1816",who:"René Laennec",
+ sum:"Embarrassment invents the stethoscope.",
+ body:["In 1816 at the Necker Hospital in Paris, Laennec was called to a young woman with heart disease. Her build made percussion useless, and pressing his ear to her chest felt improper. He remembered children tapping a pin at one end of a log and listening at the other.",
+ "He rolled a quire of paper into a tube, put one end on her chest and the other to his ear, and heard her heart more clearly than he ever had.",
+ "He then spent three years correlating what he heard with what he found at autopsy, coining egophony, pectoriloquy and râle. He died of tuberculosis in 1826, at forty-five, diagnosed, it is said, with his own instrument."],
+ fact:"Laennec's method was to correlate every sound with the post-mortem. Do the same: check your findings against imaging (the Bedside log is built for this).",signs:["egophony","bronchial-breathing","crackles","whisper"],galen:"He listened, then he checked. Most of you only listen.",src:"Laennec, De l'auscultation médiate (1819)"},
+{id:"auenbrugger",hall:"lungs",k:"triumph",t:"The innkeeper's son",yr:"1761",who:"Leopold Auenbrugger",
+ sum:"Tapping wine casks becomes percussion of the chest, and is ignored for 47 years.",
+ body:["Leopold Auenbrugger grew up in his father's inn at Graz, where, the story goes, casks were tapped to judge how much wine they still held. As a physician in Vienna, he tapped chests, and confirmed at autopsy that a dull note meant fluid or solid lung.",
+ "He published Inventum Novum, a new invention, in 1761. Almost no one paid attention. He went on to write the libretto for a comic opera.",
+ "In 1808 Corvisart, Napoleon's physician, translated it into French with full credit. Percussion swept Paris. Auenbrugger lived to see it, just."],
+ fact:"Stony dullness at the base suggests effusion; dullness with bronchial breathing above suggests consolidation.",signs:["percussion-dull","auscultatory-percussion"],galen:"Forty-seven years ignored. I would have shouted louder.",src:"Auenbrugger, Inventum Novum (1761); Corvisart translation (1808)"},
+{id:"koch",hall:"lungs",k:"triumph",t:"The white plague has a cause",yr:"24/03/1882",who:"Robert Koch",
+ sum:"The disease that killed one in seven Europeans is shown to be an infection.",
+ body:["In the nineteenth century tuberculosis killed about one in seven people in Europe. It was blamed on heredity, a sensitive temperament, even genius: consumption was romantic, the disease of poets.",
+ "On 24 March 1882 Robert Koch told the Berlin Physiological Society that he had stained and grown the bacillus, and given the disease to animals with it. The audience reportedly sat in silence.",
+ "24 March is now World Tuberculosis Day. The disease still kills over a million people a year."],
+ fact:"Chronic cough, weight loss, night sweats and haemoptysis: think TB, isolate, and send sputum. It is still common, and still curable.",signs:["crackles","clubbing"],galen:"I thought consumption was an ulcer of the lung, and prescribed milk and sea air. The milk was not harmful.",src:"Koch, Berl Klin Wochenschr 1882;19:221"},
+{id:"hippocratic-fingers",hall:"lungs",k:"eponym",t:"Hippocratic fingers",yr:"c. 400 BC",who:"Hippocrates",
+ sum:"The oldest sign still in use.",
+ body:["The Hippocratic writers described fingers that swelled at the tips, with curved nails, in patients with chronic chest suppuration: what we would call empyema and lung abscess.",
+ "Clubbing is still sometimes called 'Hippocratic fingers', and its causes still begin with the chest. The mechanism is still debated; the leading theory involves platelet clumps lodging in the fingertip and releasing growth factors.",
+ "Two and a half thousand years on, it remains a sign you must not ignore."],
+ fact:"New clubbing in an adult smoker is lung cancer until proven otherwise. Check the Schamroth window.",signs:["clubbing"],galen:"Hippocrates noticed it first. I merely wrote about it more.",src:"Hippocratic Corpus, Prognostics; Spicknall, Am J Med 2005"},
+/* ---------- BELLY ---------- */
+{id:"marshall",hall:"belly",k:"triumph",t:"He drank the bacteria",yr:"1984",who:"Barry Marshall, Robin Warren",
+ sum:"Everyone knew ulcers came from stress. Two Australians proved otherwise.",
+ body:["For most of the twentieth century peptic ulcers were blamed on stress, spicy food and acid. Patients took antacids for decades or lost most of their stomach to surgery.",
+ "In Perth, the pathologist Robin Warren saw spiral bacteria in inflamed stomachs. The young physician Barry Marshall could not get them into pigs, and journals rejected the work. So in 1984 he drank a culture himself. Within days he was vomiting, with gastritis on biopsy, and the bacteria were there.",
+ "Antibiotics now cure most ulcers. Marshall and Warren received the Nobel Prize in 2005."],
+ fact:"Test and treat Helicobacter pylori in dyspepsia; an ulcer is now usually an infection or a drug (NSAID) problem.",signs:[],galen:"A man who swallowed his own hypothesis. I respect that enormously.",src:"Marshall, Med J Aust 1985;142:436; Nobel 2005"},
+{id:"appendicitis",hall:"belly",k:"triumph",t:"Naming the killer",yr:"1886 – 1889",who:"Reginald Fitz, Charles McBurney",
+ sum:"'Perityphlitis' killed young people for centuries until it got a name and an operation.",
+ body:["Young people died of an inflamed right iliac fossa, and physicians blamed the caecum, calling it typhlitis or perityphlitis. They waited, applied leeches and gave opium.",
+ "In 1886 the Boston pathologist Reginald Fitz showed from 257 cases that the trouble was in the appendix, and urged early operation. In 1889 Charles McBurney described the point of maximal tenderness, two inches from the anterior superior iliac spine on a line to the umbilicus.",
+ "In 1902 King Edward VII's coronation was postponed so his appendix abscess could be drained. Surgery for appendicitis became respectable overnight."],
+ fact:"Migration of pain to the right iliac fossa is one of the most useful features; no single sign rules appendicitis out, so use a score.",signs:["rlq-tender","rovsing","psoas","obturator","rebound","alvarado"],galen:"A king's belly made the operation fashionable. Kings have always been useful that way.",src:"Fitz, Am J Med Sci 1886;92:321; McBurney, NY Med J 1889"},
+{id:"trousseau",hall:"belly",k:"dark",t:"He recognised his own sign",yr:"1867",who:"Armand Trousseau",
+ sum:"The physician who described clots of cancer found them in himself.",
+ body:["Armand Trousseau, of the Hôtel-Dieu in Paris, described migrating thrombophlebitis as a warning of hidden cancer, especially of the stomach and pancreas.",
+ "In January 1867 he found a clot in his own arm. He is said to have told a pupil, 'I am lost; the phlebitis that has just appeared tonight leaves me no doubt.' He died of gastric cancer within months.",
+ "His name is also on the carpal spasm of low calcium, so you will meet him in two halls."],
+ fact:"Unexplained or recurrent venous thrombosis in an adult deserves a thought about occult malignancy.",signs:["trousseau"],galen:"To read your own death in your own sign. That is the physician's worst lesson.",src:"Trousseau, Clinique médicale de l'Hôtel-Dieu (1865); Khorana, J Thromb Haemost 2003"},
+{id:"cullen-turner",hall:"belly",k:"eponym",t:"Bruises that tell of bleeding",yr:"1918 – 1920",who:"Thomas Cullen, George Grey Turner",
+ sum:"Two surgeons read blood tracking through the abdominal wall.",
+ body:["In 1918 the Baltimore gynaecologist Thomas Cullen described a bluish periumbilical discolouration in a woman with a ruptured ectopic pregnancy. Blood had tracked from the peritoneum along the falciform ligament.",
+ "In 1920 the Newcastle surgeon George Grey Turner described bruising in the flanks in acute haemorrhagic pancreatitis, from blood tracking through the retroperitoneum.",
+ "Both signs appear late, a day or more into the illness. Their absence reassures no one."],
+ fact:"These are late, specific and insensitive signs of retroperitoneal or intraperitoneal bleeding; do not wait for them.",signs:["cullen"],galen:"Bruises that confess. If only all patients were so honest.",src:"Cullen, Am J Obstet Gynecol 1918; Grey Turner, Br J Surg 1920"},
+{id:"courvoisier",hall:"belly",k:"eponym",t:"A law that is only an observation",yr:"1890",who:"Ludwig Courvoisier",
+ sum:"A painless, palpable gallbladder in a jaundiced patient.",
+ body:["The Swiss surgeon Ludwig Courvoisier reviewed obstructed bile ducts and noted that a stone usually left the gallbladder shrunken and scarred, while obstruction from other causes, such as cancer of the pancreatic head, left it distended.",
+ "He never called it a law; later writers did. There are exceptions both ways.",
+ "Still, a jaundiced patient with a smooth, non-tender gallbladder you can feel is a patient who needs imaging of the pancreas."],
+ fact:"Painless jaundice with a palpable gallbladder points away from stones and towards malignant obstruction.",signs:["courvoisier","murphy"],galen:"Others call his observation a law. Nobody has ever had to make my observations into laws; they simply were.",src:"Courvoisier (1890); Fitzgerald, Postgrad Med J 2009"},
+/* ---------- NECK ---------- */
+{id:"kocher",hall:"neck",k:"triumph",t:"What happens when the gland is gone",yr:"1883 – 1909",who:"Theodor Kocher",
+ sum:"The surgeon who made thyroidectomy safe, then discovered what the thyroid does.",
+ body:["In the 1870s thyroid surgery killed about one patient in seven. In Bern, Theodor Kocher operated slowly and bloodlessly, and his mortality fell below one per cent over thousands of cases.",
+ "Then he followed up his early patients. Those who had lost the whole gland had become slow, swollen, cold and dull; children stopped growing. He called it 'cachexia strumipriva' and stopped removing whole thyroids.",
+ "He received the Nobel Prize in 1909, the first surgeon to do so."],
+ fact:"Before neck surgery or radio-iodine, document voice and thyroid status. After it, check calcium and thyroid function.",signs:["thyroid-palp","hypothyroid-signs"],galen:"He followed up his patients. Most surgeons still do not. Remember that.",src:"Kocher, Arch Klin Chir 1883;29:254; Nobel 1909"},
+{id:"radium",hall:"neck",k:"dark",t:"The radium girls",yr:"1917 – 1938",who:"Dial painters of New Jersey and Illinois",
+ sum:"Young women told to lick their brushes, and their jaws that fell apart.",
+ body:["Factories painting luminous watch dials employed hundreds of young women and taught them to point their brushes with their lips. The paint contained radium. Managers told them it was harmless; some painted their teeth for fun.",
+ "Within years their jaws rotted, their bones broke and their blood failed. Doctors were puzzled; the companies denied everything. Meanwhile radium water was sold as a tonic: the industrialist Eben Byers drank about 1,400 bottles and died in 1932 with much of his jaw removed.",
+ "The women sued, and won. Their case shaped occupational safety law and the standards for radiation exposure that protect workers today."],
+ fact:"Ask about occupation in every history. Exposure is a diagnosis that the patient often cannot make for you.",signs:[],galen:"Industry lied and doctors believed it. Ask what your patient breathes and swallows at work.",src:"Moore, The Radium Girls (2016); Clark, Radium Girls (1997)"},
+{id:"chvostek",hall:"neck",k:"eponym",t:"The twitching cheek",yr:"1876",who:"František Chvostek",
+ sum:"A tap in front of the ear, and the face answers.",
+ body:["František Chvostek, a Moravian surgeon in Vienna, described in 1876 the twitch of the face when the facial nerve is tapped in front of the ear, in patients with tetany.",
+ "It turned out to be a poor test: up to a quarter of people with normal calcium have it, and many with low calcium do not.",
+ "Trousseau's sign, the carpal spasm under an inflated cuff, is much more specific. Check the calcium; do not lean on the cheek."],
+ fact:"Chvostek's sign is unreliable; Trousseau's sign is more specific for hypocalcaemia. Measure the corrected or ionised calcium.",signs:["chvostek","trousseau"],galen:"A sign that a quarter of healthy people have is not a sign. It is a reflex with a name.",src:"Hujoel, Clin Endocrinol 2016"},
+/* ---------- SENSES ---------- */
+{id:"helmholtz",hall:"senses",k:"triumph",t:"A new world in the eye",yr:"1851",who:"Hermann von Helmholtz",
+ sum:"Glass, a candle and a physicist let doctors see a living retina.",
+ body:["The pupil looks black because the observer's own head blocks the light that would return. In 1851 Helmholtz, then a young physiology professor, put the light source and the eye on the same line with a stack of thin glass plates as a partial mirror.",
+ "For the first time anyone could see the optic disc, retinal vessels and macula in a living person. The great ophthalmologist Albrecht von Graefe is said to have exclaimed that a new world had been opened to him.",
+ "Charles Babbage had built a similar instrument in 1847 and handed it to a doctor, who did not publish it. History remembers the man who did."],
+ fact:"The fundus is the only place you can see blood vessels and a piece of the brain directly. Papilloedema with headache is an emergency.",signs:["fundoscopy","red-eye"],galen:"Babbage built it first and told no one. Publish, students. Publish.",src:"Helmholtz, Beschreibung eines Augen-Spiegels (1851)"},
+{id:"tuning",hall:"senses",k:"eponym",t:"Two tuning forks",yr:"1834 – 1855",who:"Ernst Weber, Heinrich Rinne",
+ sum:"A fork on the forehead and a fork by the ear sort deafness into two kinds.",
+ body:["The tuning fork was invented in 1711 by John Shore, trumpeter to Handel. A century later, the physiologist Ernst Weber described in 1834 how a fork on the head sounds louder in an ear blocked by a finger.",
+ "In 1855 Heinrich Rinne compared air and bone conduction at the same ear. Together the tests separate conductive from sensorineural hearing loss with nothing but a fork and a quiet room.",
+ "The 512 Hz fork is the right one: lower forks are felt as vibration more than heard."],
+ fact:"Use a 512 Hz fork. In conductive loss, Weber lateralises to the bad ear; in sensorineural loss, to the good ear.",signs:["rinne-weber","whisper-test"],galen:"A trumpeter's tool became a test. Music has been kinder to medicine than medicine to music.",src:"Ng, Postgrad Med J 1998"},
+{id:"argyll",hall:"senses",k:"dark",t:"The prostitute's pupil",yr:"1869",who:"Douglas Argyll Robertson",
+ sum:"Pupils that accommodate but do not react, and the disease no one would name.",
+ body:["The Edinburgh ophthalmologist Douglas Argyll Robertson described small, irregular pupils that constricted to near vision but not to light, in patients with tabes dorsalis, a late stage of syphilis.",
+ "Students learned the cruel mnemonic: like a prostitute, it accommodates but does not react. The patients were blamed as much as the disease.",
+ "Syphilis was treated for four hundred years with mercury, which loosened teeth, rotted gums and drove patients mad. A night with Venus, the saying went, a lifetime with Mercury."],
+ fact:"Light-near dissociation of the pupils: think neurosyphilis, diabetes and dorsal midbrain lesions. Test syphilis serology.",signs:["rapd"],galen:"The patients were treated with contempt and poison in equal measure. Medicine has not always been kind.",src:"Argyll Robertson, Edinb Med J 1869"},
+/* ---------- CRANIAL ---------- */
+{id:"twelve",hall:"cranial",k:"theatre",t:"Seven, nine, twelve",yr:"c. 170 – 1778",who:"Galen, Thomas Willis, Samuel Soemmerring",
+ sum:"How the cranial nerves were counted, and miscounted.",
+ body:["Galen counted seven pairs of nerves from the brain, and his number lasted fifteen hundred years.",
+ "In 1664 Thomas Willis, in Oxford, published Cerebri Anatome with drawings by the young Christopher Wren, later the architect of St Paul's Cathedral. Willis counted nine pairs and described the arterial circle at the base of the brain that bears his name.",
+ "In 1778 Samuel Soemmerring, in Germany, separated them into the twelve we learn today. Each is a road, and each has its own way of failing."],
+ fact:"Examine the cranial nerves in order, but think in groups: eye (II, III, IV, VI), face (V, VII), bulbar (IX, X, XII), neck (XI).",signs:["visual-fields","facial-palsy","gag","horner"],galen:"Seven was a fine number. Twelve is merely more accurate.",src:"Willis, Cerebri Anatome (1664); Soemmerring (1778)"},
+{id:"bell",hall:"cranial",k:"eponym",t:"The surgeon who painted the dying",yr:"1821",who:"Charles Bell",
+ sum:"Facial palsy, and a surgeon-artist at Waterloo.",
+ body:["Charles Bell, a Scottish surgeon and gifted painter, showed in 1821 that the facial nerve moves the face and the trigeminal nerve feels it. Idiopathic facial palsy still bears his name.",
+ "In 1815 he went to Brussels after Waterloo and operated for days on the wounded, then painted them: soldiers with gunshot wounds, amputations, tetanus. The paintings survive.",
+ "He was a better observer than theorist, which is the right way round for a clinician."],
+ fact:"Forehead sparing suggests an upper motor neurone (central) facial palsy; a lower motor neurone (Bell's) palsy affects the whole side, forehead included.",signs:["facial-palsy"],galen:"He painted what he treated. I wrote what I treated. Both of us needed witnesses.",src:"Bell, Phil Trans R Soc 1821"},
+{id:"hints",hall:"cranial",k:"triumph",t:"Three steps that beat the scanner",yr:"2009",who:"Jorge Kattah, David Newman-Toker",
+ sum:"A bedside examination outperforms early MRI for stroke in the dizzy patient.",
+ body:["Many strokes in the back of the brain present only as dizziness, and early MRI misses up to one in five of them in the first day or two. Patients were sent home with 'labyrinthitis' and returned with a brainstem stroke.",
+ "In 2009 Kattah and Newman-Toker showed that three bedside tests in the acute vestibular syndrome, head impulse, nystagmus and test of skew, detected stroke more sensitively than early MRI in their hands.",
+ "The catch: it only works in the right patient, continuous vertigo with nystagmus, and only in trained hands. Learn the technique properly."],
+ fact:"HINTS is for the acute continuous vestibular syndrome with nystagmus, not for intermittent or positional dizziness.",signs:["hints","dix-hallpike"],galen:"A pair of eyes and a pair of hands beating a magnet. Excellent.",src:"Kattah, Stroke 2009;40:3504"},
+{id:"horner",hall:"cranial",k:"eponym",t:"Bernard's syndrome, Horner's name",yr:"1852 – 1869",who:"Claude Bernard, Johann Horner",
+ sum:"A droopy lid and a small pupil, described twice in two languages.",
+ body:["The physiologist Claude Bernard cut the cervical sympathetic chain in rabbits in 1852 and saw a small pupil and a drooping lid. The Swiss ophthalmologist Johann Horner described the same in a patient in 1869.",
+ "English speakers say Horner's syndrome; the French say Claude Bernard–Horner. Eponyms often record who was read, not who was first.",
+ "The sign can be the only clue to a lung apex tumour, a carotid dissection, or a lesion of the brainstem or cord."],
+ fact:"New Horner's syndrome with neck pain: think carotid dissection and image urgently.",signs:["horner"],galen:"Two men, one droopy eyelid. Fame is unfair.",src:"Horner, Klin Monatsbl Augenheilkd 1869"},
+/* ---------- MIND AND MOTION ---------- */
+{id:"babinski",hall:"mind",k:"eponym",t:"The toe that told the truth",yr:"1896",who:"Joseph Babinski",
+ sum:"Telling the organic from the hysterical with the sole of a foot.",
+ body:["In Charcot's Salpêtrière, patients with 'hysteria' were exhibited to audiences, and neurologists struggled to separate them from patients with real lesions of the brain and cord.",
+ "In 1896 Charcot's pupil Joseph Babinski reported a 'phenomenon of the toes': stroke the sole, and in organic disease of the pyramidal tract the great toe extends instead of flexing.",
+ "It is one of the few signs that has survived more than a century unchanged, and a small sign with very large consequences."],
+ fact:"An extensor plantar response indicates an upper motor neurone lesion; in infants under about one year it is normal.",signs:["babinski"],galen:"A toe. The man became famous for a toe. I had to dissect an entire elephant.",src:"Babinski, C R Soc Biol 1896;48:207"},
+{id:"tabes",hall:"mind",k:"dark",t:"The stamping gait",yr:"1840s – 1972",who:"Moritz Romberg, and the men of Tuskegee",
+ sum:"A sign born of syphilis, and a study that let syphilis run.",
+ body:["The Berlin neurologist Moritz Romberg described patients with tabes dorsalis, late syphilis of the posterior columns, who stood steadily with eyes open and fell when they closed them. They had lost their sense of position, not their balance.",
+ "Salvarsan in 1910 and penicillin in the 1940s made syphilis curable. Yet in Tuskegee, Alabama, the US Public Health Service followed about 400 Black men with syphilis from 1932 to 1972 without treating them, even after penicillin became standard. They were told they had 'bad blood'.",
+ "A whistleblower ended it in 1972. The outrage produced modern rules on informed consent."],
+ fact:"Romberg's sign tests proprioception, not the cerebellum: a patient with cerebellar ataxia is unsteady with eyes open too.",signs:["romberg","tandem"],galen:"Those men were watched like specimens while the cure sat on a shelf. That is the darkest thing in this hall.",src:"Jones, Bad Blood (1993); CDC Tuskegee timeline"},
+{id:"lobotomy",hall:"mind",k:"dark",t:"The ice pick",yr:"1935 – 1967",who:"Egas Moniz, Walter Freeman",
+ sum:"A Nobel Prize for an operation that destroyed thousands of minds.",
+ body:["In 1935 the Portuguese neurologist Egas Moniz cut the white matter of the frontal lobes in asylum patients and reported that they became calmer. He received the Nobel Prize in 1949.",
+ "In America, Walter Freeman developed the transorbital lobotomy: an ice-pick-like instrument hammered through the eye socket, often without an anaesthetist. He performed it on about 3,500 patients, some of them children, travelling from hospital to hospital to do it. Rosemary Kennedy was lobotomised at twenty-three in 1941 and left unable to speak intelligibly.",
+ "Chlorpromazine arrived in the 1950s. The operation faded, but no one undid the damage."],
+ fact:"Frontal lobe signs are subtle: personality change, disinhibition, apathy, primitive reflexes. The glabellar tap and grasp reflex are clues, not proof.",signs:["glabellar"],galen:"Calm is not the same as cured. I learned that from theriac. They learned it from a hammer.",src:"El-Hai, The Lobotomist (2005)"},
+{id:"gage",hall:"mind",k:"theatre",t:"The iron through Phineas Gage",yr:"13/09/1848",who:"Phineas Gage",
+ sum:"A tamping iron through a railwayman's head, and the first lesson in the frontal lobe.",
+ body:["Phineas Gage, a railway foreman in Vermont, was packing blasting powder when it exploded and drove a tamping iron, over a metre long, up through his left cheek and out of the top of his skull.",
+ "He was talking within minutes and lived another twelve years. His doctor, John Harlow, reported that his friends said he was 'no longer Gage': impatient, profane, unable to plan.",
+ "The case is retold, embroidered and argued over to this day. But it was the first to suggest that personality lives in a particular part of the brain."],
+ fact:"After head injury, ask relatives about personality change. The patient is often the last to notice.",signs:["gcs","ct-head-rule"],galen:"His skull and the iron are in a museum at Harvard. They are better preserved than my reputation.",src:"Harlow, Publ Mass Med Soc 1868; Macmillan, An Odd Kind of Fame (2000)"},
+{id:"meningitis",hall:"mind",k:"eponym",t:"Signs that miss most meningitis",yr:"1882 – 1909",who:"Vladimir Kernig, Józef Brudziński",
+ sum:"Two classic signs, and the study that humbled them.",
+ body:["Vladimir Kernig in St Petersburg described in 1882 that patients with meningitis resisted straightening the knee with the hip flexed. Józef Brudziński in Warsaw described the neck sign in 1909, while studying children dying in epidemics.",
+ "For a century they were taught as the signs of meningitis. In 2002 Thomas and colleagues tested them in adults with suspected meningitis: each detected only about one case in twenty.",
+ "The lesson was not to abandon them, but to stop trusting their absence."],
+ fact:"Kernig's and Brudziński's signs are specific but very insensitive; a negative test never rules out meningitis. If you suspect it, do the lumbar puncture.",signs:["kernig","neck-stiffness"],galen:"Signs with fine names and poor sensitivity. Respect the name; distrust the result.",src:"Thomas, Clin Infect Dis 2002;35:46"},
+{id:"hoover",hall:"mind",k:"eponym",t:"The heel that pushes down",yr:"1908",who:"Charles Franklin Hoover",
+ sum:"A Cleveland physician finds a kind way to show that weakness is functional.",
+ body:["Charles Franklin Hoover of Cleveland noticed that when a patient lifts one leg, the other heel presses into the bed. In functional weakness the 'paralysed' leg pushes down firmly when the good leg is lifted against resistance.",
+ "He described it in 1908. The same man described the paradoxical indrawing of the costal margins in severe COPD, also called Hoover's sign.",
+ "Functional neurological disorder is common, real and disabling. A positive sign is a way to explain it to the patient, not to catch them out."],
+ fact:"Hoover's sign shows involuntary hip extension in apparently weak legs. Show it to the patient as a hopeful finding: the wiring works.",signs:["hoover-functional","hoover"],galen:"Two signs, one name, no confusion. He was tidier than Kussmaul.",src:"Hoover, JAMA 1908;51:746; Stone, BMJ 2005"},
+/* ---------- SPINE ---------- */
+{id:"pott",hall:"spine",k:"triumph",t:"The chimney sweeps",yr:"1775",who:"Percivall Pott",
+ sum:"The first cancer ever linked to a job.",
+ body:["Small boys, some only four or five, were sent naked up London's narrow chimneys. They slept in soot and rarely washed.",
+ "In 1775 the surgeon Percivall Pott noted that young men who had been sweeps as boys developed cancer of the scrotum, a disease almost unknown otherwise. He blamed the soot. It was the first time a cancer had been tied to an occupation, and the first chemical carcinogen identified.",
+ "Pott also described tuberculosis of the spine with its gibbus and paraplegia. Pott's disease still turns up wherever TB is common."],
+ fact:"Back pain with fever, weight loss, night pain or a gibbus is not mechanical. Think TB, infection and cancer.",signs:["cauda","lumbar-roots"],galen:"A surgeon who asked what his patients did all day. You are an occupational physician. You know why that matters.",src:"Pott, Chirurgical Observations (1775)"},
+{id:"lasegue",hall:"spine",k:"eponym",t:"The sign Lasègue never wrote",yr:"1864 – 1881",who:"Charles Lasègue, J.J. Forst",
+ sum:"The straight leg raise, credited to a teacher by his student.",
+ body:["The straight leg raise test for sciatica is called Lasègue's sign, after the Paris physician Charles Lasègue. But he never described the test in print.",
+ "His student J.J. Forst wrote it up in his thesis in 1881 and generously attributed it to his master.",
+ "The test is sensitive for a herniated lumbar disc, so a normal SLR makes a disc less likely; the crossed SLR, pain when the other leg is raised, is more specific."],
+ fact:"A positive SLR between 30 and 70 degrees suggests L5 or S1 root irritation; the crossed SLR is more specific.",signs:["slr","crossed-slr"],galen:"A student who credits his teacher. Remarkable. Mine credit only themselves.",src:"Forst (1881); Devillé, Spine 2000"},
+{id:"waddell",hall:"spine",k:"dark",t:"Signs used against patients",yr:"1980",who:"Gordon Waddell",
+ sum:"A screening tool turned into a lie detector.",
+ body:["In 1980 Gordon Waddell described five 'non-organic' signs in patients with low back pain, such as superficial tenderness and pain on pressing the head. He meant them as a warning that psychological distress was shaping the pain, so that surgery might not help.",
+ "Insurers, lawyers and examiners began using them to say patients were faking. Waddell himself wrote that this was a misuse: the signs do not detect malingering.",
+ "In occupational and medicolegal work, how you interpret a sign can decide a patient's livelihood."],
+ fact:"Waddell signs suggest psychosocial distress and poorer surgical outcome; they do not prove malingering and should never be used alone to deny care.",signs:["waddell"],galen:"A tool is only as honest as the hand that holds it.",src:"Waddell, Spine 1980;5:117; Fishbain, Pain Med 2003"},
+/* ---------- ARM ---------- */
+{id:"tinel",hall:"arm",k:"eponym",t:"The tingling of the trenches",yr:"1915",who:"Jules Tinel, Paul Hoffmann",
+ sum:"Two doctors on opposite sides of a war find the same sign.",
+ body:["The First World War sent back hundreds of thousands of men with gunshot wounds to the nerves of the arm. Surgeons needed to know whether a nerve was regrowing or needed exploring.",
+ "In Paris, Jules Tinel tapped along the course of injured nerves and found a point of tingling that moved down the limb as the nerve regenerated. In Germany, Paul Hoffmann described the same, the same year. In Germany it is still the Hoffmann–Tinel sign.",
+ "Today it is mostly used at the wrist for carpal tunnel syndrome, where it is useful but far from perfect."],
+ fact:"Tinel's sign at the wrist has moderate accuracy for carpal tunnel syndrome; nerve conduction studies settle doubtful cases.",signs:["tinel-wrist","phalen","cts-hypalgesia"],galen:"Two enemies agreeing. Medicine is the only thing that makes them do it.",src:"Tinel, Presse Méd 1915; Hoffmann, Med Klin 1915"},
+{id:"froment",hall:"arm",k:"eponym",t:"The pinch that gives away the ulnar nerve",yr:"1915",who:"Jules Froment",
+ sum:"Another war, another sign: holding a sheet of paper.",
+ body:["Jules Froment, in Lyon, examined soldiers with ulnar nerve injuries during the same war. When they gripped a sheet of paper between thumb and index finger, the thumb's tip bent.",
+ "The weak adductor pollicis, supplied by the ulnar nerve, was being replaced by flexor pollicis longus, supplied by the median.",
+ "It is a sign you can do with a piece of paper and two minutes, anywhere."],
+ fact:"Flexion of the thumb's interphalangeal joint during a key pinch suggests ulnar nerve weakness of adductor pollicis.",signs:["froment"],galen:"Paper, a thumb and a lesion. Elegance.",src:"Froment, Presse Méd 1915"},
+/* ---------- LEG ---------- */
+{id:"liston",hall:"leg",k:"dark",t:"The fastest knife in London",yr:"1830s – 1846",who:"Robert Liston",
+ sum:"Surgery before anaesthesia, and the operation of legend.",
+ body:["Before anaesthesia, the patient was held down by assistants and the surgeon's speed was the only mercy. Robert Liston of University College Hospital could take off a leg in under three minutes, and supposedly called 'Time me, gentlemen!'",
+ "A legend, probably exaggerated, says that in one operation he took off the patient's leg, two of his assistant's fingers and the coat-tail of a spectator, and that three people died. Historians doubt the details; the fear was real.",
+ "On 21 December 1846 Liston amputated a leg under ether. 'This Yankee dodge beats mesmerism hollow,' he said. Surgery could finally slow down."],
+ fact:"Today you have time, so use it: examine the joint above and below, check the neurovascular status before and after any manipulation.",signs:["ottawa-ankle","pedal-pulses"],galen:"I worked fast too. The patients screamed less in Greek, I think.",src:"Gordon, Great Medical Disasters (1983, the legend); Ellis, BMJ 1996"},
+{id:"ottawa",hall:"leg",k:"triumph",t:"The rule that saved a million X-rays",yr:"1992",who:"Ian Stiell",
+ sum:"Emergency physicians agree to do less, and lose nothing.",
+ body:["By the 1980s almost every twisted ankle in North American emergency departments was X-rayed, though only about one in seven was broken.",
+ "In Ottawa, Ian Stiell and colleagues derived a simple rule from the bedside: bone tenderness in particular places and the ability to bear four steps. In 1992 they published it; implemented, it cut ankle X-rays by about a third with almost no fractures missed.",
+ "It was a triumph of a different kind: the courage to not do a test."],
+ fact:"Ottawa ankle rules are highly sensitive; a negative rule means an X-ray is very unlikely to show a significant fracture.",signs:["ottawa-ankle","ottawa-knee"],galen:"Doing less, on purpose, with evidence. I never managed it.",src:"Stiell, Ann Emerg Med 1992;21:384; Bachmann, BMJ 2003"},
+{id:"trendelenburg",hall:"leg",k:"eponym",t:"The tilting pelvis",yr:"1895",who:"Friedrich Trendelenburg",
+ sum:"A surgeon's name on a sign, a position, a test for varicose veins and more.",
+ body:["Friedrich Trendelenburg of Leipzig described in 1895 how, in children with congenital hip dislocation, the pelvis dropped on the side opposite the standing leg: the hip abductors could not hold it level.",
+ "His name is also on the head-down operating position, a test of the saphenous valves, and an operation for pulmonary embolism.",
+ "Few surgeons have left as many marks on the language of medicine."],
+ fact:"A positive Trendelenburg sign means weak abductors (gluteus medius) on the standing side: the pelvis drops on the other side.",signs:["trendelenburg"],galen:"Four eponyms. He rivals Kussmaul. Neither rivals me.",src:"Trendelenburg, Dtsch Med Wochenschr 1895"},
+{id:"thalidomide",hall:"leg",k:"dark",t:"The pill for morning sickness",yr:"1957 – 1962",who:"Frances Kelsey",
+ sum:"Thousands of children harmed, and one reviewer who said no.",
+ body:["Thalidomide was sold from 1957 in dozens of countries as a safe sedative, and given to pregnant women for morning sickness. Babies began to be born with missing or shortened limbs.",
+ "Around 10,000 children were affected worldwide; many died. In the United States, a newly hired FDA reviewer, Frances Kelsey, refused to approve it because the safety data were thin, despite repeated pressure from the manufacturer.",
+ "Her refusal led to laws requiring proof of safety and efficacy before a drug can be sold. Every trial you read stands partly on her stubbornness."],
+ fact:"Check pregnancy status before prescribing, imaging or procedures. Ask, every time.",signs:[],galen:"One careful woman protected a nation. Careful people are rarely celebrated. They should be.",src:"Kim, Toxicol Sci 2011; Kelsey, FDA history"},
+/* ---------- SKIN ---------- */
+{id:"willan",hall:"skin",k:"triumph",t:"Words for rashes",yr:"1798 – 1808",who:"Robert Willan",
+ sum:"A Quaker physician sorts the chaos of skin disease by shape.",
+ body:["Before Willan, the same rash could have a dozen names and none of them described what it looked like. Diseases were sorted by supposed cause, which no one knew.",
+ "At the Public Dispensary in London, Robert Willan sorted rashes by their primary lesion, the way botanists sorted plants by their parts. He published On Cutaneous Diseases in parts from 1798 to 1808, with coloured plates.",
+ "His method, describe the lesion, then name the disease, is exactly what Galen asks of you in this hall."],
+ fact:"Describe morphology before diagnosing: primary lesion, colour, configuration, distribution. A good description can be phoned to a dermatologist.",signs:[],galen:"He did for skin what I did for the pulse: gave it a vocabulary. Mine was longer.",src:"Willan, On Cutaneous Diseases (1808)"},
+{id:"jenner",hall:"skin",k:"triumph",t:"A milkmaid's hands",yr:"14/05/1796",who:"Lady Mary Wortley Montagu, Edward Jenner",
+ sum:"From a disfigured aristocrat to the end of smallpox.",
+ body:["Smallpox killed perhaps one in three of those it infected and scarred the rest. Lady Mary Wortley Montagu, whose own face it had marked, saw variolation in Constantinople and had her children inoculated, bringing the practice to England in 1721.",
+ "Country people believed that milkmaids who caught cowpox never caught smallpox. On 14 May 1796 Edward Jenner took matter from the hand of Sarah Nelmes and put it into the arm of eight-year-old James Phipps. Weeks later he inoculated the boy with smallpox. Nothing happened.",
+ "On 8 May 1980 the World Health Assembly declared smallpox eradicated: the only human disease ever wiped out."],
+ fact:"Vesicles all at the same stage, concentrated on the face and limbs, suggest smallpox rather than chickenpox. It is gone, but mpox is not.",signs:[],galen:"A disease I described is gone from the earth. I did not do it. I am glad it was done.",src:"Riedel, Proc Bayl Univ Med Cent 2005"},
+{id:"pellagra",hall:"skin",k:"dark",t:"The filth parties",yr:"1914 – 1937",who:"Joseph Goldberger",
+ sum:"A disease blamed on germs and the poor, solved by diet.",
+ body:["Pellagra, with its dermatitis, diarrhoea, dementia and death, killed tens of thousands in the American South. It was believed to be infectious, and its victims, mostly poor, were shunned.",
+ "Joseph Goldberger of the Public Health Service noticed that staff in orphanages and asylums never caught it from patients; only those eating corn and little else did. To prove it was not infectious, he and colleagues, including his wife, injected and swallowed material from patients in 1916: blood, skin scales and excreta. No one fell ill.",
+ "He was ignored by many for years. In 1937 niacin was identified as the missing factor."],
+ fact:"A photosensitive rash with a necklace distribution (Casal's necklace), diarrhoea and confusion: think pellagra, especially in alcohol use or malnutrition.",signs:[],galen:"He swallowed a patient's scabs to prove a point. I would not have. I admire him for it.",src:"Kraut, Goldberger's War (2003)"},
+{id:"hansen",hall:"skin",k:"dark",t:"The islands of the unclean",yr:"1873",who:"Gerhard Armauer Hansen, Father Damien",
+ sum:"Leprosy, exile, and the first bacterium tied to a human disease.",
+ body:["For millennia people with leprosy were cast out, made to ring bells and wear marks, and declared legally dead. In Hawaii, from 1866, patients were shipped to Kalaupapa on Molokai and left there.",
+ "In Bergen in 1873, Gerhard Armauer Hansen saw rod-shaped bacteria in leprous tissue: the first bacterium linked to a chronic human disease. It was not a curse or a punishment but an infection, and only weakly contagious.",
+ "Father Damien, who cared for the exiles of Molokai, caught it and died there in 1889. Multidrug therapy since the 1980s has cured millions."],
+ fact:"An anaesthetic, hypopigmented patch with a thickened nearby nerve is leprosy until proved otherwise. Test sensation in the patch.",signs:["monofilament"],galen:"They called it uncleanness. It was a germ. Fear has always been the worse disease.",src:"Hansen (1874); WHO leprosy fact sheet"},
+/* ---------- THE THEATRE ---------- */
+{id:"vesalius",hall:"table",k:"theatre",t:"The fabric of the human body",yr:"1543",who:"Andreas Vesalius",
+ sum:"A 28-year-old in Padua opens the body himself, and corrects Galen.",
+ body:["Professors of anatomy used to read Galen aloud from a high chair while a barber-surgeon cut and a demonstrator pointed. When the body disagreed with the book, the body was assumed to be wrong.",
+ "Andreas Vesalius came down from the chair and dissected himself. In 1543, at twenty-eight, he published De humani corporis fabrica in Basel, with woodcuts of astonishing quality from the circle of Titian. He listed some two hundred errors in Galen and pointed out, gently, that Galen had been describing apes.",
+ "Many bodies came from the gallows. Students are said to have stolen others from graves."],
+ fact:"Trust what you find over what you expect. If the examination contradicts the textbook, look again, then believe the patient.",signs:[],galen:"He was right. I will not say it twice.",src:"Vesalius, Fabrica (1543); O'Malley, Andreas Vesalius of Brussels (1964)"},
+{id:"padua",hall:"table",k:"theatre",t:"The theatre of Padua",yr:"1594",who:"Hieronymus Fabricius",
+ sum:"The oldest surviving anatomical theatre, lit by candles in winter.",
+ body:["In 1594 Fabricius ab Aquapendente built a permanent anatomical theatre at the University of Padua: six steep oval tiers of carved wood around a small table, so close that students in the top row could look straight down into the body.",
+ "Dissections were held in winter, when the cold slowed decay, by the light of candles and torches. Students stood shoulder to shoulder; there were no seats. Some accounts say musicians played to cover the sounds.",
+ "Harvey learned there. It still stands. This app's home screen is drawn after it."],
+ fact:"The examination is still a performance with an audience of one: the patient. Explain what you are doing as you do it.",signs:[],galen:"My statue would have looked well in that theatre. They chose Fabricius. Fine.",src:"Klestinec, Theaters of Anatomy (2011)"},
+{id:"burke-hare",hall:"table",k:"dark",t:"Burke and Hare",yr:"1828",who:"William Burke, William Hare, Robert Knox",
+ sum:"Edinburgh's anatomy schools needed bodies. Two men supplied them.",
+ body:["Edinburgh was the centre of anatomical teaching, and the law allowed only executed criminals to be dissected. There were never enough. 'Resurrection men' dug up the newly buried, and families guarded graves with iron cages.",
+ "In 1828 William Burke and William Hare skipped the graveyard. They murdered sixteen people, mostly the poor and the vulnerable, and sold the bodies to the anatomist Robert Knox, who asked no questions.",
+ "Burke was hanged and, by the sentence of the court, publicly dissected. His skeleton is still at the University of Edinburgh. The Anatomy Act of 1832 let unclaimed bodies be used, and the murders for anatomy ended."],
+ fact:"The bodies that taught medicine were often taken from the poorest. Consent is not a formality.",signs:[],galen:"Murder for my art. Some debts can never be repaid. Learn well enough to honour them.",src:"Richardson, Death, Dissection and the Destitute (1987)"},
+{id:"lacks",hall:"table",k:"dark",t:"Cells that never died",yr:"1951",who:"Henrietta Lacks",
+ sum:"A woman's cancer cells taken without consent built modern medicine.",
+ body:["In 1951 Henrietta Lacks, a 31-year-old Black mother of five, was treated for cervical cancer at Johns Hopkins. Cells from her tumour were taken without her knowledge, and they did what no human cells had done before: they kept dividing in the laboratory.",
+ "HeLa cells helped develop the polio vaccine, map genes and test countless drugs. Henrietta died that October. Her family did not learn of the cells for over twenty years, and received nothing.",
+ "Her story is now taught as part of why consent and the use of tissue are governed as they are."],
+ fact:"Consent covers what will be done with samples, images and data as well as with the body.",signs:[],galen:"Her cells have outlived my books, and taught more. Remember her name.",src:"Skloot, The Immortal Life of Henrietta Lacks (2010)"},
+{id:"ether",hall:"leg",k:"triumph",t:"Gentlemen, this is no humbug",yr:"16/10/1846",who:"William Morton, John Collins Warren",
+ sum:"The day surgery stopped being torture.",
+ body:["At the Massachusetts General Hospital, in the operating theatre now called the Ether Dome, a dentist named William Morton held a glass globe of ether to the face of Gilbert Abbott, and the surgeon John Collins Warren removed a tumour from his neck.",
+ "Abbott felt only a scratching. Warren turned to the audience: 'Gentlemen, this is no humbug.'",
+ "The news crossed the Atlantic in weeks. Within two months Liston was amputating under ether in London. The years of fame and fortune that followed brought Morton mostly lawsuits and debt."],
+ fact:"Ask about previous anaesthetics and reactions in every pre-procedure history.",signs:[],galen:"I gave poppy and mandrake. Sometimes the patients woke. Sometimes they did not.",src:"Bigelow, Boston Med Surg J 1846; Fenster, Ether Day (2001)"},
+{id:"penicillin",hall:"table",k:"triumph",t:"The policeman and the mould",yr:"1928 – 1941",who:"Alexander Fleming, Howard Florey, Ernst Chain, Norman Heatley",
+ sum:"A mould on a plate, and the first patient who could not be saved.",
+ body:["In 1928 Alexander Fleming noticed that a mould on a forgotten culture plate had killed the bacteria around it. He named the substance penicillin, and then largely moved on: it was hard to purify.",
+ "In Oxford in 1940, Florey, Chain and Heatley made enough to cure mice. In February 1941 their first patient, the policeman Albert Alexander, dying of infection from a scratch, began to recover. They extracted penicillin from his urine to give it again. It ran out. He relapsed and died.",
+ "Within four years penicillin was mass-produced in America and saved countless soldiers. In his Nobel lecture of 1945 Fleming warned of resistance."],
+ fact:"Ask about antibiotic allergy precisely: what happened, when. Most labelled 'penicillin allergies' are not true allergies.",signs:[],galen:"A mould did more than all my theriac. I find that humbling, and I do not humble easily.",src:"Lax, The Mould in Dr Florey's Coat (2004)"},
+{id:"insulin",hall:"neck",k:"triumph",t:"The boy who woke up",yr:"11/01/1922",who:"Frederick Banting, Charles Best, James Collip, John Macleod",
+ sum:"A death sentence becomes a daily injection.",
+ body:["Before 1922, a child with type 1 diabetes was put on a starvation diet and usually died within a year or two, wasted and comatose.",
+ "In Toronto, Banting and Best extracted a substance from dog pancreases. On 11 January 1922 they injected fourteen-year-old Leonard Thompson; the first impure extract barely worked. Collip purified it, and on 23 January the boy's sugar fell and he began to recover.",
+ "Within months, wards of comatose children were being injected bed by bed. Leonard Thompson lived another thirteen years. Banting sold the patent to the University of Toronto for one dollar."],
+ fact:"Deep sighing breathing and a fruity smell in an unwell young person: check glucose and ketones now. Kussmaul breathing is DKA until proven otherwise.",signs:["kussmaul-breathing"],galen:"Aretaeus called it a melting of the flesh into urine. I called it a diarrhoea of the urine. Neither of us could cure it. A dollar. Generous man.",src:"Bliss, The Discovery of Insulin (1982)"}
+];
+const LORE_BY_SIGN={};LORE.forEach(l=>(l.signs||[]).forEach(s=>(LORE_BY_SIGN[s]=LORE_BY_SIGN[s]||[]).push(l)));
+const loreById=id=>LORE.find(l=>l.id===id);
+
+"use strict";
+/* Each story in outline: before · the turning point · what followed. "At the bedside" is l.fact. */
+const LORE_OUT={
+"galen-pergamon":["Human dissection was forbidden; anatomy came from books and animals.","Gladiators' wounds let Galen see living muscles, tendons and organs.","His anatomy ruled medicine for 1,300 years, errors included."],
+"humours":["Disease was imbalance among four fluids; the cure was removal.","Pierre Louis counted outcomes of bleeding in the 1830s; cells and germs replaced fluids.","Uncounted patients were bled, purged and starved on the theory's authority."],
+"washington":["Bleeding was the standard treatment for almost any acute illness.","None at the time; a junior doctor's objection was outvoted.","A president died of an airway problem treated as a blood problem."],
+"semmelweis":["Childbed fever was blamed on miasma, constitution or fate.","Comparing two clinics and one colleague's death showed transmission by hands.","Handwashing was resisted for decades; Semmelweis died in an asylum."],
+"mesmer":["Animal magnetism was fashionable, profitable and untested.","Blindfolded subjects reacted to belief, not to magnetism.","Blinding and sham control became the basis of the clinical trial."],
+"osler":["Students learned from lectures and books, rarely at the bedside.","Osler put students on the wards to clerk real patients.","The clinical clerkship became the core of medical training everywhere."],
+"theriac":["A complex remedy with dozens of ingredients was trusted for everything.","Pharmacology isolated active ingredients; trials tested single agents.","Theriac vanished from pharmacopoeias in the nineteenth century."],
+"harvey":["Blood was made in the liver, consumed, and passed through septal pores.","Measured output and ligature experiments proved circulation.","Physiology became experimental; Harvey lost patients for being right."],
+"forssmann":["Entering the living heart was thought to be fatal.","A junior doctor catheterised himself and X-rayed the result.","Cardiac catheterisation, angiography and every central line followed."],
+"corrigan":["Valve disease was found at autopsy, rarely predicted in life.","Bedside signs were correlated with the leaking aortic valve.","A list of peripheral signs of aortic regurgitation still taught today."],
+"musset":["Aortic regurgitation, often syphilitic, went undiagnosed.","A brother's observation of a nodding head gave the sign its name.","Penicillin has made the florid signs rare, but not extinct."],
+"kussmaul":["The pulse, the neck veins and breathing were described loosely.","One physician named three precise signs within two years.","Pulsus paradoxus, Kussmaul's sign and Kussmaul breathing, each with its own meaning."],
+"hales":["Blood pressure was a concept without a number.","A tube in a horse's artery showed the height and pulse of the column.","Haemodynamics began; the inflatable cuff followed in 1896."],
+"korotkoff":["The cuff could find only the systolic pressure, by palpation.","A stethoscope under the cuff heard sounds come and go.","Systolic and diastolic pressure became routine bedside numbers."],
+"virchow":["Clots in the lungs were thought to form there.","Virchow showed they travelled from the legs, and why clots form.","Thromboprophylaxis and the DVT risk scores you use today."],
+"laennec":["Doctors listened with an ear to the chest, or not at all.","A rolled tube carried sounds better, and autopsy confirmed their meaning.","Auscultation became the emblem of the physician."],
+"auenbrugger":["The chest's contents were invisible until death.","Tapping revealed fluid and solid lung; autopsy confirmed it.","Ignored for 47 years, then standard examination worldwide."],
+"koch":["Consumption was blamed on heredity and temperament.","Staining, culture and transmission proved a bacterium.","Public health, isolation and later antibiotics turned it into a curable disease."],
+"hippocratic-fingers":["Physicians looked for signs that predicted outcome.","Clubbing was linked to chronic suppuration of the chest.","Still the oldest sign in daily use."],
+"marshall":["Ulcers were stress and acid, treated for life or by surgery.","A self-experiment proved a bacterium caused gastritis.","Most ulcers are now cured with a week of antibiotics."],
+"appendicitis":["Right iliac fossa inflammation was blamed on the caecum and treated with leeches.","Pathology located the appendix; surgeons operated early.","Appendicectomy became one of the commonest operations."],
+"trousseau":["Thrombosis was seen as a local event.","Trousseau linked migrating clots to hidden cancer.","Cancer-associated thrombosis is a recognised syndrome; he died of it."],
+"cullen-turner":["Intra-abdominal bleeding was hard to see from outside.","Bruising patterns were linked to ectopic rupture and pancreatitis.","Useful, specific, late signs; imaging now comes first."],
+"courvoisier":["Jaundice was jaundice, whatever its cause.","Gallbladder size pointed to stones versus other obstruction.","A teaching rule with exceptions, still useful at the bedside."],
+"kocher":["Thyroid surgery killed about one patient in seven.","Meticulous technique, then follow-up that revealed hypothyroidism.","Safe surgery and the first understanding of thyroid function."],
+"radium":["Radium was a tonic and harmless, said industry.","The workers' illness and lawsuits exposed the danger.","Occupational exposure limits and the right to compensation."],
+"chvostek":["Tetany was diagnosed from muscle signs.","Testing showed the sign is common in normal people.","Measure calcium; use Trousseau over Chvostek."],
+"helmholtz":["The living retina could not be seen.","A partial mirror put the light and the observer on one axis.","Ophthalmoscopy, and the fundus as a window on the brain."],
+"tuning":["Deafness was simply deafness.","Comparing air and bone conduction separated two kinds.","A 512 Hz fork still decides who needs urgent referral."],
+"argyll":["Syphilis was treated with mercury and patients with contempt.","The pupil sign identified neurosyphilis; Salvarsan and penicillin cured it.","A sign that is now rare, and a moral history worth remembering."],
+"twelve":["Galen's seven pairs of cranial nerves.","Willis and then Soemmerring counted again.","The twelve nerves you examine today."],
+"bell":["Facial weakness was poorly localised.","Bell showed which nerve moves the face and which feels it.","Bell's palsy, and the rule that a spared forehead means a central lesion."],
+"hints":["Dizzy patients were scanned or sent home with 'labyrinthitis'.","A three-step bedside test outperformed early MRI for posterior stroke.","A skill to master, in the right patient only."],
+"horner":["Sympathetic signs were seen in animals, rarely named in people.","Bernard and Horner described the same triad from two directions.","A small sign that finds big lesions: apex tumours and carotid dissection."],
+"babinski":["Organic and hysterical paralysis were hard to tell apart.","The great toe's extension marked a real pyramidal lesion.","The most famous sign in neurology, unchanged since 1896."],
+"tabes":["Late syphilis filled neurology wards.","Salvarsan and penicillin offered a cure, withheld from the men of Tuskegee.","Informed consent and the ethics committees that protect patients."],
+"lobotomy":["Severe mental illness had no treatment and asylums were full.","Cutting the frontal lobes made patients calm, so it was called a cure.","Thousands harmed; a Nobel Prize that is still argued over."],
+"gage":["The mind was thought to be one indivisible thing.","An iron bar through the frontal lobe changed a man's personality.","The first clue that behaviour has a place in the brain."],
+"meningitis":["Kernig and Brudziński were taught as reliable signs.","A prospective study found each missed about 19 cases in 20.","Treat on suspicion; do the lumbar puncture."],
+"hoover":["Functional weakness was seen as fakery.","A sign showed the wiring works when the patient is distracted.","A positive sign to explain, not to accuse."],
+"pott":["Cancer was not linked to work or environment.","Chimney sweeps' scrotal cancer was tied to soot.","Occupational medicine and the idea of environmental carcinogens."],
+"lasegue":["Sciatica was examined loosely.","A student recorded his teacher's leg-raise test.","The straight leg raise, sensitive for disc herniation."],
+"waddell":["Back pain with distress was a surgical puzzle.","Five signs flagged psychosocial overlay, then were misused.","A warning about how signs can harm in medicolegal work."],
+"tinel":["Nerve injuries could not be followed at the bedside.","Tapping over a regrowing nerve produced tingling that moved.","Used now mostly for carpal tunnel syndrome."],
+"froment":["Ulnar weakness was hard to show quickly.","A paper pinch exposed the substitution of the median nerve.","A two-minute sign for the ulnar nerve."],
+"liston":["Surgery without anaesthesia rewarded speed over care.","Ether arrived in December 1846.","Surgeons could slow down, and surgery became precise."],
+"ottawa":["Almost every twisted ankle was X-rayed.","A validated rule identified who could safely skip the film.","Fewer X-rays, less radiation, no loss of safety."],
+"trendelenburg":["Hip weakness was seen, not tested.","A single-leg stance showed abductor failure.","One of several eponyms from a prolific surgeon."],
+"thalidomide":["New drugs could be sold with thin safety evidence.","Limb defects in thousands of babies, and one reviewer's refusal.","Modern drug regulation, requiring proof of safety and efficacy."],
+"willan":["Rashes had many names and no shared language.","Classification by morphology, like botany.","The vocabulary of dermatology you use today."],
+"jenner":["Smallpox killed and scarred millions; variolation was risky.","Cowpox protected against smallpox without the danger.","Vaccination, and the only human disease ever eradicated."],
+"pellagra":["Pellagra was blamed on germs and on the poor.","Epidemiology and self-experiment showed it was dietary.","Niacin, food fortification, and a lesson in blaming victims."],
+"hansen":["Leprosy was a curse and its victims were exiled.","A bacterium was seen in the tissue.","Multidrug therapy has cured millions; the stigma lingers."],
+"vesalius":["Professors read Galen aloud while others cut.","An anatomist dissected himself and published what he saw.","Anatomy based on the human body, not on authority."],
+"padua":["Dissections were temporary, improvised and rare.","A permanent theatre built for teaching by observation.","The model for every anatomy theatre that followed."],
+"burke-hare":["Anatomy schools could legally use only the hanged.","Murder for profit exposed the trade in bodies.","The Anatomy Act of 1832 and, later, the principle of donation."],
+"lacks":["Tissue taken during care was the hospital's to use.","Her cells became the first immortal human cell line.","Consent and ownership of tissue, still argued today."],
+"ether":["Surgery meant restraint and screaming.","A public demonstration of ether anaesthesia.","Anaesthesia, and with it modern surgery."],
+"penicillin":["Infection from a scratch could kill.","A mould's product was purified and given to patients.","The antibiotic era, and the resistance Fleming warned of."],
+"insulin":["Type 1 diabetes meant starvation and death within months to years.","A pancreatic extract, purified, lowered a dying boy's sugar.","A fatal disease became a chronic one."]
+};
+
 "use strict";
 /* ================= UTILITIES ================= */
 const $=(s,el=document)=>el.querySelector(s), $$=(s,el=document)=>[...el.querySelectorAll(s)];
@@ -6562,6 +7492,480 @@ const Sketch={open(figId,title){
     else if(b.dataset.a==="done"){Store.s.notes["sketch:"+figId]={t:Date.now()};Store.s.xp=(Store.s.xp||0)+3;tick(1,"hands");Store.save();toast("Sketched: +3 XP","good");close();}});
 }};
 document.addEventListener("click",e=>{const b=e.target.closest("[data-sketch]");if(b){e.preventDefault();Sketch.open(b.dataset.sketch,b.dataset.title);}});
+
+"use strict";
+/* ================= GALEN 7: THE THEATRE =================
+   Sound (generated, no files) · Galen the guide · the theatre home · halls · codex · reference pane · eggs · pad + keys.
+   Device-only preferences (sound, text size) live in localStorage: a phone at work and a Steam Deck at home differ. */
+
+IC.theatre='<path d="M3 21h18M4 21V10M20 21V10M2 10l10-6 10 6"/><path d="M8 21v-7M12 21v-7M16 21v-7M6 10h12"/>';
+IC.scroll='<path d="M6 4h11a2 2 0 0 1 0 4H8v10a2 2 0 0 1-4 0V6a2 2 0 0 1 2-2z"/><path d="M8 8h9v10a2 2 0 0 1-2 2H6M11 12h4M11 15h3"/>';
+IC.sound='<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>';
+IC.mute='<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l5 6M22 9l-5 6"/>';
+IC.door='<path d="M6 21V9a6 6 0 0 1 12 0v12M4 21h16"/><circle cx="14.5" cy="14" r=".8"/>';
+IC.pad='<rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 10.5v4M5 12.5h4"/><circle cx="16" cy="11.5" r="1"/><circle cx="18.5" cy="14" r="1"/>';
+
+/* ---------- device preferences ---------- */
+const TP=(()=>{const wide=matchMedia("(min-width:980px)").matches;const d={amb:wide?1:0,music:wide?1:0,tones:1,vol:.55,size:"m",seen:0};
+  try{return Object.assign(d,JSON.parse(localStorage.getItem("galen.theatre")||"{}"));}catch(e){return d;}})();
+function tpSave(){try{localStorage.setItem("galen.theatre",JSON.stringify(TP));}catch(e){}}
+function applySize(){document.documentElement.dataset.size=TP.size||"m";}
+applySize();
+
+/* ================= SOUND: a candlelit room, a lute, and tones ================= */
+const SND={ctx:null,bus:null,wet:null,ambG:null,musG:null,fxG:null,on:false,cache:{},timers:[],ducked:false,hallKey:"table",
+  ensure(){
+    if(!this.ctx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;
+      try{const c=this.ctx=new AC();this.bus=c.createGain();this.bus.gain.value=TP.vol;
+        const comp=c.createDynamicsCompressor();comp.threshold.value=-18;comp.ratio.value=3;this.bus.connect(comp);comp.connect(c.destination);
+        /* the theatre's wood and stone: a generated impulse */
+        const conv=c.createConvolver(),len=c.sampleRate*2.2,ir=c.createBuffer(2,len,c.sampleRate);
+        for(let ch=0;ch<2;ch++){const d=ir.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3.2)*(i<c.sampleRate*.012?.3:1);}
+        conv.buffer=ir;this.wet=c.createGain();this.wet.gain.value=.32;conv.connect(this.wet);this.wet.connect(this.bus);this.conv=conv;
+        this.ambG=c.createGain();this.musG=c.createGain();this.fxG=c.createGain();
+        [this.ambG,this.musG,this.fxG].forEach(g=>{g.connect(this.bus);g.connect(conv);});
+        this.ambG.gain.value=0;this.musG.gain.value=.5;this.fxG.gain.value=.55;
+      }catch(e){console.warn("theatre sound",e);this.ctx=null;return null;}}
+    if(this.ctx.state==="suspended"&&!document.hidden){try{this.ctx.resume();}catch(e){}}
+    return this.ctx;},
+  noise(sec,brown){const c=this.ctx,n=Math.floor(c.sampleRate*sec),b=c.createBuffer(1,n,c.sampleRate),d=b.getChannelData(0);let last=0;
+    for(let i=0;i<n;i++){const w=Math.random()*2-1;if(brown){last=(last+.02*w)/1.02;d[i]=last*3.2;}else d[i]=w;}return b;},
+  /* Karplus–Strong plucked string, computed once per pitch: our lute */
+  pluck(midi,dur=2.2,bright=.5){const k=midi+":"+dur+":"+bright;if(this.cache[k])return this.cache[k];const c=this.ctx,sr=c.sampleRate,f=440*Math.pow(2,(midi-69)/12);
+    const N=Math.max(2,Math.round(sr/f)),len=Math.floor(sr*dur),b=c.createBuffer(1,len,sr),y=b.getChannelData(0);
+    let p=0;for(let i=0;i<N;i++){const w=Math.random()*2-1;p=p*(1-bright)+w*bright;y[i]=p;}
+    const dec=.996-Math.max(0,(midi-60))*.0006;for(let i=N;i<len;i++)y[i]=dec*.5*(y[i-N]+y[i-N-1]);
+    for(let i=0;i<len;i++)y[i]*=Math.min(1,i/40);return this.cache[k]=b;},
+  play(buf,t,gain,dest,rate=1){const c=this.ctx,s=c.createBufferSource(),g=c.createGain();s.buffer=buf;s.playbackRate.value=rate;g.gain.value=gain;s.connect(g);g.connect(dest);s.start(t);return s;},
+  lute(midi,t,gain=.35,dur=2.2){const c=this.ctx;if(!this.body){const a=c.createBiquadFilter();a.type="peaking";a.frequency.value=240;a.gain.value=5;a.Q.value=1.2;
+      const b=c.createBiquadFilter();b.type="lowpass";b.frequency.value=3200;a.connect(b);b.connect(this.musG);this.body=a;}
+    this.play(this.pluck(midi,dur,.55),t,gain,this.body);},
+  /* ambience */
+  startAmb(){if(!this.ensure()||this.ambOn)return;const c=this.ctx;this.ambOn=true;
+    const room=c.createBufferSource();room.buffer=this.noise(6,true);room.loop=true;const lp=c.createBiquadFilter();lp.type="lowpass";lp.frequency.value=320;
+    const rg=c.createGain();rg.gain.value=.16;room.connect(lp);lp.connect(rg);rg.connect(this.ambG);room.start();this.room=room;
+    /* drone: two detuned voices per chord tone, very slow swell */
+    const drone=c.createGain();drone.gain.value=.0;const dl=c.createBiquadFilter();dl.type="lowpass";dl.frequency.value=700;drone.connect(dl);dl.connect(this.ambG);this.drone=drone;this.droneOsc=[];
+    for(let i=0;i<6;i++){const o=c.createOscillator();o.type=i%2?"triangle":"sine";o.detune.value=(i%2?6:-6);const g=c.createGain();g.gain.value=.05;o.connect(g);g.connect(drone);o.start();this.droneOsc.push(o);}
+    this.setChord(0);drone.gain.setTargetAtTime(.5,c.currentTime,4);
+    const lfo=c.createOscillator(),lg=c.createGain();lfo.frequency.value=.05;lg.gain.value=.18;lfo.connect(lg);lg.connect(drone.gain);lfo.start();this.lfo=lfo;
+    let ci=0;this.timers.push(setInterval(()=>{ci++;this.setChord(ci);},15000));
+    /* candle crackle and the odd creak of a bench */
+    const crack=c.createBiquadFilter();crack.type="bandpass";crack.frequency.value=2600;crack.Q.value=.8;crack.connect(this.ambG);this.crack=crack;const nb=this.noise(.05,false);
+    const tick=()=>{if(!this.ambOn)return;const t=c.currentTime;const n=Math.random()<.3?3:1;for(let i=0;i<n;i++)this.play(nb,t+i*.03+Math.random()*.02,.05+Math.random()*.1,crack,.6+Math.random()*.9);
+      this.crT=setTimeout(tick,300+Math.random()*2600);};tick();
+    const creak=()=>{if(!this.ambOn)return;const t=c.currentTime,o=c.createOscillator(),g=c.createGain(),f=c.createBiquadFilter();f.type="bandpass";f.frequency.value=400;f.Q.value=6;
+      o.type="sawtooth";o.frequency.setValueAtTime(70+Math.random()*30,t);o.frequency.linearRampToValueAtTime(55+Math.random()*20,t+.5);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.02,t+.15);g.gain.linearRampToValueAtTime(0,t+.6);
+      o.connect(f);f.connect(g);g.connect(this.ambG);o.start(t);o.stop(t+.7);this.ckT=setTimeout(creak,20000+Math.random()*40000);};this.ckT=setTimeout(creak,9000);
+    this.ambG.gain.setTargetAtTime(this.ducked?0:.55,c.currentTime,1.2);},
+  stopAmb(){if(!this.ambOn)return;this.ambOn=false;const c=this.ctx;this.ambG.gain.setTargetAtTime(0,c.currentTime,.4);clearTimeout(this.crT);clearTimeout(this.ckT);this.timers.forEach(clearInterval);this.timers=[];
+    setTimeout(()=>{try{this.room.stop();this.droneOsc.forEach(o=>o.stop());this.lfo.stop();}catch(e){}},1500);},
+  /* each hall has its own tonal centre, so the room changes as you walk */
+  HALL_ROOT:{table:50,heart:45,vessels:52,lungs:53,belly:55,neck:48,senses:46,cranial:50,mind:51,spine:43,arm:45,leg:48,skin:53},
+  CHORDS:[[0,7,12,15,19,24],[-2,5,10,14,17,22],[-4,3,8,12,15,20],[-5,2,7,10,14,19]],
+  setChord(i){if(!this.droneOsc)return;const r=this.HALL_ROOT[this.hallKey]||50,ch=this.CHORDS[i%this.CHORDS.length],t=this.ctx.currentTime;
+    this.droneOsc.forEach((o,k)=>o.frequency.setTargetAtTime(440*Math.pow(2,(r+ch[k]-69-12)/12)*(k>3?2:1),t,2.5));},
+  setHall(h){if(h===this.hallKey)return;this.hallKey=h;if(this.ambOn)this.setChord(0);},
+  /* Greensleeves (anonymous, 16th century, public domain), as a lute would play it */
+  GREEN:{mel:[[69,1],[72,2],[74,1],[76,1.5],[77,.5],[76,1],[74,2],[71,1],[67,1.5],[69,.5],[71,1],[72,2],[69,1],[69,1.5],[68,.5],[69,1],[71,2],[68,1],[64,2],[69,1],[72,2],[74,1],[76,1.5],[77,.5],[76,1],[74,2],[71,1],[67,1.5],[69,.5],[71,1],[72,1.5],[71,.5],[69,1],[68,1.5],[66,.5],[68,1],[69,3],[69,2],
+      [79,3],[79,1.5],[78,.5],[76,1],[74,2],[71,1],[67,1.5],[69,.5],[71,1],[72,2],[69,1],[69,1.5],[68,.5],[69,1],[71,2],[68,1],[64,3],[79,3],[79,1.5],[78,.5],[76,1],[74,2],[71,1],[67,1.5],[69,.5],[71,1],[72,1.5],[71,.5],[69,1],[68,1.5],[66,.5],[68,1],[69,3]],
+    bass:[45,48,43,40,45,40,40,45,45,48,43,40,45,40,45,45,43,40,43,40,45,40,40,40,43,40,43,40,45,40,45]},
+  playTune(){if(!this.ensure()||this.tuneOn)return;const c=this.ctx,beat=.6;this.tuneOn=true;let t=c.currentTime+.4,acc=1,bar=0;
+    const mel=this.GREEN.mel,bass=this.GREEN.bass;
+    for(let i=0;i<mel.length;i++){const [m,d]=mel[i];this.lute(m,t,.32,Math.max(1.2,d*beat*2));
+      if(i>0&&Math.abs(acc%3)<.01){const b=bass[bar++%bass.length];this.lute(b,t,.24,2.6);this.lute(b+7,t+beat*.5,.12,2);}
+      acc+=d;t+=d*beat*(1+(Math.random()-.5)*.03);}
+    setTimeout(()=>{this.tuneOn=false;},(t-c.currentTime)*1000+500);},
+  startMusic(){if(this.musOn)return;this.musOn=true;const go=()=>{if(!this.musOn)return;if(!this.ducked&&!document.hidden)this.playTune();this.muT=setTimeout(go,150000+Math.random()*120000);};this.muT=setTimeout(go,6000);},
+  stopMusic(){this.musOn=false;clearTimeout(this.muT);},
+  /* feedback tones */
+  fx(kind){if(!TP.tones||this.ducked)return;if(!this.ensure())return;const c=this.ctx,t=c.currentTime+.01;
+    if(kind==="right"){this.lute(76,t,.4,1.4);this.lute(81,t+.11,.36,1.8);}
+    else if(kind==="wrong"){this.play(this.pluck(40,1.2,.25),t,.45,this.fxG);const o=c.createOscillator(),g=c.createGain();o.type="sine";o.frequency.setValueAtTime(110,t);o.frequency.exponentialRampToValueAtTime(55,t+.25);g.gain.setValueAtTime(.25,t);g.gain.exponentialRampToValueAtTime(.001,t+.35);o.connect(g);g.connect(this.fxG);o.start(t);o.stop(t+.4);}
+    else if(kind==="bell"||kind==="seal"){[1,2.76,5.4,8.93].forEach((r,i)=>{const o=c.createOscillator(),g=c.createGain();o.frequency.value=392*r;g.gain.setValueAtTime(.18/(i+1),t);g.gain.exponentialRampToValueAtTime(.0005,t+3.2/(i*.6+1));o.connect(g);g.connect(this.fxG);o.start(t);o.stop(t+3.5);});
+      if(kind==="seal"){[57,64,69,72].forEach((m,i)=>this.lute(m,t+.25+i*.09,.3,2.5));}}
+    else if(kind==="page"){const s=this.play(this.noise(.28,false),t,.05,this.fxG,1);const f=c.createBiquadFilter();f.type="highpass";f.frequency.value=1800;}
+    else if(kind==="door"){this.play(this.pluck(33,1.6,.15),t,.5,this.fxG);this.play(this.pluck(45,1.2,.2),t+.05,.2,this.fxG);}},
+  duck(on){this.ducked=on;if(!this.ctx)return;const t=this.ctx.currentTime;this.bus.gain.setTargetAtTime(on?0:TP.vol,t,.15);},
+  apply(){if(!TP.amb&&!TP.music&&!TP.tones){this.stopAmb();this.stopMusic();if(this.ctx)this.ctx.suspend().catch(()=>{});return;}
+    if(!this.ensure())return;this.bus.gain.value=this.ducked?0:TP.vol;
+    if(TP.amb)this.startAmb();else this.stopAmb();if(TP.music)this.startMusic();else this.stopMusic();}
+};
+/* unlock on the first gesture, as browsers require */
+let _sndUnlocked=false;
+["pointerdown","keydown","touchstart"].forEach(ev=>document.addEventListener(ev,()=>{if(_sndUnlocked)return;_sndUnlocked=true;SND.apply();soundBtn();},{once:false,passive:true,capture:true}));
+document.addEventListener("visibilitychange",()=>{if(!SND.ctx)return;if(document.hidden)SND.ctx.suspend().catch(()=>{});else if(TP.amb||TP.music||TP.tones)SND.ctx.resume().catch(()=>{});});
+/* silent while a clinical sound plays: the stethoscope always wins */
+{const _start=startBox,_stop=stopAll;
+  startBox=function(box){SND.duck(true);return _start(box);};
+  stopAll=function(){const r=_stop.apply(this,arguments);SND.duck(false);return r;};}
+function soundBtn(){const b=$("#soundbtn");if(!b)return;const on=!!(TP.amb||TP.music);b.innerHTML=ic(on?"sound":"mute");b.setAttribute("aria-pressed",on);b.title=on?"Theatre sound on (M)":"Theatre sound off (M)";}
+function toggleSound(){const on=!(TP.amb||TP.music);TP.amb=on?1:0;TP.music=on?1:0;tpSave();SND.apply();soundBtn();toast(on?"Theatre sound on":"Theatre sound off");}
+$("#soundbtn").addEventListener("click",toggleSound);soundBtn();
+
+/* ================= GALEN: medallion and voice ================= */
+let MEDAL_N=0;
+function medal(size){const u="md"+(++MEDAL_N);const beads=[...Array(36)].map((_,i)=>{const a=i*Math.PI/18;return `<circle cx="${(50+45.5*Math.cos(a)).toFixed(2)}" cy="${(50+45.5*Math.sin(a)).toFixed(2)}" r="1.5" fill="url(#${u}b)"/>`;}).join("");
+  return `<svg viewBox="0 0 100 100" aria-hidden="true"><defs>
+  <radialGradient id="${u}g" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#f6dc95"/><stop offset=".5" stop-color="#c99a3e"/><stop offset="1" stop-color="#7c5518"/></radialGradient>
+  <radialGradient id="${u}b" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#fbe7a8"/><stop offset="1" stop-color="#8a6020"/></radialGradient>
+  <linearGradient id="${u}f" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e9c46f"/><stop offset="1" stop-color="#9a6f25"/></linearGradient>
+  <path id="${u}t" d="M50 50 m-35 0 a35 35 0 1 1 70 0 a35 35 0 1 1 -70 0"/></defs>
+  <circle cx="50" cy="50" r="49" fill="#6b4712"/><circle cx="50" cy="50" r="47.5" fill="url(#${u}g)"/>${beads}
+  <circle cx="50" cy="50" r="41" fill="url(#${u}f)" stroke="#7c5518" stroke-width=".8"/>
+  <text font-family="Cormorant SC,Georgia,serif" font-weight="700" font-size="7.4" letter-spacing="1.6" fill="#5a3b0c"><textPath href="#${u}t" startOffset="2%">CL · GALENVS · PERGAMENVS · MEDICVS ·</textPath></text>
+  <circle cx="50" cy="50" r="29" fill="#d4ab55" stroke="#7c5518" stroke-width=".6"/>
+  <g transform="translate(50 52) scale(.62) translate(-50 -52)" stroke="#5a3b0c" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round">
+   <path d="M64 86 L64 76 C70 70 71 58 68 50 C66 40 60 33 50 32 C44 32 41 36 40 42 L39 46 L35 51 L39 53 L39 56 L41 57.5 L39.5 59.5 C39 64 39 70 43 74 C46 77 50 78 52 80 L52 86 Z" fill="#b98a35"/>
+   <path d="M41 61c3 1 4 4 3 7M44 66c3 0 4 3 3 6M48 70c3 0 4 3 3 5M43 58c2 0 4 1 4 3" fill="none"/>
+   <path d="M44 34c3-4 9-5 13-3M50 31c4-2 10 0 13 4M58 34c4 0 7 4 8 8M47 38c2-2 5-2 7 0M55 38c2-1 5 0 6 2M62 42c2 0 4 2 4 4" fill="none"/>
+   <path d="M43.5 44.5c1.5-1 3-1 4 0" fill="none"/><circle cx="45.5" cy="45.2" r=".7" fill="#5a3b0c"/>
+   <path d="M57 46c2-1 3 1 3 3s-1 4-3 3" fill="none"/>
+   <path d="M40 38c-1-3 1-6 4-6M38 42c-3 0-3-4-1-5" fill="none" stroke-width="1"/>
+   <path d="M43 33c-2-3 0-6 3-5M49 30c-1-3 2-5 4-3M56 30c0-3 3-4 5-2M62 33c1-2 4-2 5 1M66 38c2-1 4 1 3 3" fill="#c99a3e" stroke-width=".9"/>
+  </g></svg>`;}
+function timeSlot(){const h=new Date().getHours();return h>=0&&h<5?"night":h<12?"morning":h<17?"afternoon":h<22?"evening":"night";}
+function daySeed(){const d=new Date();return d.getFullYear()*400+d.getMonth()*32+d.getDate();}
+function galenFor(ctx){
+  if(ctx==="home"){
+    const bd=BIRTHDAYS[fmtDate(Date.now()).slice(0,5)];if(bd){if(bd[0]==="Babinski")setTimeout(()=>findEgg("birthday",true),1500);return [null,bd[1]];}
+    if(!TP.seen){return GALEN.first[0];}
+    const last=Store.s.last||0;if(last&&Date.now()-last>4*DAY_MS)return galenPick(GALEN.back,daySeed());
+    try{const p=Hub.todayFromPlan();if(p&&p.afterNight)return galenPick(GALEN.afterNight,daySeed());}catch(e){}
+    if(timeSlot()==="night"){setTimeout(()=>findEgg("night",true),2500);}
+    const pool=GALEN[timeSlot()].concat(GALEN.idle);return galenPick(pool,daySeed()+new Date().getHours());}
+  if(GALEN.hall[ctx])return GALEN.hall[ctx];
+  return galenPick(GALEN.idle,daySeed());
+}
+function guideHTML(line,opt={}){const [la,en]=line;return `<div class="guide${opt.small?" small":""}"><button class="medal" data-egg-medal aria-label="Galen">${medal()}</button><div class="say"><span class="who">Galen says</span>${la?`<span class="latin">${esc(la)}</span>`:""}<span class="line">${esc(en)}</span></div></div>`;}
+
+/* quips: the top bar title borrows Galen's voice for a moment, so nothing on the page is covered */
+let _quipT=null;
+function quip(kind){const arr=GALEN[kind];if(!arr)return;const [,en]=galenPick(arr);const t=$("#toptitle");if(!t)return;
+  clearTimeout(_quipT);const orig=t.dataset.orig||t.textContent;t.dataset.orig=orig;t.innerHTML=`<span style="font-style:italic;color:var(--accent-ink)">${esc(en)}</span>`;
+  _quipT=setTimeout(()=>{t.textContent=t.dataset.orig;delete t.dataset.orig;},3200);
+  const rp=$("#rp-quip");if(rp)rp.textContent=en;}
+
+/* right and wrong, wherever they happen: listen for the classes the practice screens already set */
+let _fbLast=0;
+new MutationObserver(ms=>{for(const m of ms){const el=m.target;if(!(el instanceof Element))continue;const was=m.oldValue||"";
+  const r=el.classList.contains("right")&&!/\bright\b/.test(was),w=el.classList.contains("wrong")&&!/\bwrong\b/.test(was);
+  if((r||w)&&Date.now()-_fbLast>350){_fbLast=Date.now();SND.fx(r?"right":"wrong");if(w||Math.random()<.35)quip(r?"right":"wrong");break;}}})
+ .observe($("#view"),{subtree:true,attributes:true,attributeFilter:["class"],attributeOldValue:true});
+
+/* ================= EGGS ================= */
+function eggFound(id){return !!Store.s.notes["egg:"+id];}
+function findEgg(id,quiet){const e=EGGS.find(x=>x.id===id);if(!e)return;const first=!eggFound(id);
+  if(first){Store.s.notes["egg:"+id]={t:Date.now(),v:1};Store.save();SND.fx("bell");}
+  if(quiet&&!first)return;
+  showEgg(e,first);}
+function showEgg(e,first){const el=document.createElement("div");el.className="helpov";el.setAttribute("role","dialog");el.setAttribute("aria-label",e.t);
+  const n=EGGS.filter(x=>eggFound(x.id)).length;
+  el.innerHTML=`<div class="card stack" style="gap:12px">${guideHTML([null,e.t])}<p class="lore-body" style="margin:0">${esc(e.x)}</p><div class="row-x"><span class="marg">${first?"A secret, written in the margin.":"Found before."} ${n} of ${EGGS.length} marginalia.</span><span class="spacer"></span><button class="btn sm" data-x>Close</button></div></div>`;
+  document.body.append(el);const close=()=>el.remove();el.addEventListener("click",ev=>{if(ev.target===el||ev.target.closest("[data-x]"))close();});
+  el.addEventListener("keydown",ev=>{if(ev.key==="Escape"){ev.stopPropagation();close();}});setTimeout(()=>$("[data-x]",el)?.focus(),20);}
+/* the medallion does not like to be poked */
+let _mdN=0,_mdT=0;
+document.addEventListener("click",e=>{const m=e.target.closest("[data-egg-medal]");if(m){if(Date.now()-_mdT>1500)_mdN=0;_mdT=Date.now();_mdN++;
+    if(_mdN===3)quip("idle");if(_mdN>=5){_mdN=0;findEgg("apes");}return;}
+  const g=e.target.closest("[data-egg]");if(g){e.preventDefault();e.stopPropagation();findEgg(g.dataset.egg);}},true);
+/* hold the serpent */
+{let ht=null;const bm=()=>$$(".brandmark");document.addEventListener("pointerdown",e=>{if(e.target.closest(".brandmark,.railbrand")){ht=setTimeout(()=>findEgg("oath"),1600);}});
+  ["pointerup","pointerleave","pointercancel"].forEach(ev=>document.addEventListener(ev,()=>clearTimeout(ht)));}
+/* words in the search box */
+const EGG_WORDS=[[/rete mirabile|wonderful net/,"rete"],[/humou?rs?\b|four humou?rs|black bile|phlegm/,"humours"],[/\bvesalius\b/,"vesalius"],[/^galen$/,"galen"],[/rolled paper|quire|laennec'?s? paper/,"paper"]];
+document.addEventListener("input",e=>{if(e.target.id!=="palq")return;const v=e.target.value.trim().toLowerCase();for(const [re,id] of EGG_WORDS)if(re.test(v)&&!eggFound(id)){findEgg(id);break;}});
+/* the old code */
+{const K=["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","b","a"];let i=0;
+  window.galenCode=k=>{i=(k===K[i])?i+1:(k===K[0]?1:0);if(i===K.length){i=0;findEgg("konami");document.documentElement.classList.add("candles");SND.fx("seal");}};
+  document.addEventListener("keydown",e=>{if(/^(INPUT|TEXTAREA)$/.test(e.target.tagName))return;galenCode(e.key.length===1?e.key.toLowerCase():e.key);});}
+
+/* ================= THE THEATRE (home) ================= */
+function ellPt(cx,cy,rx,ry,a){return [cx+rx*Math.cos(a),cy+ry*Math.sin(a)];}
+function theatreSVG(){
+  const cx=210,cy=176;let s="";
+  /* tiers with balustrades and a faint crowd */
+  let seed=7;const rnd=()=>(seed=(seed*9301+49297)%233280)/233280;
+  [64,86,108,130,152,172].forEach((rx,ti)=>{const ry=rx*.6;s+=`<ellipse class="tier" cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" stroke-width="${ti===5?1.6:1}"/>`;
+    if(ti>0){const n=Math.round(rx/3.2);for(let k=0;k<n;k++){const a=k/n*Math.PI*2,[x,y]=ellPt(cx,cy,rx-4,ry-3,a);s+=`<line class="rail" x1="${x.toFixed(1)}" y1="${y.toFixed(1)}" x2="${x.toFixed(1)}" y2="${(y-4).toFixed(1)}" stroke-width=".8"/>`;}
+      const m=Math.round(rx/6);for(let k=0;k<m;k++){if(rnd()<.45)continue;const a=rnd()*Math.PI*2,[x,y]=ellPt(cx,cy,rx-11,ry-8,a);s+=`<circle cx="${x.toFixed(1)}" cy="${(y-6).toFixed(1)}" r="2.3" fill="var(--ink-engr)" opacity=".18"/><path d="M${(x-3).toFixed(1)} ${(y-1).toFixed(1)}q3-4 6 0" stroke="var(--ink-engr)" opacity=".18" fill="none"/>`;}}});
+  /* the pit and the table */
+  s+=`<ellipse cx="${cx}" cy="${cy}" rx="46" ry="27" fill="var(--surface3)" stroke="var(--ink-engr)" stroke-width="1.2"/>`;
+  s+=`<g class="door table" tabindex="0" role="link" aria-label="The Table: the whole patient" data-go="learn/hall/table">
+   <rect x="${cx-30}" y="${cy-9}" width="60" height="16" rx="2" fill="var(--surface)" stroke="var(--ink-engr)" stroke-width="1.2"/>
+   <path d="M${cx-22} ${cy-1}c6-6 14-6 22-4s14 2 20 4c-6 6-14 6-22 4s-14-2-20-4z" fill="var(--surface2)" stroke="var(--ink-engr)" stroke-width=".8"/>
+   <line x1="${cx-26}" y1="${cy+7}" x2="${cx-26}" y2="${cy+14}" stroke="var(--ink-engr)"/><line x1="${cx+26}" y1="${cy+7}" x2="${cx+26}" y2="${cy+14}" stroke="var(--ink-engr)"/>
+   <text x="${cx}" y="${cy+30}" text-anchor="middle" style="font-family:var(--f-sc);font-weight:700;font-size:12px;fill:var(--accent-ink);letter-spacing:.08em">the table</text></g>`;
+  /* candles */
+  [[cx-38,cy-4],[cx+38,cy-4]].forEach(([x,y],i)=>{s+=`<rect x="${x-2}" y="${y-12}" width="4" height="12" fill="var(--surface)" stroke="var(--ink-engr)" stroke-width=".7"/><path class="flame${i?" b":""}" d="M${x} ${y-21}c-2.6 3.4-2.6 6 0 8 2.6-2 2.6-4.6 0-8z"/><circle cx="${x}" cy="${y-16}" r="9" fill="var(--accent)" opacity=".12"/>`;});
+  /* the skull on the table's end */
+  s+=`<g class="egg" data-egg="skull" role="button" aria-label="A skull" tabindex="-1"><path d="M${cx-30} ${cy-14}a5 5 0 0 1 10 0v3l-1.5 1.5h-7l-1.5-1.5z" fill="var(--surface)" stroke="var(--ink-engr)" stroke-width=".9"/><circle cx="${cx-27.3}" cy="${cy-13.6}" r="1.1" fill="var(--ink-engr)"/><circle cx="${cx-22.7}" cy="${cy-13.6}" r="1.1" fill="var(--ink-engr)"/></g>`;
+  /* the doors */
+  const doors=HALLS.filter(h=>h.id!=="table");
+  doors.forEach((h,i)=>{const a=-Math.PI/2+i*Math.PI*2/doors.length,[x,y]=ellPt(cx,cy,190,132,a),m=hallMastery(h.id);
+    const below=Math.sin(a)>-.35,ly=below?33:-26;
+    s+=`<g class="door" tabindex="0" role="link" aria-label="Hall ${h.rn}: ${esc(h.short)}" data-go="learn/hall/${h.id}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})">
+     <path class="arch" d="M-15 18V-5a15 15 0 0 1 30 0v23z"/><path d="M-10 18V-3a10 10 0 0 1 20 0v21" fill="none" stroke="var(--ink-engr)" stroke-width=".7" opacity=".6"/>
+     ${m.pct>0?`<path d="M-15 21h${(30*Math.min(1,m.pct)).toFixed(1)}" stroke="var(--accent)" stroke-width="2.4"/>`:""}
+     <text class="num" x="0" y="6" text-anchor="middle">${h.rn}</text>
+     <text x="0" y="${ly}" text-anchor="middle" style="paint-order:stroke;stroke:var(--surface2);stroke-width:3px">${esc(h.short)}</text></g>`;});
+  /* a small ape hides in the corner of the engraving */
+  s+=`<g class="egg" data-egg="ape" role="button" aria-label="A small figure" tabindex="-1" opacity=".42" transform="translate(14 322) scale(.9)"><path d="M6 0a4 4 0 1 1 0 .1zM3 7c-2 2-2 7 0 10l-2 6M9 7c2 2 2 7 0 10l2 6M3 11h6M2 8l-3 5M10 8l3 5M9 17c4 0 6-3 7-6" fill="none" stroke="var(--ink-engr)" stroke-width="1.3" stroke-linecap="round"/></g>`;
+  return `<svg class="th" viewBox="0 0 420 356" role="group" aria-label="The anatomical theatre: twelve halls around the table">${s}</svg>`;
+}
+function hallCard(h){const m=hallMastery(h.id);return `<button class="hall${h.id==="table"?" table":""}" data-go="learn/hall/${h.id}"><span class="emb"><svg viewBox="0 0 64 64">${EMB[h.id]}</svg></span>${h.id==="table"?`<span class="tx"><span class="rn">The centre</span><b>${esc(h.n)}</b><span class="la">${esc(h.la)} · the whole patient, history and vital signs</span></span>`:`<span class="rn">${h.rn}</span><b>${esc(h.short)}</b><span class="la">${esc(h.la)}</span>`}<span class="prog" aria-label="${Math.round(m.pct*100)}% mastered"><i style="width:${Math.round(m.pct*100)}%"></i></span></button>`;}
+function loreOfDay(){return LORE[daySeed()%LORE.length];}
+function loreCard(l,opt={}){return `<button class="tile lorecard" data-go="learn/lore/${l.id}"><span class="row-x" style="gap:8px"><span class="k ${l.k}">${LORE_KIND[l.k]}</span><span class="spacer"></span><span class="yr">${esc(l.yr)}</span></span><b>${esc(l.t)}</b><span class="sub">${esc(l.sum)}</span>${opt.hall?`<span class="tiny muted">${esc(HALL[l.hall].n)}</span>`:""}</button>`;}
+
+{const _home=ROUTES["today:home"];
+route("today:home","Galen",(root)=>{
+  const due=dueCards().length,line=galenFor("home");
+  root.innerHTML=`<section class="theatre-top">
+    <button class="searchbig" data-act="pal">${ic("search")}<span>Search signs, techniques, the codex…</span><span class="kbdhint">/</span></button>
+    <div class="card stack" style="gap:14px">${guideHTML(line)}
+      <div class="row-x"><button class="btn" data-go="practice/session/all">${ic("play")}${due?`Today's session · ${due} due`:"Learn something new"}</button><button class="btn ghost sm" data-go="learn/codex">${ic("scroll")}The codex</button></div></div>
+  </section>
+  <section class="theatre">${theatreSVG()}</section><p class="marg" style="text-align:center;margin:-10px 0 0">Teatro anatomico · after Padua, 1594 · tap a door</p>
+  <section class="section"><div class="row-x"><span class="label">The halls</span><span class="spacer"></span><span class="tiny muted">The bar under each door is what you have mastered there</span></div><div class="halls">${HALLS.map(hallCard).join("")}</div></section>
+  <section class="section"><div class="row-x"><span class="label">From the codex, today</span><span class="spacer"></span><button class="link small" data-go="learn/codex">All ${LORE.length} stories</button></div><div class="grid">${loreCard(loreOfDay(),{hall:1})}</div></section>
+  <div class="orn">❦</div><div id="today-old"></div>`;
+  const old=$("#today-old",root);_home(old);
+  /* the old greeting and system rings are replaced by Galen and the halls */
+  const sg=$(".sysgrid",old);if(sg)sg.closest("section")?.remove();
+  const h1=$(".hero h1",old);if(h1){h1.textContent="Today's round";h1.style.fontSize="1.9rem";}
+  $(".hero .trace",old)?.remove();
+  $("[data-act=pal]",root).addEventListener("click",openPalette);
+  if(!TP.seen){TP.seen=1;tpSave();}
+});}
+
+/* ================= HALLS ================= */
+const HALL_LINKS={
+ table:[["learn/module/gen","General survey and vital signs"],["learn/frames","History frameworks"],["learn/pres","All presentations"],["tools/calcs","Scores and calculators"],["practice/er","ER cases"]],
+ heart:[["learn/module/cvs","The cardiovascular examination"],["sounds/library","Heart sounds and murmurs"],["sounds/map","Where to listen, and why"],["sounds/compare","Look-alike sounds side by side"],["practice/drill","Sound drills"]],
+ vessels:[["learn/module/cvs","The cardiovascular examination"],["tools/calcs","Wells, ABI and friends"]],
+ lungs:[["learn/module/resp","The respiratory examination"],["sounds/library","Breath sounds"],["sounds/map","Lung zones"]],
+ belly:[["learn/module/abd","The abdominal examination"]],
+ neck:[["learn/module/hn","Head, neck and endocrine"]],
+ senses:[["learn/tech","The technique clinic: otoscopy, fundoscopy, rhinoscopy"]],
+ cranial:[["learn/cranial","The cranial nerves"],["learn/localise","Where is the lesion?"]],
+ mind:[["learn/module/neuro","The neurological examination"],["learn/neuromap","Dermatomes and nerves"],["learn/myotomes","Myotomes and reflexes"],["learn/localise","Localisation"],["practice/localiser","Localiser cases"]],
+ spine:[["learn/region/spine","Neck and back"],["learn/rootnerve","Root or nerve?"]],
+ arm:[["learn/region/shoulder","Shoulder"],["learn/region/elbow","Elbow"],["learn/region/wrist","Wrist and hand"],["learn/rootnerve","Root or nerve?"]],
+ leg:[["learn/region/hip","Hip"],["learn/region/knee","Knee"],["learn/region/ankle","Ankle and foot"]],
+ skin:[["learn/datlas","Skin atlas"],["learn/dmorph","The words of the skin"],["learn/describe","Describe like a dermatologist"],["learn/demerg","Skin that can kill"],["practice/describe","Describe it (practice)"],["practice/spot","Spot diagnosis"]]
+};
+
+/* ---- outline chapters ---- */
+const ROMAN=["I","II","III","IV","V","VI","VII","VIII","IX","X"];
+function chapCardIds(h,i){const c=(OUTLINE[h]||[])[i];if(!c)return new Set();if(!CARDS)buildCards();const sg=new Set(c.signs||[]),tc=new Set(c.tech||[]),pr=new Set(c.pres||[]),sd=new Set(c.sounds||[]);
+  return new Set(CARDS.filter(k=>((k.type==="think"||k.type==="verdict"||k.type==="mech"||k.type==="snsp"||k.type==="teach")&&sg.has(k.ref))||((k.type==="twhy"||k.type==="terr")&&tc.has(k.ref[0]))||((k.type==="hlr")&&pr.has(k.ref[0]))||(k.type==="red"&&pr.has(k.ref))||(k.type==="sound"&&sd.has(k.ref))).map(k=>k.id));}
+function chapMastery(h,i){const ids=[...chapCardIds(h,i)];if(!ids.length)return null;let m=0,seen=0;ids.forEach(id=>{const r=Store.s.srs[id];if(r){seen++;if(r.iv>=7)m++;else if(r.iv>=2)m+=.4;}});return {pct:m/ids.length,seen,n:ids.length};}
+function chapItems(c){const out=[];
+  (c.tech||[]).forEach(x=>{const t=TECH.find(y=>y.id===x);if(t)out.push(`<button class="chip" data-go="learn/tech/${x}">${ic("check")}${esc(t.name)}</button>`);});
+  (c.signs||[]).forEach(x=>out.push(signChip(x)));
+  (c.sounds||[]).forEach(x=>{if(SOUNDS[x])out.push(`<button class="chip" data-go="sounds/sound/${x}">${ic("ear")}${esc(SOUNDS[x].name)}</button>`);});
+  (c.pres||[]).forEach(x=>{const p=HIST.pres.find(y=>y.id===x);if(p)out.push(`<button class="chip" data-go="learn/pres/${x}">${ic("history")}${esc(p.name)}</button>`);});
+  (c.cases||[]).forEach(x=>{const k=HDPE.find(y=>y.id===x);if(k)out.push(`<button class="chip" data-go="practice/hdpe/${x}">${ic("target")}${esc(k.title)}</button>`);});
+  (c.scen||[]).forEach(x=>{const k=SCEN.find(y=>y.id===x);if(k)out.push(`<button class="chip" data-go="practice/er/${x}">${ic("case")}${esc(k.title)}</button>`);});
+  (c.maps||[]).forEach(x=>{const k=CMAPS.find(y=>y.id===x);if(k)out.push(`<button class="chip" data-go="learn/map/${x}">${ic("map")}${esc(k.title)}</button>`);});
+  (c.tools||[]).forEach(x=>{const k=TOOLS.find(y=>y.id===x);if(k)out.push(`<button class="chip" data-go="tools/calc/${x}">${ic("scale")}${esc(k.name)}</button>`);});
+  (c.labs||[]).forEach(x=>{const k=typeof LABS!=="undefined"&&LABS.find(y=>y.id===x);if(k)out.push(`<button class="chip" data-go="tools/lab/${x}">${ic("log")}${esc(k.name)}</button>`);});
+  (c.go||[]).forEach(([g,t])=>out.push(`<button class="chip" data-go="${g}">${ic("door")}${esc(t)}</button>`));
+  return out.join("");}
+function outlineHTML(h){const chs=OUTLINE[h]||[];if(!chs.length)return "";
+  return `<section class="section"><div class="row-x"><span class="label">The outline · ${chs.length} chapters</span><span class="spacer"></span><button class="link small" data-act="chap-all">Open all</button></div><div class="outline">${chs.map((c,i)=>{const m=chapMastery(h,i);
+   return `<details class="chap"${i===0?" open":""}><summary><span class="cn">${ROMAN[i]||i+1}</span><span class="ct"><b>${esc(c.t)}</b><span>${esc(c.aim)}</span></span>${m?ring(m.pct,30,3.5):""}</summary>
+   <div class="cbody"><span class="k">You will be able to</span><ul class="obj">${c.master.map(o=>`<li>${esc(o)}</li>`).join("")}</ul>
+   <span class="k">Study and practise</span><div class="chips">${chapItems(c)}</div>
+   <div class="tp"><div class="trap"><span class="k">The trap</span>${esc(c.trap)}</div><div class="pearl"><span class="k">The pearl</span>${esc(c.pearl)}</div></div>
+   ${m?`<div class="row-x"><span class="tiny muted">${m.seen} of ${m.n} cards started · ${Math.round(m.pct*100)}% mastered</span><span class="spacer"></span><button class="btn sm soft" data-go="practice/session/chap:${h}:${i}">${ic("play")}Practise this chapter</button></div>`:""}</div></details>`;}).join("")}</div></section>`;}
+
+route("learn:hall",(id)=>(HALL[id]||{}).n||"Hall",(root,id)=>{
+  const h=HALL[id];if(!h)throw new Error("No such hall");
+  const sg=hallSigns(id),tc=hallTech(id),pr=hallPres(id),lo=LORE.filter(l=>l.hall===id),m=hallMastery(id);
+  const vOrder=s=>VERDICT_ORDER.indexOf(SIGNS[s].v);sg.sort((a,b)=>vOrder(a)-vOrder(b)||SIGNS[a].name.localeCompare(SIGNS[b].name));
+  root.innerHTML=`<section class="hallhead"><span class="emb"><svg viewBox="0 0 64 64">${EMB[id]}</svg></span><span class="eyebrow">${id==="table"?"The centre of the theatre":"Hall "+h.rn}</span><h1>${esc(h.n)}</h1><span class="latin">${esc(h.la)} · ${esc(h.patron)}</span></section>
+  <div class="card stack">${guideHTML(GALEN.hall[id]||galenPick(GALEN.idle),{small:1})}</div>
+  <section class="story"><p class="dropcap">${esc(h.intro[0])}</p><p>${esc(h.intro[1])}</p><p class="latin" style="margin-top:.4em">${esc(h.maxim[0])}</p><p class="en" style="margin-top:-.6em">${esc(h.maxim[1])}</p></section>
+  <div class="card row-x" style="gap:14px">${ring(m.pct,48,5)}<div class="stack" style="gap:2px;flex:1;min-width:0"><b style="font-family:var(--f-display);font-size:1.2rem">${Math.round(m.pct*100)}% mastered</b><span class="small muted">${m.seen} of ${m.n} cards started in this hall</span></div><button class="btn" data-go="practice/session/hall:${id}">${ic("play")}Practise this hall</button></div>
+  ${outlineHTML(id)}
+  ${(HALL_LINKS[id]||[]).length?`<section class="section"><span class="label">Rooms of this hall</span><div class="list">${HALL_LINKS[id].map(([go,t])=>`<button class="lrow" data-go="${go}"><span class="icwrap n">${ic("door")}</span><span class="txt"><b>${esc(t)}</b></span>${ic("chev","chev")}</button>`).join("")}</div></section>`:""}
+  <details class="acc" style="padding:4px 14px"><summary style="padding:10px 0"><b style="font-family:var(--f-display);font-size:1.15rem">Everything in this hall</b> <span class="tiny muted">${sg.length} signs · ${tc.length} techniques · ${pr.length} histories</span></summary>
+  ${tc.length?`<section class="section"><span class="label">Techniques · do it properly</span><div class="list">${tc.map(t=>`<button class="lrow" data-go="learn/tech/${t.id}"><span class="icwrap">${ic("check")}</span><span class="txt"><b>${esc(t.name)}</b><span>${esc(t.hook||t.purpose)}</span></span>${typeof pips==="function"?pips(t.id):""}</button>`).join("")}</div></section>`:""}
+  ${sg.length?`<section class="section"><span class="label">Signs and tests · ${sg.length}</span><div class="list">${sg.map(k=>{const s=SIGNS[k];return `<button class="lrow" data-go="signs/sign/${k}"><span class="v v-${s.v}">${VERDICT[s.v]}</span><span class="txt"><b>${esc(s.name)}</b><span>${esc(s.target)}</span></span>${LORE_BY_SIGN[k]?`<span class="tag" title="Has a story in the codex">${ic("scroll")}</span>`:""}${ic("chev","chev")}</button>`;}).join("")}</div></section>`:""}
+  ${pr.length?`<section class="section"><span class="label">Histories</span><div class="list">${pr.map(p=>`<button class="lrow" data-go="learn/pres/${p.id}"><span class="icwrap n">${ic("history")}</span><span class="txt"><b>${esc(p.name)}</b><span>${esc((p.dd||[]).slice(0,3).join(", "))}</span></span>${ic("chev","chev")}</button>`).join("")}</div></section>`:""}
+  </details>
+  ${lo.length?`<section class="section"><span class="label">Stories of this hall</span><div class="grid">${lo.map(l=>loreCard(l)).join("")}</div></section>`:""}
+  <div class="orn">❦</div>`;
+  $("[data-act=chap-all]",root)?.addEventListener("click",()=>$$(".chap",root).forEach(d=>d.open=true));
+  SND.fx("door");
+});
+
+/* ================= THE CODEX ================= */
+let CODEX_F="all";
+route("learn:codex","The codex",(root)=>{
+  const draw=()=>{const list=LORE.filter(l=>CODEX_F==="all"||l.k===CODEX_F||l.hall===CODEX_F);const found=EGGS.filter(e=>eggFound(e.id));
+   root.innerHTML=`<section class="ph"><span class="eyebrow">The codex</span><h1>Medicine's long argument</h1><p class="lede">The people behind the names, the beliefs that harmed patients for centuries, and the discoveries that won anyway. Every story is tied to something you do at the bedside.</p></section>
+   ${guideHTML(GALEN.lore,{small:1})}
+   <div class="codexfilter" role="group" aria-label="Filter stories">${[["all","All"],["dark","The dark"],["triumph","Triumph"],["eponym","Behind the name"],["theatre","The theatre"]].map(([k,t])=>`<button class="chip" aria-pressed="${CODEX_F===k}" data-f="${k}">${t}</button>`).join("")}
+     <select class="sel" id="cx-hall" aria-label="Stories of one hall" style="width:auto"><option value="">By hall…</option>${HALLS.map(h=>`<option value="${h.id}" ${CODEX_F===h.id?"selected":""}>${esc(h.n)}</option>`).join("")}</select></div>
+   <div class="grid">${list.map(l=>loreCard(l,{hall:1})).join("")}</div>
+   <section class="section"><span class="label">Marginalia · ${found.length} of ${EGGS.length} secrets found</span><div class="card stack" style="gap:8px">${EGGS.map(e=>eggFound(e.id)?`<button class="link" style="text-align:left" data-egg-show="${e.id}"><span class="marg"><b>${esc(e.t)}</b> · found</span></button>`:`<span class="marg">${esc(e.hint)}</span>`).join("")}</div></section>`;
+   $$("[data-f]",root).forEach(b=>b.addEventListener("click",()=>{CODEX_F=b.dataset.f;draw();}));
+   $("#cx-hall",root).addEventListener("change",e=>{CODEX_F=e.target.value||"all";draw();});
+   $$("[data-egg-show]",root).forEach(b=>b.addEventListener("click",()=>showEgg(EGGS.find(x=>x.id===b.dataset.eggShow),false)));};
+  draw();
+});
+route("learn:lore",(id)=>(loreById(id)||{}).t||"Story",(root,id)=>{
+  const l=loreById(id);if(!l)throw new Error("No such story");const h=HALL[l.hall];const i=LORE.indexOf(l),nx=LORE[(i+1)%LORE.length];
+  Store.s.notes["lore:"+id]={t:Date.now(),v:1};Store.save();
+  root.innerHTML=`<section class="ph"><span class="row-x" style="gap:8px"><span class="eyebrow">${LORE_KIND[l.k]}</span><span class="spacer"></span><span class="latin" style="font-size:1rem">${esc(l.yr)}</span></span><h1>${esc(l.t)}</h1><p class="lede">${esc(l.who)}</p></section>
+  <article class="lore-body">${l.body.map(p=>`<p>${esc(p)}</p>`).join("")}</article>
+  ${LORE_OUT[l.id]?`<div class="card lore-out"><span class="label">The story in outline</span><dl>${["Before","The turning point","What followed"].map((k,i)=>`<dt>${k}</dt><dd>${esc(LORE_OUT[l.id][i])}</dd>`).join("")}<dt>At the bedside</dt><dd><b>${esc(l.fact)}</b></dd></dl></div>`:`<div class="lore-fact"><b>At the bedside:</b> ${esc(l.fact)}</div>`}
+  <div class="card">${guideHTML([null,l.galen],{small:1})}</div>
+  ${(l.signs||[]).filter(s=>SIGNS[s]).length?`<section class="section"><span class="label">The signs in this story</span><div class="chips">${l.signs.filter(s=>SIGNS[s]).map(signChip).join("")}</div></section>`:""}
+  <div class="row-x"><button class="btn ghost" data-go="learn/hall/${l.hall}">${ic("door")}${esc(h.n)}</button><span class="spacer"></span><button class="btn soft" data-go="learn/lore/${nx.id}">Next story ${ic("chev")}</button></div>
+  <p class="tiny muted">Source: ${esc(l.src)}</p>`;
+  SND.fx("page");
+});
+
+/* sign and technique pages: the story behind the name, and the hall it lives in */
+{const _sign=ROUTES["signs:sign"];ROUTES["signs:sign"]=(root,id)=>{_sign(root,id);const ls=LORE_BY_SIGN[id]||[],h=signHall(id);
+  const el=document.createElement("section");el.className="section";
+  el.innerHTML=`${ls.length?`<span class="label">The story behind it</span><div class="grid">${ls.map(l=>loreCard(l)).join("")}</div>`:""}${h?`<div class="row-x" style="margin-top:8px"><button class="btn ghost sm" data-go="learn/hall/${h}">${ic("door")}${esc(HALL[h].n)}</button></div>`:""}`;
+  root.append(el);};}
+{const _tech=ROUTES["learn:tech"];ROUTES["learn:tech"]=(root,id)=>{_tech(root,id);if(!id)return;const h=techHall(id);if(!h)return;
+  const el=document.createElement("div");el.className="row-x";el.innerHTML=`<button class="btn ghost sm" data-go="learn/hall/${h}">${ic("door")}${esc(HALL[h].n)}</button>`;root.append(el);};}
+/* Learn opens with the theatre */
+{const _learn=ROUTES["learn:home"];ROUTES["learn:home"]=(root)=>{_learn(root);const ph=$(".ph",root);const el=document.createElement("section");el.className="section";
+  el.innerHTML=`<div class="row-x"><span class="label">The theatre · twelve halls and the table</span><span class="spacer"></span><button class="link small" data-go="learn/codex">The codex</button></div><div class="halls">${HALLS.map(hallCard).join("")}</div>`;
+  if(ph)ph.after(el);else root.prepend(el);};}
+
+/* sessions can be scoped to a hall */
+{const _bs=buildSession;buildSession=function(sys){if(sys&&String(sys).startsWith("chap:")){const [,h,i]=sys.split(":");const keep=chapCardIds(h,+i);
+    const q=_bs("all").filter(c=>keep.has(c.id));if(q.length)return q;if(!CARDS)buildCards();return CARDS.filter(c=>keep.has(c.id)&&!Store.s.srs[c.id]).slice(0,12);}if(sys&&String(sys).startsWith("hall:")){const h=sys.slice(5);if(!CARDS)buildCards();
+    const keep=new Set(CARDS.filter(c=>cardHall(c)===h).map(c=>c.id));const all=_bs("all");const q=all.filter(c=>keep.has(c.id));
+    if(q.length)return q;/* nothing due here: take the first new cards of this hall */
+    return CARDS.filter(c=>keep.has(c.id)&&!Store.s.srs[c.id]).slice(0,10);}return _bs(sys);};}
+{const _st=sessionTitle;sessionTitle=function(sys){if(sys&&String(sys).startsWith("chap:")){const [,h,i]=sys.split(":");const c=(OUTLINE[h]||[])[+i];return c?c.t:"Chapter";}if(sys&&String(sys).startsWith("hall:")){const h=HALL[sys.slice(5)];return h?h.short+" · hall review":"Hall review";}return _st(sys);};TITLES["practice:session"]=s=>sessionTitle(s);}
+
+/* search finds halls and stories */
+{const _pi=palIndex;palIndex=function(){const I=_pi();if(I._th)return I;
+  HALLS.forEach(h=>I.push({t:h.n,s:`The theatre · ${h.la}`,k:"door",go:`learn/hall/${h.id}`,x:h.intro.join(" ")+" "+h.patron}));
+  LORE.forEach(l=>I.push({t:l.t,s:`Codex · ${LORE_KIND[l.k]} · ${l.yr}`,k:"scroll",go:`learn/lore/${l.id}`,x:l.who+" "+l.sum+" "+l.body.join(" ")}));
+  I.push({t:"The codex",s:"Medical history, dark and bright",k:"scroll",go:"learn/codex",x:"history lore stories"});
+  I.forEach(o=>{if(!o.lt){o.lt=o.t.toLowerCase();o.lx=(o.s+" "+o.x).toLowerCase();}});I._th=1;return I;};}
+
+/* ================= REFERENCE PANE (desktop ≥1100 px) ================= */
+const RP={pin:null};
+const wide=()=>matchMedia("(min-width:1100px)").matches;
+function rpSign(id){const s=SIGNS[id];if(!s)return "";const ls=LORE_BY_SIGN[id]||[];
+  return `<div class="rp-h"><span class="eyebrow">Reference</span><span class="spacer"></span><button class="iconbtn" data-rp-close aria-label="Close reference">${ic("close")}</button></div>
+  <div class="card stack" style="gap:10px"><span class="row-x" style="gap:8px"><span class="v v-${s.v}">${VERDICT[s.v]}</span><span class="tiny muted">${esc(s.target)}</span></span><h2>${esc(s.name)}</h2>
+   ${typeof lrChips==="function"?`<div class="chips">${lrChips(s)}</div>`:""}
+   <div><span class="label">How</span><p class="small" style="margin:2px 0 0">${esc(s.how)}</p></div>
+   <div><span class="label">Why it works</span><p class="small" style="margin:2px 0 0">${esc(s.mech)}</p></div>
+   <div><span class="label">What to think</span><p class="small" style="margin:2px 0 0">${esc(s.think)}</p></div>
+   <button class="btn sm soft" data-go="signs/sign/${id}" data-rp-full>Open the full page</button></div>
+  ${ls.map(l=>loreCard(l)).join("")}`;}
+function rpTech(id){const t=TECH.find(x=>x.id===id);if(!t)return "";
+  return `<div class="rp-h"><span class="eyebrow">Technique</span><span class="spacer"></span><button class="iconbtn" data-rp-close aria-label="Close reference">${ic("close")}</button></div>
+  <div class="card stack" style="gap:10px"><h2>${esc(t.name)}</h2><p class="small muted" style="margin:0">${esc(t.purpose)}</p>
+  <ol class="small" style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px">${t.steps.map(s=>`<li><b>${esc(s.do)}</b><br><span class="muted">${esc(s.why)}</span></li>`).join("")}</ol>
+  <button class="btn sm soft" data-go="learn/tech/${id}" data-rp-full>Open the technique</button></div>`;}
+function rpDefault(){const r=cur(),key=NAV.tab+":"+r.v;let ctx="idle";if(key==="learn:hall")ctx=r.a;else if(key==="signs:sign")ctx=signHall(r.a)||"idle";
+  const line=GALEN.hall[ctx]||galenFor("idle");const due=dueCards().length;const l=loreOfDay();
+  const hid=key==="learn:hall"?r.a:key==="signs:sign"?signHall(r.a):null;const h=hid&&HALL[hid];
+  return `${guideHTML(line,{small:1})}<p class="small" id="rp-quip" style="font-style:italic;color:var(--accent-ink);min-height:1.2em;margin:0"></p>
+   <div class="card stack" style="gap:8px"><span class="label">Today</span><b style="font-family:var(--f-display);font-size:1.3rem">${due?`${due} card${due>1?"s":""} due`:"Nothing due"}</b><button class="btn sm" data-go="practice/session/all">${ic("play")}${due?"Start the session":"Learn something new"}</button></div>
+   ${h&&key!=="learn:hall"?`<div class="card stack" style="gap:8px"><span class="label">This hall</span>${hallCard(h)}</div>`:""}
+   <div class="stack" style="gap:8px"><span class="label">From the codex</span>${loreCard(l,{hall:1})}</div>
+   <p class="tiny muted">Tap a sign or technique in a lesson or drill and it opens here, beside your work.</p>`;}
+function rpRender(){const el=$("#refpane");if(!el)return;if(!wide()){el.innerHTML="";return;}
+  el.innerHTML=RP.pin?(RP.pin[0]==="sign"?rpSign(RP.pin[1]):rpTech(RP.pin[1])):rpDefault();}
+document.addEventListener("click",e=>{
+  if(e.target.closest("[data-rp-close]")){RP.pin=null;rpRender();return;}
+  if(e.target.closest("[data-rp-full]")){RP.pin=null;setTimeout(rpRender,0);return;}
+  if(!wide())return;const g=e.target.closest("[data-go]");if(!g||g.closest("#refpane")||g.closest(".pal-back"))return;
+  const p=g.dataset.go.split("/");const inStudy=NAV.tab==="practice"||(NAV.tab==="learn"&&cur().v!=="hall"&&cur().v!=="home"&&cur().v!=="codex")||(NAV.tab==="today"&&cur().v!=="home");
+  if(!inStudy)return;
+  if(p[0]==="signs"&&p[1]==="sign"&&SIGNS[p[2]]){e.preventDefault();e.stopImmediatePropagation();RP.pin=["sign",p[2]];rpRender();SND.fx("page");}
+  else if(p[0]==="learn"&&p[1]==="tech"&&p[2]&&typeof TECH!=="undefined"&&TECH.find(t=>t.id===p[2])&&cur().v!=="tech"){e.preventDefault();e.stopImmediatePropagation();RP.pin=["tech",p[2]];rpRender();SND.fx("page");}
+},true);
+matchMedia("(min-width:1100px)").addEventListener("change",rpRender);
+
+/* after every render: stage tint per hall, the pane, the room's key */
+{const _chrome=chrome;chrome=function(){_chrome();const r=cur(),key=NAV.tab+":"+r.v;
+  const hid=key==="learn:hall"?r.a:key==="signs:sign"?signHall(r.a):key==="learn:tech"&&r.a?techHall(r.a):key==="learn:lore"?(loreById(r.a)||{}).hall:null;
+  const h=hid&&HALL[hid];document.documentElement.style.setProperty("--hall-tint",h?h.tint:"transparent");document.documentElement.dataset.hall=hid||"";
+  SND.setHall(hid||"table");rpRender();};}
+
+/* nav labels for the world */
+{const b=$('#nav [data-tab="today"]');if(b){b.querySelector(".l").textContent="Theatre";const s=b.querySelector("svg.i");if(s)s.outerHTML=ic("theatre");}
+ const rb=$("#nav .railbrand .brandmark");const tb=$(".top .brandmark");if(rb&&tb)rb.innerHTML=tb.innerHTML;}
+
+/* ================= KEYS, CONTROLLER AND HELP ================= */
+function helpOverlay(){if($(".helpov"))return;const el=document.createElement("div");el.className="helpov";el.setAttribute("role","dialog");el.setAttribute("aria-label","Keys and controller");
+  const rows=[["Search","<kbd>/</kbd> or <kbd>Ctrl K</kbd>","Menu (≡)"],["Back","<kbd>Esc</kbd>","B"],["Choose","<kbd>Enter</kbd>","A"],["Move","<kbd>Tab</kbd>, arrows in lists","D-pad or left stick"],["Previous / next section","<kbd>Alt 1</kbd>…<kbd>Alt 5</kbd>","L1 / R1"],["Answers in drills","<kbd>1</kbd>–<kbd>4</kbd>, <kbd>Space</kbd> to reveal","A on the focused answer"],["Scroll","<kbd>PgUp</kbd> <kbd>PgDn</kbd>","Right stick"],["Theatre sound","<kbd>M</kbd>","Y"],["This help","<kbd>?</kbd>","View (⧉)"]];
+  el.innerHTML=`<div class="card stack" style="gap:12px"><div class="row-x"><h2>Keys and controller</h2><span class="spacer"></span><button class="iconbtn" data-x aria-label="Close">${ic("close")}</button></div>
+  <p class="small muted" style="margin:0">Mouse, keyboard, touch and a gamepad (Steam Deck) all work at once. Hold or right-click a hint for its explanation.</p>
+  <table><tr><th>Action</th><th>Keyboard</th><th>Controller</th></tr>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("")}</table></div>`;
+  document.body.append(el);el.addEventListener("click",e=>{if(e.target===el||e.target.closest("[data-x]"))el.remove();});setTimeout(()=>$("[data-x]",el)?.focus(),10);}
+function tabStep(d){const tabs=TABS.filter(t=>!t[3]).map(t=>t[0]);const i=tabs.indexOf(NAV_PARENT[NAV.tab]||NAV.tab);switchTab(tabs[(i+d+tabs.length)%tabs.length]);}
+document.addEventListener("keydown",e=>{const typing=/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);if(typing)return;
+  if(e.altKey&&/^[1-5]$/.test(e.key)){e.preventDefault();const tabs=TABS.filter(t=>!t[3]).map(t=>t[0]);switchTab(tabs[+e.key-1]);return;}
+  if(e.key==="?"){e.preventDefault();helpOverlay();return;}
+  if((e.key==="m"||e.key==="M")&&!e.ctrlKey&&!e.metaKey&&!KEYS.handler){toggleSound();return;}
+  if((e.key==="Enter"||e.key===" ")&&e.target.matches&&e.target.matches("g[data-go],g[data-egg],[role=link][data-go]")){e.preventDefault();e.target.dispatchEvent(new MouseEvent("click",{bubbles:true}));}
+  if(e.key==="Escape"){const ov=$(".helpov");if(ov){e.stopImmediatePropagation();ov.remove();}}
+},true);
+/* gamepad: buttons become the app's own keys; the d-pad walks focus spatially */
+const PAD={on:false,prev:{},t:0};
+function focusables(){return $$('button:not([disabled]),a[href],[tabindex="0"],input,select,textarea,summary').filter(el=>{if(el.closest("[hidden]"))return false;const r=el.getBoundingClientRect();return r.width>0&&r.height>0&&getComputedStyle(el).visibility!=="hidden";})
+  .filter(el=>{const ov=$(".helpov")||$(".pal-back");return ov?ov.contains(el):true;});}
+function padMove(dx,dy){document.documentElement.classList.add("pad");const list=focusables();const a=document.activeElement;
+  if(!a||a===document.body||!list.includes(a)){const first=list.find(el=>{const r=el.getBoundingClientRect();return r.top>=60&&r.bottom<=innerHeight;})||list[0];first&&first.focus();return;}
+  const ra=a.getBoundingClientRect(),ax=ra.left+ra.width/2,ay=ra.top+ra.height/2;let best=null,bs=1e9;
+  for(const el of list){if(el===a)continue;const r=el.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2,ddx=x-ax,ddy=y-ay;
+    const along=dx?ddx*dx:ddy*dy;if(along<=4)continue;const across=dx?Math.abs(ddy):Math.abs(ddx);const sc=along+across*2.2;if(sc<bs){bs=sc;best=el;}}
+  if(best){best.focus({preventScroll:false});best.scrollIntoView({block:"nearest",inline:"nearest"});}}
+function padKey(key){const t=document.activeElement||document.body;t.dispatchEvent(new KeyboardEvent("keydown",{key,bubbles:true,cancelable:true}));}
+function padLoop(){const pads=navigator.getGamepads?[...navigator.getGamepads()].filter(Boolean):[];if(!pads.length){PAD.on=false;return;}
+  const g=pads[0],b=i=>!!(g.buttons[i]&&g.buttons[i].pressed),now=performance.now();
+  const press=(i,fn)=>{const p=b(i);if(p&&!PAD.prev[i])fn();PAD.prev[i]=p;};
+  press(0,()=>{const a=document.activeElement;galenCode("a");if(a&&a!==document.body)a.click();else padMove(0,1);});
+  press(1,()=>{galenCode("b");if($(".helpov")){$(".helpov").remove();return;}if(PAL){closePalette();return;}back();});
+  press(3,toggleSound);
+  press(4,()=>tabStep(-1));press(5,()=>tabStep(1));
+  press(8,helpOverlay);press(9,openPalette);
+  press(2,()=>padKey(" "));
+  const ax=g.axes[0]||0,ay=g.axes[1]||0,ry=g.axes[3]||0;
+  const dir=b(12)||ay<-.6?[0,-1,"ArrowUp"]:b(13)||ay>.6?[0,1,"ArrowDown"]:b(14)||ax<-.6?[-1,0,"ArrowLeft"]:b(15)||ax>.6?[1,0,"ArrowRight"]:null;
+  if(dir){if(!PAD.dir||now-PAD.t>(PAD.rep?140:380)){PAD.rep=!!PAD.dir;PAD.t=now;galenCode(dir[2]);if(PAL)padKey(dir[2]);else padMove(dir[0],dir[1]);}PAD.dir=dir;}else{PAD.dir=null;PAD.rep=false;}
+  if(Math.abs(ry)>.25)window.scrollBy(0,ry*18);
+  requestAnimationFrame(padLoop);}
+window.addEventListener("gamepadconnected",()=>{if(PAD.on)return;PAD.on=true;document.documentElement.classList.add("pad");toast("Controller connected · press View for the buttons");requestAnimationFrame(padLoop);});
+document.addEventListener("pointerdown",()=>document.documentElement.classList.remove("pad"),{passive:true});
+/* right-click is the twin of hold-to-explain */
+document.addEventListener("contextmenu",e=>{const h=e.target.closest("[data-hint]");if(h){e.preventDefault();h.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true}));setTimeout(()=>h.dispatchEvent(new PointerEvent("pointerup",{bubbles:true})),650);}});
+
+/* ================= SETTINGS: the theatre group ================= */
+{const _set=ROUTES["tools:settings"];ROUTES["tools:settings"]=(root)=>{_set(root);const el=document.createElement("section");el.className="card stack";el.id="theatre-settings";
+  const sz=TP.size||"m";
+  el.innerHTML=`<div class="row-x"><h2>The theatre</h2><span class="spacer"></span><span class="pill">This device only</span></div>
+  <p class="small muted" style="margin:0">Sound is generated on the device; nothing is downloaded. It falls silent whenever a heart or lung sound plays, and when Galen is in the background.</p>
+  <label class="row-x"><input type="checkbox" id="ts-amb" ${TP.amb?"checked":""}> <span>Candlelit room (ambience)</span></label>
+  <label class="row-x"><input type="checkbox" id="ts-mus" ${TP.music?"checked":""}> <span>A lute in the gallery, now and then (Greensleeves, 16th century)</span></label>
+  <label class="row-x"><input type="checkbox" id="ts-ton" ${TP.tones?"checked":""}> <span>Tones for right and wrong answers</span></label>
+  <div class="mixrow"><span class="small">Volume</span><input type="range" id="ts-vol" min="0" max="1" step=".05" value="${TP.vol}" aria-label="Theatre volume"><span class="mono small" id="ts-vv">${Math.round(TP.vol*100)}%</span></div>
+  <div class="row-x"><span class="small">Text size</span><div class="seg sm" role="group" aria-label="Text size">${[["s","Small"],["m","Normal"],["l","Large"]].map(([k,t])=>`<button data-sz="${k}" aria-pressed="${sz===k}">${t}</button>`).join("")}</div></div>
+  <div class="row-x"><button class="btn ghost sm" id="ts-test">${ic("play")}Play the lute</button><button class="btn ghost sm" id="ts-help">${ic("pad")}Keys and controller</button></div>`;
+  root.prepend(el);
+  const upd=()=>{TP.amb=$("#ts-amb").checked?1:0;TP.music=$("#ts-mus").checked?1:0;TP.tones=$("#ts-ton").checked?1:0;tpSave();SND.apply();soundBtn();};
+  ["#ts-amb","#ts-mus","#ts-ton"].forEach(s=>$(s).addEventListener("change",upd));
+  $("#ts-vol").addEventListener("input",e=>{TP.vol=+e.target.value;$("#ts-vv").textContent=Math.round(TP.vol*100)+"%";if(SND.bus&&!SND.ducked)SND.bus.gain.value=TP.vol;tpSave();});
+  $$("[data-sz]",el).forEach(b=>b.addEventListener("click",()=>{TP.size=b.dataset.sz;tpSave();applySize();$$("[data-sz]",el).forEach(x=>x.setAttribute("aria-pressed",x===b));}));
+  $("#ts-test").addEventListener("click",()=>{SND.ensure();SND.playTune();});$("#ts-help").addEventListener("click",helpOverlay);};}
 
 "use strict";
 /* ================= BOOT ================= */

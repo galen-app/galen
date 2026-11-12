@@ -10,14 +10,17 @@ head = open('src/00-head.html', encoding='utf-8').read()
 parts = sorted(glob.glob('src/*.js'))
 js = '\n'.join(open(p, encoding='utf-8').read() for p in parts)
 css = re.search(r'<style>(.*?)</style>', head, re.S).group(1)
+extra_css = '\n'.join(open(p, encoding='utf-8').read() for p in sorted(glob.glob('src/*.css')))
+css = css + '\n' + extra_css
 shell = head[head.index('</style>') + len('</style>'):]
-fonts = re.search(r'(<link rel="preconnect".*?display=swap">)', head, re.S).group(1)
+m = re.search(r'(<link rel="preconnect".*?display=swap">)', head, re.S)
+fonts = m.group(1) if m else ''
 
 def strict_strip(s):  # one "use strict" per file is fine inside a single bundle
     return s
 
 # ---- artifact (claude.ai) ----
-art = head.replace('</style>', '</style>\n<script>window.GALEN_PLATFORM="artifact";window.GALEN_VERSION=%s;</script>' % json.dumps(VERSION), 1)
+art = head.replace('</style>', extra_css + '</style>\n<script>window.GALEN_PLATFORM="artifact";window.GALEN_VERSION=%s;</script>' % json.dumps(VERSION), 1)
 art += '\n<script>\n' + js + '\n</script>'
 open('index.html', 'w', encoding='utf-8').write(art)
 
@@ -33,7 +36,7 @@ page = f'''<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Galen</title>
 <meta name="description" content="Galen: history, examination and the reasons behind them. Evidence, illustrations, sounds, skin, neurology and practice that makes it stick.">
-<meta name="theme-color" content="#ee6a1c">
+<meta name="theme-color" content="#efe6d4" media="(prefers-color-scheme: light)">\n<meta name="theme-color" content="#120d09" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -68,7 +71,7 @@ sw = open('src/sw.template', encoding='utf-8').read().replace('__VERSION__', h).
 open('docs/sw.js', 'w', encoding='utf-8').write(sw)
 manifest = {
   "id": "/galen-app", "name": "Galen", "short_name": "Galen", "start_url": "./", "scope": "./", "display": "standalone",
-  "background_color": "#f4f4f5", "theme_color": "#ee6a1c", "description": "History, examination and the reasons behind them.",
+  "background_color": "#efe6d4", "theme_color": "#d4621a", "description": "History, examination and the reasons behind them.",
   "icons": [{"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"}, {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}, {"src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}],
   "categories": ["education", "medical"], "lang": "en"
 }

@@ -7,3 +7,5 @@ Serve `docs/` on port 8765 (`cd docs && python3 -m http.server 8765`), then:
 - `node test/tech.js` — every Technique clinic page and drill end to end (walk-through, order, spot the error, reps, pocket card), all technique cards, Today tile, sign links, search.
 - `node check.js` — data consistency (LR vs sensitivity/specificity, dangling links, score bands).
 Needs Playwright with Chromium (`npm i playwright`).
+
+- `theatre.js`: Galen 7 world: doors, halls, outline chapters, hall/chapter sessions, reference pane, eggs, help, Alt tabs, sound engine, codex, settings, clean text.

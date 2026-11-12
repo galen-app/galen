@@ -5,8 +5,8 @@
  "start_url": "./",
  "scope": "./",
  "display": "standalone",
- "background_color": "#f4f4f5",
- "theme_color": "#ee6a1c",
+ "background_color": "#efe6d4",
+ "theme_color": "#d4621a",
  "description": "History, examination and the reasons behind them.",
  "icons": [
   {
