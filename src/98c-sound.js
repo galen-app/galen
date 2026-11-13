@@ -18,7 +18,9 @@ const SND={ctx:null,cache:{},ducked:false,hallKey:"table",amb:null,tune:null,mus
     return this.ctx;},
   /* build the graph on any (Offline)AudioContext: the render test uses this */
   build(c){
-    this.ctx=c;this.cache={};this.amb=null;this.tune=null;this._room=null;this._ir=null;this._crk=null;
+    /* AudioBuffers can be shared between contexts: keep the generated ones while the sample rate is the same */
+    if(this._sr!==c.sampleRate){this.cache={};this._room=null;this._ir=null;this._crk=null;this._sr=c.sampleRate;}
+    this.ctx=c;this.amb=null;this.tune=null;
     this.vol=c.createGain();this.vol.gain.value=TP.vol;
     const lim=c.createDynamicsCompressor();lim.threshold.value=-6;lim.knee.value=0;lim.ratio.value=20;lim.attack.value=.002;lim.release.value=.15;
     const mk=c.createGain();mk.gain.value=Math.pow(10,-.6*6*(1-1/20)/20);   /* cancel Chrome's automatic make-up gain */

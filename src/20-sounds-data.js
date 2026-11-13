@@ -306,7 +306,7 @@ hamman:{name:"Hamman's crunch",group:"er",kind:"heart",piece:"diaph",timing:"In 
  causes:"Spontaneous pneumomediastinum (young people, asthma, inhaled drugs), oesophageal rupture after vomiting (Boerhaave), chest trauma, barotrauma, left pneumothorax."},
 "silent-chest":{name:"Silent chest (severe asthma)",group:"er",kind:"lung",piece:"diaph",timing:"Very little sound in either phase",area:"Both lungs",pos:"Sitting upright",
  clue:"Almost no breath sound or wheeze in a breathless asthmatic: airflow is too low to make noise.",
- syn:{base:"ves",amp:.045,Ti:1.0,Te:2.3,wheeze:true,wamp:.06},
+ syn:{base:"ves",amp:.04,Ti:1.0,Te:2.3,wheeze:true,wamp:.05},
  mech:"Wheeze needs airflow. With near-complete obstruction and a tiring patient, flow falls so low that both breath sounds and wheeze fade.",
  where:"Everywhere. Judge it against the patient's effort, not against a normal chest.",
  sound:"Faint breath sounds with a barely audible wheeze.",

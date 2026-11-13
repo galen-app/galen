@@ -189,7 +189,7 @@ route("learn:map",(id)=>(CMAPS.find(m=>m.id===id)||{}).title||"Map",(root,id,nid
     $$(".opt",dq).forEach(b=>b.addEventListener("click",()=>{if(b.disabled)return;const ok=b.dataset.o===e.label;D.n++;if(ok)D.ok++;$$(".opt",dq).forEach(x=>{x.disabled=true;if(x.dataset.o===e.label)x.classList.add("ok");else if(x===b)x.classList.add("bad");});
       const p=document.createElement("div");p.className="row-x";p.style.marginTop="8px";p.innerHTML=`<button class="btn sm">Next</button><button class="btn sm ghost">Show on the map</button>`;dq.appendChild(p);
       p.children[0].addEventListener("click",ask);p.children[1].addEventListener("click",()=>{if(view!=="map")setView("map");show(e.from,true);});
-      if(ok){Store.s.xp=(Store.s.xp||0)+1;Store.save();}}));};
+      if(ok){Store.s.xp=(Store.s.xp||0)+1;Store.save();}const c=$(".small.muted",dq);if(c)c.textContent=`${ok?"Right":"Not quite"}: ${D.ok} of ${D.n} so far`;}));};
   $("#cm-dgo",root).addEventListener("click",e=>{e.target.textContent="New question";ask();});
   setView(view);
   if(nid&&byId[nid])show(nid,true);

@@ -136,10 +136,13 @@ route("learn:localise","Localisation",(root,tab)=>{
   else if(tab==="cord")B.innerHTML=`${fig("cord")}<div class="card stack" style="gap:12px">${lm(CORDSYN,"Context:")}</div>`;
   else B.innerHTML=`<div class="card stack" style="gap:12px">${lm(GAITS,"Think:")}</div>`;
 });
+/* D20 7.1: link each nerve to the signs and techniques that test it (t09#13) */
+const CN_SIGNS={II:["visual-acuity","visual-fields","rapd","fundoscopy"],III:["rapd","horner"],V:[],VII:["facial-palsy"],VIII:["whisper-test","rinne-weber","hints","dix-hallpike"],IX:["gag","water-swallow"],X:["gag","water-swallow"],XII:[]};
+function cnSigns(n){const L=(CN_SIGNS[n]||[]).filter(k=>typeof SIGNS!=="undefined"&&SIGNS[k]);return L.length?`<div class="chips" style="margin-top:8px">${L.map(k=>`<button class="chip" data-go="signs/sign/${k}">${ic("eye")}${esc(SIGNS[k].name)}</button>`).join("")}</div>`:"";}
 route("learn:cranial","Cranial nerves",(root)=>{
   root.innerHTML=`<section class="ph"><span class="eyebrow">Neurology · head</span><h1>Cranial nerves</h1><p class="lede">A 3-minute screen: acuity and fields, pupils, eye movements (an H), face sensation and power, whisper, palate, tongue, shrug. Every nerve below has one finding that changes management.</p></section>
    ${fig("cn-brainstem")}
-   ${CRANIAL.map(([n,name,how,find,pearl])=>`<details class="acc"><summary><span class="n">${n}</span><span class="st"><b>${esc(name)}</b><span>${esc(how)}</span></span></summary><div class="acc-body"><div><span class="k">Finding that matters</span>${esc(find)}</div><div><span class="k">Pearl</span>${esc(pearl)}</div></div></details>`).join("")}
+   ${CRANIAL.map(([n,name,how,find,pearl])=>`<details class="acc"><summary><span class="n">${n}</span><span class="st"><b>${esc(name)}</b><span>${esc(how)}</span></span></summary><div class="acc-body"><div><span class="k">Finding that matters</span>${esc(find)}</div><div><span class="k">Pearl</span>${esc(pearl)}</div>${cnSigns(n)}</div></details>`).join("")}
    <div class="card"><div class="sec"><h3>Remember the order and type</h3><p><b>Names:</b> "Oh Oh Oh To Touch And Feel Very Good Velvet, Such Heaven" (olfactory, optic, oculomotor, trochlear, trigeminal, abducens, facial, vestibulocochlear, glossopharyngeal, vagus, spinal accessory, hypoglossal). <b>Sensory, motor or both:</b> "Some Say Marry Money But My Brother Says Big Brains Matter More". <b>Eye muscles:</b> LR6 SO4, the rest 3.</p></div></div>
    ${fig("pupil")}${fig("visual-pathway")}${fig("facial")}`;
 });

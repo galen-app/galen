@@ -74,7 +74,7 @@
 .cm-step{display:flex;flex-direction:column;gap:8px;position:relative;padding-left:18px;border-left:2px solid var(--line)}
 .cm-step-h{display:flex;align-items:center;gap:10px;margin-left:-31px}
 .cm-sn{width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--on-accent,#fff);display:inline-grid;place-items:center;font-weight:700;font-size:.9rem;flex:none}
-.cm-item{border-left:4px solid var(--cmc)}
+details.acc.cm-item{border-left:4px solid var(--cmc)}
 .cm-item>summary{gap:10px}
 /* lab panels */
 .lab-steps{margin:0;padding-left:1.4em;display:flex;flex-direction:column;gap:10px}

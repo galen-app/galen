@@ -64,7 +64,7 @@ Object.assign(FIG,{
  ${P.pa("M70 28 Q52 70 30 112 Q22 126 28 134 Q36 140 46 140","none","var(--line)",1.6)}${P.ln(46,146,150,146,"var(--bone-line)",2.4)}${P.t(150,160,"floor","end","sm")}${P.t(110,50,"septum","middle","sm")}
  ${P.c(50,130,6,"var(--bad-soft)","var(--bad)",1.6)}${TF.tag(56,126,78,102,"Little's area","start","fb")}${P.t(60,184,"1 cm behind the columella","start","sm")}
  ${P.pa("M196 112 Q190 84 206 70 Q224 58 248 58 Q272 58 290 70 Q306 84 300 112 Q296 128 276 128 L220 128 Q200 128 196 112 Z","var(--skin)","var(--line)",1.3)}
- ${P.pa("M244 118 Q226 120 218 108 Q214 92 232 86 Q244 84 244 98 Z","var(--ink2)","var(--line)",1.2)}${P.pa("M252 118 Q270 120 278 108 Q282 92 264 86 Q252 84 252 98 Z","var(--ink2)","var(--line)",1.2)}
+ ${P.pa("M244 118 Q226 120 218 108 Q214 92 232 86 Q244 84 244 98 Z","#3a2a22","var(--line)",1.2)}${P.pa("M252 118 Q270 120 278 108 Q282 92 264 86 Q252 84 252 98 Z","#3a2a22","var(--line)",1.2)}
  ${P.t(248,146,"columella","middle","sm")}${P.t(224,160,"patient's R","middle","sm")}${P.t(272,160,"patient's L","middle","sm")}`,
  L:[
   {l:"Thumb lifts the tip",c:"Before any instrument, push the tip up and back: the vestibule straightens and Little's area comes into view.",s:()=>`${P.ar(18,176,26,146,"var(--accent)",2.6)}${P.t(4,196,"thumb lifts the tip","start","fa")}`},
@@ -201,7 +201,7 @@ Object.assign(FIG,{
 /* ---------------- two-point discrimination (new) ---------------- */
 "tech-2pd":{t:"Two-point discrimination: along the axis, one side at a time",mode:"dim",
  c:"Each side of the fingertip pulp has its own digital nerve. Place both points along the long axis of the finger on one side of the pulp, with just enough pressure to blanch the skin, and test the radial and ulnar sides separately. Points placed across the pulp touch both nerves' territories, so an intact nerve on one side can hide a cut nerve on the other.",
- hint:"The index finger pulp, palm up: radial side on your left.",
+ hint:"The left index finger, palm up, fingertip pointing away from you: radial side on your left.",
  s:()=>{const f=x=>`${P.pa(`M${x-26} 196 L${x-26} 60 Q${x-26} 22 ${x} 22 Q${x+26} 22 ${x+26} 60 L${x+26} 196 Z`,"var(--skin)","var(--line)",1.3)}${P.nv(`M${x-18} 196 L${x-18} 40`,2)}${P.nv(`M${x+18} 196 L${x+18} 40`,2)}${P.ln(x-26,84,x+26,84,"var(--line)",1,"2 3")}`;
   return `${TF.H(80,14,"Right")}${TF.H(240,14,"Mistake")}${f(80)}${f(240)}${P.t(42,190,"radial","end","sm")}${P.t(118,190,"ulnar","start","sm")}${P.ln(160,24,160,196,"var(--line)",1,"2 4")}`;},
  L:[

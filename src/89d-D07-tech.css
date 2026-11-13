@@ -92,3 +92,5 @@
   .tk-pcols{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}
   .tk-thumb .fig{background:#fff;border-color:#999}
 }
+.tk-fc .row-x{flex-wrap:wrap}
+.tk-fc .pill,.tk-fc .tag{white-space:normal;min-width:0;max-width:100%;overflow-wrap:anywhere}
