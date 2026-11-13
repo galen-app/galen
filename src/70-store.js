@@ -107,13 +107,17 @@ function sanitizeState(x){
   const s=stClean(stObj(x)?x:{},0)||{};
   const b=_blankState();for(const k of Object.keys(b))if(!(k in s))s[k]=b[k];
   const nowT=Math.max(Date.now(),GClock.now()),lim=nowT+GClock.SKEW,today=dayNum(),maxDay=dayKey(Date.now()+DAY_MS);
+  /* data times from the future become now; merge stamps from the future become 1, so they lose every conflict
+     (re-clamping them to "now" on each sync would let them beat edits made in between) */
   const tm=v=>{v=+v;if(!Number.isFinite(v)||v<0)return 0;return v>lim?Math.round(nowT):v;};
+  const ts=v=>{v=+v;if(!Number.isFinite(v)||v<0)return 0;return v>lim?1:v;};
   const num=(v,d,lo,hi)=>{v=+v;if(!Number.isFinite(v))return d;return Math.min(hi,Math.max(lo,v));};
   const int=(v,d,lo,hi)=>Math.round(num(v,d,lo,hi));
   OBJ_KEYS.forEach(k=>{if(!stObj(s[k]))s[k]={};});
   ARR_KEYS.forEach(k=>{if(!Array.isArray(s[k]))s[k]=[];});
-  const fixTimes=(r,c)=>{for(const f of (c==="srs"?["_m","t","at","last","verAt"]:["_m","t","at","verAt"]))if(f in r&&r[f]!=null&&typeof r[f]!=="boolean")r[f]=tm(r[f]);
-    if("_ft" in r){if(stObj(r._ft)){for(const f of Object.keys(r._ft))r._ft[f]=tm(r._ft[f]);}else delete r._ft;}};
+  const fixTimes=(r,c)=>{for(const f of (c==="srs"?["t","at","last","verAt"]:["t","at","verAt"]))if(f in r&&r[f]!=null&&typeof r[f]!=="boolean")r[f]=tm(r[f]);
+    if("_m" in r){r._m=ts(r._m);if(!r._m)delete r._m;}
+    if("_ft" in r){if(stObj(r._ft)){for(const f of Object.keys(r._ft))r._ft[f]=ts(r._ft[f]);}else delete r._ft;}};
   for(const c of ST_REC){const C=s[c];for(const id of Object.keys(C)){const r=C[id];if(!ST_ID.test(id)||!stObj(r)){delete C[id];continue;}fixTimes(r,c);
     if(c==="srs"){r.iv=num(r.iv,0,0,36500);r.ef=num(r.ef,2.5,1.3,3);r.n=int(r.n,0,0,1e6);r.l=int(r.l,0,0,1e6);r.due=int(r.due,today,0,today+36600);r.first=int(r.first,r.due,0,today+36600);}
     else if(c==="snd"){if("n" in r)r.n=num(r.n,0,0,1e7);if("r" in r)r.r=num(r.r,0,0,1e7);}
@@ -134,14 +138,14 @@ function sanitizeState(x){
   S.tone=num(S.tone,D.tone,0,10);S.name=typeof S.name==="string"?S.name.slice(0,60):"";S.out=typeof S.out==="string"&&S.out.length<24?S.out:"speaker";
   if("theme" in S&&!["","light","dark"].includes(S.theme))S.theme="";
   s.settings=Object.assign({},D,S);
-  if(s.settingsTs!==undefined){if(stObj(s.settingsTs)){for(const k of Object.keys(s.settingsTs))s.settingsTs[k]=tm(s.settingsTs[k]);}else delete s.settingsTs;}
-  if(s.epoch!==undefined){s.epoch=tm(s.epoch);if(!s.epoch)delete s.epoch;}
-  if(s.epochs!==undefined){if(stObj(s.epochs)){for(const k of Object.keys(s.epochs)){s.epochs[k]=tm(s.epochs[k]);if(!s.epochs[k])delete s.epochs[k];}}else delete s.epochs;}
-  if(s.tomb!==undefined){if(stObj(s.tomb)){for(const c of Object.keys(s.tomb)){const T=s.tomb[c];if(!stObj(T)){delete s.tomb[c];continue;}for(const id of Object.keys(T)){T[id]=tm(T[id]);if(!T[id]||!ST_ID.test(id))delete T[id];}}}else delete s.tomb;}
+  if(s.settingsTs!==undefined){if(stObj(s.settingsTs)){for(const k of Object.keys(s.settingsTs))s.settingsTs[k]=ts(s.settingsTs[k]);}else delete s.settingsTs;}
+  if(s.epoch!==undefined){s.epoch=ts(s.epoch);if(!s.epoch)delete s.epoch;}
+  if(s.epochs!==undefined){if(stObj(s.epochs)){for(const k of Object.keys(s.epochs)){s.epochs[k]=ts(s.epochs[k]);if(!s.epochs[k])delete s.epochs[k];}}else delete s.epochs;}
+  if(s.tomb!==undefined){if(stObj(s.tomb)){for(const c of Object.keys(s.tomb)){const T=s.tomb[c];if(!stObj(T)){delete s.tomb[c];continue;}for(const id of Object.keys(T)){T[id]=ts(T[id]);if(!T[id]||!ST_ID.test(id))delete T[id];}}}else delete s.tomb;}
   if(s.ctr!==undefined){if(stObj(s.ctr)){for(const k of Object.keys(s.ctr)){const e=s.ctr[k];if(!stObj(e)||!ST_ID.test(k)){delete s.ctr[k];continue;}
-      e.s=int(e.s,0,0,1e12);e.xp=num(e.xp,0,-1e9,1e9);const d={};if(stObj(e.d))for(const day of Object.keys(e.d))if(/^\d{4}-\d{2}-\d{2}$/.test(day)&&day<=maxDay){const v=num(e.d[day],0,-1e6,1e6);if(v)d[day]=v;}e.d=d;if("t" in e)e.t=tm(e.t);}}
+      e.s=int(e.s,0,0,1e12);e.xp=num(e.xp,0,-1e9,1e9);const d={};if(stObj(e.d))for(const day of Object.keys(e.d))if(/^\d{4}-\d{2}-\d{2}$/.test(day)&&day<=maxDay){const v=num(e.d[day],0,-1e6,1e6);if(v)d[day]=v;}e.d=d;if("t" in e)e.t=ts(e.t);}}
     else delete s.ctr;}
-  s.updated=tm(s.updated);s.v=3;
+  s.updated=ts(s.updated);s.v=3;
   if(s.fmt!==undefined)s.fmt=int(s.fmt,STATE_FMT,0,1e6);
   return s;
 }
@@ -179,10 +183,13 @@ function stFieldwise(c,x,y){
 function stUnionBy(a,b,key,sortKey,cap){const m=new Map();for(const e of [...(Array.isArray(a)?a:[]),...(Array.isArray(b)?b:[])]){const k=key(e);if(!m.has(k))m.set(k,e);}return [...m.values()].sort((p,q)=>(sortKey(p)||0)-(sortKey(q)||0)).slice(-cap);}
 /* technique record: best scores take the max, confidence ratings and reps are unions, the rest field by field */
 function stMergeTech(x,y){const o=stFieldwise("notes",x,y);
-  for(const f of ["walk","order","mcq"])if(x[f]!=null||y[f]!=null)o[f]=Math.max(+x[f]||0,+y[f]||0);
+  const fx=stObj(x._ft)?x._ft:{},fy=stObj(y._ft)?y._ft:{},bx=stRecTime("notes",x),by=stRecTime("notes",y);
+  const first=f=>((fy[f]||by)>(fx[f]||bx))?[y,x]:[x,y];   /* the side that changed this list last goes first */
+  for(const f of ["walk","order","mcq","why"])if(x[f]!=null||y[f]!=null)o[f]=Math.max(+x[f]||0,+y[f]||0);
   if(x.read||y.read)o.read=o.read||x.read||y.read;
-  if(x.conf||y.conf)o.conf=stUnionBy(x.conf,y.conf,e=>JSON.stringify(e),e=>Array.isArray(e)?e[0]:0,20);
-  if(x.reps||y.reps)o.reps=stUnionBy(x.reps,y.reps,e=>JSON.stringify(e),e=>e&&e.t,100);
+  if(x.mcqOk||y.mcqOk)o.mcqOk=stUni(Array.isArray(x.mcqOk)?x.mcqOk:[],Array.isArray(y.mcqOk)?y.mcqOk:[]);
+  if(x.conf||y.conf){const [p,q]=first("conf");o.conf=stUnionBy(p.conf,q.conf,e=>Array.isArray(e)?String(e[0]):JSON.stringify(e),e=>Array.isArray(e)?e[0]:0,20);}
+  if(x.reps||y.reps){const [p,q]=first("reps");o.reps=stUnionBy(p.reps,q.reps,e=>e&&e.t!=null?String(e.t):JSON.stringify(e),e=>e&&e.t,100);}
   o.t=Math.max(x.t||0,y.t||0)||o.t;return o;}
 /* daily round: each tick keeps its first time */
 function stMergeRound(x,y){const o={};for(const f of stUni(Object.keys(x),Object.keys(y))){if(f==="_ft")continue;const a=x[f],b=y[f];

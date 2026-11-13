@@ -128,26 +128,33 @@ const Safety=(()=>{
   function veil(kind){css();if(overlay)overlay.remove();
     overlay=el(`<div class="st-veil" role="dialog" aria-modal="true" aria-labelledby="st-tab-h"><div class="st-card"><h2 id="st-tab-h">${kind==="moved"?"Galen moved to another window":"Galen is open in another window"}</h2>
       <p>Only one window saves your progress at a time, so nothing is overwritten.</p><div class="st-row"><button type="button" class="btn" id="st-here">Use Galen here</button></div></div></div>`);
-    overlay.querySelector("#st-here").addEventListener("click",takeOver);document.body.append(overlay);setTimeout(()=>{const b=overlay&&overlay.querySelector("#st-here");if(b)b.focus();},30);}
+    overlay.querySelector("#st-here").addEventListener("click",()=>takeOver(false));document.body.append(overlay);setTimeout(()=>{const b=overlay&&overlay.querySelector("#st-here");if(b)b.focus();},30);}
   function unveil(){if(overlay){overlay.remove();overlay=null;}}
   function holdLock(){return new Promise(res=>{held=res;});}
   function writer(reload){Store.passive=false;unveil();if(reload){Store.reloadFromDisk();rerender();try{Store.sync().catch(()=>{});}catch(x){}}Store.status=Store.provider?Store.status:"This device";Store.emit("status");}
-  function passive(kind){try{Store.flush();}catch(x){}Store.passive=true;Store.status="Open in another window";Store.emit("status");veil(kind);queue();}
+  function passive(kind,later){try{Store.flush();}catch(x){}Store.passive=true;Store.status="Open in another window";Store.emit("status");
+    if(later)setTimeout(()=>{if(Store.passive)veil(kind);},1200);else veil(kind);queue();}
   /* wait in line: when the writing window closes, this one takes over by itself */
   function queue(){if(queued)return;const ac=typeof AbortController==="function"?new AbortController():null;queued=ac||{};
     navigator.locks.request(LOCK,ac?{signal:ac.signal}:{},()=>{queued=null;writer(true);return holdLock();}).catch(()=>{});}
-  function takeOver(){
-    const b=overlay&&overlay.querySelector("#st-here");if(b){b.disabled=true;b.textContent="Taking over…";}
-    let done=false;const go=()=>{if(done)return;done=true;if(queued&&queued.abort)queued.abort();queued=null;
+  /* auto: a visible window asks a hidden writer to hand over (the window you are looking at wins); a visible writer says busy */
+  function takeOver(auto){
+    if(auto!==true){const b=overlay&&overlay.querySelector("#st-here");if(b){b.disabled=true;b.textContent="Taking over…";}}
+    let done=false;
+    const go=()=>{if(done)return;done=true;if(chan)chan.removeEventListener("message",on);if(queued&&queued.abort)queued.abort();queued=null;
       navigator.locks.request(LOCK,{steal:true},()=>{writer(true);return holdLock();}).catch(()=>{});};
-    if(chan){const on=ev=>{if(ev.data&&ev.data.type==="released"){chan.removeEventListener("message",on);go();}};chan.addEventListener("message",on);chan.postMessage({type:"want"});setTimeout(go,900);}else go();
+    const on=ev=>{const d=ev.data||{};if(d.type==="released")go();else if(d.type==="busy"&&auto===true){done=true;chan.removeEventListener("message",on);}};
+    if(chan){chan.addEventListener("message",on);chan.postMessage({type:"want",auto:auto===true});setTimeout(go,900);}else if(auto!==true)go();
   }
   function start(){
     if(!supported())return;
     try{chan=new BroadcastChannel("galen.tabs");}catch(x){chan=null;}
-    if(chan)chan.addEventListener("message",ev=>{if(ev.data&&ev.data.type==="want"&&held&&!Store.passive){const r=held;held=null;passive("moved");r();setTimeout(()=>{try{chan.postMessage({type:"released"});}catch(x){}},0);}});
-    navigator.locks.request(LOCK,{ifAvailable:true},lock=>{if(!lock){passive("other");return;}return holdLock();})
+    if(chan)chan.addEventListener("message",ev=>{const d=ev.data||{};if(d.type!=="want"||!held||Store.passive)return;
+      if(d.auto&&!document.hidden){try{chan.postMessage({type:"busy"});}catch(x){}return;}
+      const r=held;held=null;passive("moved");r();setTimeout(()=>{try{chan.postMessage({type:"released"});}catch(x){}},0);});
+    navigator.locks.request(LOCK,{ifAvailable:true},lock=>{if(!lock){const vis=!document.hidden;passive("other",vis);if(vis)takeOver(true);return;}return holdLock();})
       .catch(err=>{if(err&&err.name==="AbortError"&&!Store.passive)passive("moved");});
+    document.addEventListener("visibilitychange",()=>{if(!document.hidden&&Store.passive&&overlay)takeOver(true);});
   }
   if(typeof window!=="undefined"&&window.addEventListener){
     window.addEventListener("galen:store",()=>{try{banner();}catch(x){}});

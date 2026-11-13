@@ -50,8 +50,9 @@ function quip(kind,opt={}){
   let shown=false;
   if(!opt.long&&host&&innerWidth>=600){
     const b=document.createElement("span");b.className="quip-bar";b.setAttribute("aria-hidden","true");b.textContent=short;
-    host.classList.add("quipping");tt.after(b);
-    if(b.scrollWidth>b.clientWidth+1){b.remove();host.classList.remove("quipping");}else shown=true;}
+    tt.after(b);const cut=el=>el.scrollWidth>el.clientWidth+1;
+    if(cut(b)||cut(tt)){host.classList.add("quipping");}            /* beside the title if both fit, else in its place */
+    if(cut(b)){b.remove();host.classList.remove("quipping");}else shown=true;}
   if(!shown&&top){
     const r=document.createElement("div");r.className="quip-ribbon"+(opt.ms?" ms":"");r.setAttribute("aria-hidden","true");
     const txt=opt.long||en.length<=96?en:short;
