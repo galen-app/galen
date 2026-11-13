@@ -109,6 +109,7 @@ function zoneOf(el){if(!el||!el.closest)return "main";const m=modalTop();if(m&&m
 function zoneEl(z){return z==="pane"?$("#refpane"):z==="rail"?$("nav.nav"):z==="top"?$("header.top"):z==="modal"?modalTop():$("#view");}
 function zoneList(z){if(z==="modal"){const m=modalTop();return m?padFocusables(m):[];}
   if(z==="main")return padFocusables(document).filter(el=>zoneOf(el)==="main"&&!el.closest(MODAL_SEL));const c=zoneEl(z);return c?padFocusables(c):[];}
+{const set=()=>{const n=$("nav.nav");if(!n)return;const r=n.getBoundingClientRect();document.documentElement.style.setProperty("--rail-w",(r.height>r.width?Math.round(r.right):0)+"px");};set();addEventListener("resize",set);}
 const topH=()=>{const t=$("header.top");return t?t.getBoundingClientRect().bottom:0;};
 const inView=el=>{const r=el.getBoundingClientRect();return r.bottom>topH()+4&&r.top<innerHeight-4;};
 function padFocus(el){if(!el)return;try{el.focus({preventScroll:true});}catch(e){}el.scrollIntoView({block:"nearest",inline:"nearest"});PAD.zone=zoneOf(el);padLegend();}
@@ -232,10 +233,10 @@ function padLegend(force){const on=document.documentElement.classList.contains("
   if(!on){if(PAD.legend){PAD.legend.remove();PAD.legend=null;PAD.lsig="";}return;}
   const ctx=padCtx(),z=zoneOf(document.activeElement),snack=!!$(".snack button"),sig=ctx+z+snack;if(!force&&sig===PAD.lsig)return;PAD.lsig=sig;
   if(!PAD.legend){PAD.legend=document.createElement("div");PAD.legend.id="padlegend";PAD.legend.setAttribute("aria-hidden","true");document.body.append(PAD.legend);}
-  const G=(k,t)=>`<span class="pl"><span class="pg pg-${k.toLowerCase().replace(/[^a-z0-9]/g,"")}">${k}</span>${t}</span>`;
+  const G=(k,t,w)=>`<span class="pl${w?" wide":""}"><span class="pg pg-${k.toLowerCase().replace(/[^a-z0-9]/g,"")}">${k}</span>${t}</span>`;
   const Z={main:"Page",rail:"Sections",pane:"Reference",top:"Top bar",modal:"Dialog"}[z]||"Page";
   const sets={
-    main:[G("A","choose"),G("B","back"),G("X","play or reveal"),G("Y","sound"),G("L1","R1")+"",G("L2","R2"),G("≡","search"),G("⧉","help")],
+    main:[G("A","choose"),G("B","back"),G("X","play or reveal"),G("Y","sound"),G("L1","R1")+"",G("L2","R2"),G("≡","search",1),G("⧉","help",1)],
     card:[G("A","show answer"),G("X","show answer"),G("≡","leave")],
     grade:[G("B","Again"),G("X","Hard"),G("A","Good, or the one in focus"),G("Y","Easy"),G("≡","leave")],
     mcq:[G("✣","choose"),G("A","answer"),G("X","hint"),G("≡","leave")],
@@ -246,7 +247,7 @@ function padLegend(force){const on=document.documentElement.classList.contains("
     pal:[G("✣","move"),G("A","open"),G("B","close")],
     modal:[G("✣","move"),G("A","choose"),G("B","close"),G("RS","scroll")]};
   let items=(sets[ctx]||sets.main).slice();
-  if(ctx==="main"){items[4]=`<span class="pl"><span class="pg pg-l1">L1</span><span class="pg pg-r1">R1</span>section</span>`;items[5]=`<span class="pl"><span class="pg pg-l2">L2</span><span class="pg pg-r2">R2</span>area</span>`;}
+  if(ctx==="main"){items[4]=`<span class="pl"><span class="pg pg-l1">L1</span><span class="pg pg-r1">R1</span>section</span>`;items[5]=`<span class="pl wide"><span class="pg pg-l2">L2</span><span class="pg pg-r2">R2</span>area</span>`;}
   if(snack&&ctx!=="pal"&&ctx!=="modal"&&ctx!=="drill"&&ctx!=="drillnext")items.push(G("L1","undo"));
   PAD.legend.innerHTML=`<span class="pz">${Z}</span>${items.join("")}`;}
 /* the right-click (and menu key) twin of hold-to-explain */
