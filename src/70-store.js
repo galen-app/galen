@@ -365,7 +365,8 @@ const Store={
   cache(){
     if(this.readOnly||this.passive||this.holdWrites)return false;
     this.commit();
-    if(!this.lockHeld)try{const raw=localStorage.getItem(LS);if(raw&&raw!==this._lastRaw){const other=stParse(raw);if(stLooksLikeState(other)&&!stIsNewer(other)){this._s=_mergeStates(this._s,other);this.rebase();}}}catch(e){}
+    /* re-read even while holding the writer lock: a tab still running an older build takes no lock */
+    try{const raw=localStorage.getItem(LS);if(raw&&raw!==this._lastRaw){const other=stParse(raw);if(stLooksLikeState(other)&&!stIsNewer(other)){this._s=_mergeStates(this._s,other);this.rebase();}}}catch(e){}
     let out;try{out=JSON.stringify(this._s);}catch(e){stDiag("could not serialise: "+e.message);return false;}
     const write=()=>{localStorage.setItem(LS,out);this._lastRaw=out;};
     try{write();}
@@ -386,14 +387,14 @@ const Store={
     if(this.readOnly||this.passive)return;
     this._s.updated=Math.round(GClock.now());
     if(this._s.log.length>400)this._s.log=this._s.log.slice(-400);
-    clearTimeout(this._w);if(now)this.cache();else{this._dirty=true;this._w=setTimeout(()=>{this._dirty=false;this.cache();},250);}
+    clearTimeout(this._w);if(now){this._dirty=false;this.cache();}else{this._dirty=true;this._w=setTimeout(()=>{this._dirty=false;this.cache();},250);}
     clearTimeout(this._t);
     if(!this.provider||this.blocked)return;
     if(this.status!=="Not saved: storage full"){this.status="Saving…";this.emit("status");}
     this._t=setTimeout(()=>this.push(),now?0:1500);
   },
   /* write any pending change now (page hidden or closing, or handing over to another tab) */
-  flush(){clearTimeout(this._w);this._dirty=false;if(this.readOnly||this.passive)return;this.cache();},
+  flush(){clearTimeout(this._w);if(!this._dirty)return;this._dirty=false;if(this.readOnly||this.passive)return;this.cache();},
   /* ---------- snapshots, reset, restore ---------- */
   snapshotInfo(key){const raw=this.aside(key);if(!raw)return null;let t=0,groups=null;try{t=+localStorage.getItem(key+".t")||0;groups=JSON.parse(localStorage.getItem(key+".groups")||"null");}catch(e){}return {raw,t,groups};},
   /* Reset: a backup is kept on the device, an epoch makes the reset win over every other copy, and Undo is offered.
