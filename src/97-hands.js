@@ -60,27 +60,36 @@ const Hands=(()=>{
   /* ---- swipe to grade on flashcards ---- */
   let sw=null;
   document.addEventListener("touchstart",e=>{const fc=e.target.closest(".fc");if(!fc||e.touches.length!==1)return;if(e.target.closest("button,.opt,canvas,.sp"))return;const t=e.touches[0];sw={fc,x:t.clientX,y:t.clientY,dx:0,dy:0,label:null};},{passive:true});
-  document.addEventListener("touchmove",e=>{if(!sw)return;const t=e.touches[0];sw.dx=t.clientX-sw.x;sw.dy=t.clientY-sw.y;const ax=Math.abs(sw.dx),ay=Math.abs(sw.dy);if(ax<14&&ay<14)return;
+  /* Only a deliberate sideways swipe grades: Again (left) or Good (right). The moment a drag is mostly vertical it becomes a scroll and is ignored,
+     so scrolling down to the grade buttons can never grade a card. Hard and Easy stay on the buttons. */
+  document.addEventListener("touchmove",e=>{if(!sw)return;const t=e.touches[0];sw.dx=t.clientX-sw.x;sw.dy=t.clientY-sw.y;const ax=Math.abs(sw.dx),ay=Math.abs(sw.dy);
+    if(!sw.dir){if(ax<12&&ay<12)return;sw.dir=ay>=ax*.8?"v":"h";}
+    if(sw.dir==="v"){if(sw.label){sw.label.remove();sw.label=null;sw.fc.classList.remove("swiping");sw.fc.style.transform="";}return;}
     if(!sw.label){sw.label=document.createElement("div");sw.label.className="swipe-l";sw.fc.append(sw.label);sw.fc.classList.add("swiping");}
     const shown=typeof SES!=="undefined"&&SES&&SES.shown,auto=SES&&SES.queue[SES.i]&&AUTO[SES.queue[SES.i].type];
-    let txt="";if(!shown&&!auto)txt="Show answer";else if(shown){txt=ax>ay?(sw.dx>0?"Good →":"← Again"):(sw.dy<0?"↑ Easy":"↓ Hard");}
-    sw.label.textContent=txt;sw.fc.style.transform=`translate(${sw.dx*.6}px,${sw.dy*.4}px) rotate(${sw.dx/40}deg)`;},{passive:true});
-  document.addEventListener("touchend",()=>{if(!sw)return;const {fc,dx,dy}=sw;const ax=Math.abs(dx),ay=Math.abs(dy);fc.style.transform="";fc.classList.remove("swiping");if(sw.label)sw.label.remove();
-    const big=Math.max(ax,ay)>80;const S=typeof SES!=="undefined"?SES:null;
-    if(big&&S&&S.queue[S.i]){const auto=AUTO[S.queue[S.i].type];if(!S.shown&&!auto){const r=$("#reveal");if(r)r.click();}else if(S.shown){const g=ax>ay?(dx>0?2:0):(dy<0?3:1);fc.style.transition="transform .22s";fc.style.transform=`translate(${ax>ay?dx*4:0}px,${ax>ay?0:dy*4}px)`;setTimeout(()=>{fc.style.transition="";gradeCard(g);},180);
+    let txt="";if(!shown&&!auto)txt="Show answer";else if(shown)txt=sw.dx>0?"Good →":"← Again";
+    sw.label.textContent=txt;sw.fc.style.transform=`translateX(${sw.dx*.6}px) rotate(${sw.dx/40}deg)`;},{passive:true});
+  document.addEventListener("touchend",()=>{if(!sw)return;const {fc,dx,dy,dir}=sw;const ax=Math.abs(dx),ay=Math.abs(dy);fc.style.transform="";fc.classList.remove("swiping");if(sw.label)sw.label.remove();
+    const big=dir==="h"&&ax>90&&ax>ay*2;const S=typeof SES!=="undefined"?SES:null;
+    if(big&&S&&S.queue[S.i]){const auto=AUTO[S.queue[S.i].type];if(!S.shown&&!auto){const r=$("#reveal");if(r)r.click();}else if(S.shown){const g=dx>0?2:0;fc.style.transition="transform .22s";fc.style.transform=`translateX(${dx*4}px)`;setTimeout(()=>{fc.style.transition="";gradeCard(g);},180);
       const n=(+localStorage.getItem("galen.swipes")||0)+1;try{localStorage.setItem("galen.swipes",n);}catch(e){}}}
     sw=null;},{passive:true});
+  document.addEventListener("touchcancel",()=>{if(sw){sw.fc.style.transform="";sw.fc.classList.remove("swiping");if(sw.label)sw.label.remove();sw=null;}},{passive:true});
   /* ---- pull to sync (Today, at the top) ---- */
   let pull=null;const PULL=72;
   document.addEventListener("touchstart",e=>{if(NAV.tab!=="today"||window.scrollY>0||e.touches.length!==1)return;pull={y:e.touches[0].clientY,d:0,el:null};},{passive:true});
   document.addEventListener("touchmove",e=>{if(!pull)return;pull.d=e.touches[0].clientY-pull.y;if(pull.d<10){if(pull.el){pull.el.remove();pull.el=null;}return;}if(!pull.el){pull.el=document.createElement("div");pull.el.className="pull";document.body.append(pull.el);}pull.el.style.height=Math.min(PULL,pull.d*.5)+"px";pull.el.textContent=pull.d*.5>=PULL?"Release to sync":"Pull to sync";},{passive:true});
   document.addEventListener("touchend",()=>{if(!pull)return;const go=pull.d*.5>=PULL;if(pull.el)pull.el.remove();pull=null;if(go){toast("Syncing…");Hub.daily("force").then(()=>{toast(Store.status,Store.status==="Synced"?"good":"");if(cur().v==="home")render(false,true);});}},{passive:true});
   /* ---- undo snackbar ---- */
-  function undo(msg,fn){const bar=document.createElement("div");bar.className="snack";bar.innerHTML=`<span>${esc(msg)}</span><button>Undo</button>`;document.body.append(bar);const t=setTimeout(()=>bar.remove(),4500);$("button",bar).addEventListener("click",()=>{clearTimeout(t);bar.remove();fn();});}
+  function undo(msg,fn){document.querySelectorAll(".snack").forEach(b=>b.remove());const bar=document.createElement("div");bar.className="snack";bar.innerHTML=`<span>${esc(msg)}</span><button>Undo</button>`;document.body.append(bar);const t=setTimeout(()=>bar.remove(),4500);$("button",bar).addEventListener("click",()=>{clearTimeout(t);bar.remove();fn();});}
   return {openSheet,closeSheet,undo,hintFor};
 })();
-/* grade with undo: wrap gradeCard */
-(()=>{const orig=gradeCard;window.gradeCard=function(g){const S=SES,c=S.queue[S.i];if(!c)return orig(g);const prev=Store.s.srs[c.id]?JSON.parse(JSON.stringify(Store.s.srs[c.id])):null,i=S.i,res=S.res.slice(),q=S.queue.slice(),rl=Object.assign({},S.relearn);
-  orig(g);if(g===0)return;Store.s.xp=(Store.s.xp||0)+(g>=2?2:1);
-  const n=+localStorage.getItem("galen.swipes")||0;if(n<5&&!document.querySelector(".swipe-tip")&&document.querySelector("#reveal")){const tip=document.createElement("p");tip.className="tiny muted swipe-tip";tip.style.textAlign="center";tip.textContent="Tip: swipe the card ← Again · ↓ Hard · → Good · ↑ Easy";const fc=document.querySelector(".fc");if(fc)fc.after(tip);}
-  Hands.undo(["Again","Hard","Good","Easy"][g]+" recorded",()=>{if(prev)Store.s.srs[c.id]=prev;else delete Store.s.srs[c.id];S.i=i;S.res=res;S.queue=q;S.relearn=rl;Store.save();drawSession(V);});};})();
+/* grade with undo: wrap gradeCard. Undo restores the card, the session position, XP and the day's count, so it can't be used to farm XP. */
+(()=>{const orig=gradeCard;window.gradeCard=function(g){const S=SES,c=S&&S.queue[S.i];if(!c)return orig(g);
+  const prev=Store.s.srs[c.id]?JSON.parse(JSON.stringify(Store.s.srs[c.id])):null,i=S.i,res=S.res.slice(),q=S.queue.slice(),rl=Object.assign({},S.relearn),shown=S.shown;
+  const xp0=Store.s.xp||0,days0=JSON.parse(JSON.stringify(Store.s.days||{}));
+  orig(g);if(g!==0)Store.s.xp=(Store.s.xp||0)+(g>=2?2:1);
+  const n=+localStorage.getItem("galen.swipes")||0;if(n<5&&!document.querySelector(".swipe-tip")&&document.querySelector("#reveal")){const tip=document.createElement("p");tip.className="tiny muted swipe-tip";tip.style.textAlign="center";tip.textContent="Tip: swipe the card sideways: ← Again · Good →";const fc=document.querySelector(".fc");if(fc)fc.after(tip);}
+  Hands.undo(["Again","Hard","Good","Easy"][g]+" recorded",()=>{if(cur().v!=="session")return;if(prev)Store.s.srs[c.id]=prev;else delete Store.s.srs[c.id];Store.s.xp=xp0;Store.s.days=days0;S.i=i;S.res=res;S.queue=q;S.relearn=rl;S.shown=shown;Store.save();drawSession(V);});};})();
+/* an undo bar belongs to the session it came from */
+{const _c=chrome;chrome=function(){_c.apply(this,arguments);if(cur().v!=="session")document.querySelectorAll(".snack").forEach(b=>b.remove());};}
