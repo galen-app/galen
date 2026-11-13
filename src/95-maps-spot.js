@@ -9,7 +9,7 @@ const CM_TYPE_PL={symptom:"Symptoms",history:"History",mechanism:"Mechanisms",an
 /* one small shape per type, so the type never depends on colour alone (12 x 12 box) */
 const CM_GLYPH={symptom:'<circle cx="6" cy="6" r="5"/>',history:'<path d="M1 2h10v6H5l-3 3V8H1z"/>',mechanism:'<path d="M6 0.6l4.7 2.7v5.4L6 11.4 1.3 8.7V3.3z"/>',anatomy:'<path d="M4 1h4v3h3v4H8v3H4V8H1V4h3z"/>',sign:'<path d="M6 1l5.5 10h-11z"/>',test:'<path d="M6 0.5l5.5 5.5L6 11.5 0.5 6z"/>',diagnosis:'<rect x="1" y="1" width="10" height="10" rx="1"/>',decision:'<path d="M1 1l6 0 4.5 5L7 11H1l4.5-5z"/>'};
 const cmGlyph=(t,x,y,s)=>`<svg class="cg t-${t}" x="${x}" y="${y}" width="${s}" height="${s}" viewBox="0 0 12 12" aria-hidden="true">${CM_GLYPH[t]||CM_GLYPH.mechanism}</svg>`;
-const CM={nodeW:176,fs:14,lh:18,pad:9,gap:26,rowGap:70,dummyW:18,minK:0.9};
+const CM={nodeW:176,fs:14,lh:18,pad:9,gap:26,dgap:8,rowGap:70,dummyW:6,minK:0.9};
 function cmWrap(t,max){const words=String(t).split(/\s+/);const lines=[];let cur="";words.forEach(w=>{if(cur&&(cur+" "+w).length>max){lines.push(cur);cur=w;}else cur=cur?cur+" "+w:w;});if(cur)lines.push(cur);
   if(lines.length>3){const keep=lines.slice(0,3);keep[2]=keep[2].replace(/\s*\S*$/,"")+"…";return keep;}return lines;}
 function cmLayout(m,perRow){
@@ -47,15 +47,16 @@ function cmLayout(m,perRow){
   const rowH=Rr.map(r=>Math.max(...r.map(id=>items[id].h),CM.lh+2*CM.pad));
   const rowY=[];let y=24;Rr.forEach((r,i)=>{rowY.push(y);y+=rowH[i]+CM.rowGap;});const H=y-CM.rowGap+28;
   /* x: pack, then pull each item towards its neighbours while keeping order and spacing */
-  const X={};const widthOf=r=>r.reduce((s,id,i)=>s+items[id].w+(i?CM.gap:0),0);
+  const gp=(a,b)=>(items[a].real&&items[b].real)?CM.gap:CM.dgap;const X={};const widthOf=r=>r.reduce((s,id,i)=>s+items[id].w+(i?gp(r[i-1],id):0),0);
   const W0=Math.max(...Rr.map(widthOf));
-  Rr.forEach(r=>{let x=(W0-widthOf(r))/2;r.forEach(id=>{X[id]=x+items[id].w/2;x+=items[id].w+CM.gap;});});
-  const sep=(a,b)=>(items[a].w+items[b].w)/2+CM.gap;
+  Rr.forEach(r=>{let x=(W0-widthOf(r))/2;r.forEach((id,i)=>{if(i)x+=gp(r[i-1],id);X[id]=x+items[id].w/2;x+=items[id].w;});});
+  const sep=(a,b)=>(items[a].w+items[b].w)/2+gp(a,b);
   for(let it=0;it<8;it++){const down=it%2===0;(down?Rr:Rr.slice().reverse()).forEach(r=>{
     const want=r.map(id=>{const nb=(down?up[id]:dn[id])||[];return nb.length?nb.reduce((s,x)=>s+X[x],0)/nb.length:X[id];});
-    r.forEach((id,i)=>X[id]=want[i]);
-    for(let i=1;i<r.length;i++)if(X[r[i]]<X[r[i-1]]+sep(r[i-1],r[i]))X[r[i]]=X[r[i-1]]+sep(r[i-1],r[i]);
-    for(let i=r.length-2;i>=0;i--)if(X[r[i]]>X[r[i+1]]-sep(r[i],r[i+1]))X[r[i]]=X[r[i+1]]-sep(r[i],r[i+1]);});}
+    /* clamp each item between its leftmost and rightmost packed slot inside the widest row, so rows never spread past it */
+    const lo=[],hi=[];let x=0;r.forEach((id,i)=>{if(i)x+=sep(r[i-1],id);else x=items[id].w/2;lo[i]=x;});
+    x=W0;for(let i=r.length-1;i>=0;i--){if(i===r.length-1)x=W0-items[r[i]].w/2;else x-=sep(r[i],r[i+1]);hi[i]=x;}
+    r.forEach((id,i)=>{let v=Math.min(Math.max(want[i],lo[i]),hi[i]);if(i)v=Math.max(v,X[r[i-1]]+sep(r[i-1],id));X[id]=v;});});}
   let minX=Infinity,maxX=-Infinity;Object.keys(items).forEach(id=>{const it=items[id];minX=Math.min(minX,X[id]-it.w/2);maxX=Math.max(maxX,X[id]+it.w/2);});
   const off=24-minX;Object.keys(X).forEach(id=>X[id]+=off);const W=maxX-minX+48;
   const P={};Object.keys(items).forEach(id=>{const it=items[id],r=ri2[id];P[id]={x:X[id],y:rowY[r]+(rowH[r]-it.h)/2,w:it.w,h:it.h,row:r,rowTop:rowY[r],rowBot:rowY[r]+rowH[r]};});
@@ -107,7 +108,7 @@ route("learn:map",(id)=>(CMAPS.find(m=>m.id===id)||{}).title||"Map",(root,id,nid
   const m=CMAPS.find(x=>x.id===id);if(!m)throw new Error("Map not found");
   const byId={};m.nodes.forEach(n=>byId[n.id]=n);
   const used=new Set(m.nodes.map(n=>n.type));
-  let view=cmPref("view")==="list"?"list":"map",sel=null,lay=null,per=0;
+  const vp0=cmPref("view");let view=vp0==="list"||vp0==="map"?vp0:(Math.min(window.innerWidth,document.documentElement.clientWidth||9999)<560?"list":"map"),sel=null,lay=null,per=0;
   const V={k:1,x:0,y:0};
   root.innerHTML=`<section class="ph"><span class="eyebrow">Concept map · ${SYS_NAME[m.sys]||m.sys}</span><h1>${esc(m.title)}</h1><p class="lede">${esc(m.intro)}</p></section>
    <div class="cm-bar"><div class="chips" role="group" aria-label="View"><button class="chip" data-view="map">${ic("map")}Map</button><button class="chip" data-view="list">${ic("log")}List, step by step</button></div>
@@ -122,11 +123,11 @@ route("learn:map",(id)=>(CMAPS.find(m=>m.id===id)||{}).title||"Map",(root,id,nid
   const stage=$("#cm-stage",root),box=$("#mapbox",root),list=$("#cm-list",root),note=$("#mapnote",root);
   const apply=()=>{const g=$(".vp",box);if(g)g.setAttribute("transform",`translate(${V.x.toFixed(1)} ${V.y.toFixed(1)}) scale(${V.k.toFixed(3)})`);box.classList.toggle("lod",V.k<0.7);};
   const bw=()=>box.clientWidth||Math.min(window.innerWidth-32,1100);
-  const fit=(minK)=>{if(!lay)return;const w=bw();V.k=Math.max(minK==null?CM.minK:minK,Math.min(1.25,(w-8)/lay.W));if(minK!=null)V.k=Math.min(1.25,Math.max(0.35,Math.min((w-8)/lay.W,(box.clientHeight-8)/lay.H)));V.x=(w-lay.W*V.k)/2;V.y=4;apply();};
+  const fit=(minK)=>{if(!lay)return;const w=bw();V.k=Math.max(minK==null?CM.minK:minK,Math.min(1.25,(w-8)/lay.W));if(minK!=null)V.k=Math.min(1.25,Math.max(0.35,Math.min((w-8)/lay.W,(box.clientHeight-8)/lay.H)));V.x=(w-lay.W*V.k)/2;V.y=4;
+    if(lay.W*V.k>w){const r0=lay.rows[0].filter(id=>byId[id]);const rx=r0.reduce((s,id)=>s+lay.P[id].x,0)/Math.max(1,r0.length);V.x=w/2-rx*V.k;clampV();}apply();};
   const clampV=()=>{if(!lay)return;const w=bw(),h=box.clientHeight,mw=lay.W*V.k,mh=lay.H*V.k,mg=60;V.x=Math.min(Math.max(V.x,Math.min(mg,w-mw-mg)),Math.max(w-mw-mg,mg));V.y=Math.min(Math.max(V.y,Math.min(mg,h-mh-mg)),Math.max(h-mh-mg,mg));};
   const zoomAt=(f,cx,cy)=>{const k=Math.min(2.5,Math.max(0.35,V.k*f));const r=k/V.k;V.x=cx-(cx-V.x)*r;V.y=cy-(cy-V.y)*r;V.k=k;clampV();apply();};
-  const perFor=()=>Math.max(2,Math.min(6,Math.floor(((bw()-8)/CM.minK+CM.gap)/(CM.nodeW+CM.gap))));
-  const build=(keep)=>{per=perFor();lay=cmLayout(m,per);box.innerHTML=cmSVG(m,lay);
+  const build=(keep)=>{const w=bw();per=2;lay=null;for(let p=6;p>=2;p--){const L=cmLayout(m,p);if(L.W*CM.minK<=w-8||p===2){per=p;lay=L;break;}}box.innerHTML=cmSVG(m,lay);
     const vh=Math.min(Math.max(380,window.innerHeight*0.66),760);box.style.height=Math.min(vh,lay.H*Math.max(CM.minK,Math.min(1.25,(bw()-8)/lay.W))+12)+"px";
     if(!keep)fit();else{clampV();apply();}markSel();
     $$(".nd",box).forEach(g=>g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();show(g.dataset.n,true);}}));};
@@ -146,17 +147,17 @@ route("learn:map",(id)=>(CMAPS.find(m=>m.id===id)||{}).title||"Map",(root,id,nid
     if(view==="map"&&centre)centreOn(nid);
     if(window.innerWidth<1000&&view==="map"&&centre!==false){const r=note.getBoundingClientRect();if(r.top>window.innerHeight-80)note.scrollIntoView({behavior:"smooth",block:"nearest"});}};
   /* ---- list view: the same layers as steps ---- */
-  const buildList=()=>{const L=lay||cmLayout(m,perFor());const steps=L.rows.map(r=>r.filter(id=>byId[id])).filter(r=>r.length);
+  const buildList=()=>{const L=cmLayout(m,99);const steps=L.rows.map(r=>r.filter(id=>byId[id])).filter(r=>r.length);
     list.innerHTML=`<ol class="cm-steps">${steps.map((r,si)=>{const types=[...new Set(r.map(id=>byId[id].type))];return `<li class="cm-step"><div class="cm-step-h"><span class="cm-sn">${si+1}</span><b>${types.map(t=>CM_TYPE_PL[t]||t).join(" and ")}</b></div>${r.map(id=>{const n=byId[id];const tl=(CM_TYPES.find(t=>t[0]===n.type)||[,n.type])[1];return `<details class="acc cm-item t-${esc(n.type)}" data-n="${esc(id)}"><summary><svg width="16" height="16" viewBox="0 0 12 12" class="cg t-${esc(n.type)}" aria-hidden="true">${CM_GLYPH[n.type]||""}</svg><span class="st"><b>${esc(n.label)}</b><span class="small muted">${esc(tl)}</span></span></summary><div class="acc-body stack" style="gap:8px"><p style="margin:0">${esc(n.note)}</p>${relHTML(id)}<div class="row-x">${n.link?`<button class="btn sm" data-go="${esc(n.link)}">Open the page</button>`:""}<button class="btn sm ghost" data-next="${esc(id)}">Next concept</button></div></div></details>`;}).join("")}</li>`;}).join("")}</ol>`;
     const order=steps.flat();
     $$("[data-jump]",list).forEach(b=>b.addEventListener("click",()=>openItem(b.dataset.jump)));
     $$("[data-next]",list).forEach(b=>b.addEventListener("click",()=>{const i=order.indexOf(b.dataset.next);if(i>=0&&i<order.length-1)openItem(order[i+1]);else toast("That is the last concept. Try the questions below.");}));
     $$("details.cm-item",list).forEach(d=>d.addEventListener("toggle",()=>{if(d.open){sel=d.dataset.n;}}));};
   const openItem=nid=>{const d=list.querySelector(`details[data-n="${CSS.escape(nid)}"]`);if(!d)return;$$("details.cm-item[open]",list).forEach(x=>{if(x!==d)x.open=false;});d.open=true;sel=nid;d.scrollIntoView({behavior:"smooth",block:"center"});const s=$("summary",d);if(s)s.focus({preventScroll:true});};
-  const setView=v=>{view=v;cmPref("view",v);$$("[data-view]",root).forEach(b=>{const on=b.dataset.view===v;b.classList.toggle("on",on);b.setAttribute("aria-pressed",on);});
+  const setView=(v,save)=>{view=v;if(save)cmPref("view",v);$$("[data-view]",root).forEach(b=>{const on=b.dataset.view===v;b.classList.toggle("on",on);b.setAttribute("aria-pressed",on);});
     stage.hidden=v!=="map";list.hidden=v!=="list";note.hidden=v==="list";root.classList.toggle("cm-listmode",v==="list");
     if(v==="map"){build(false);if(sel)show(sel,true);}else{buildList();if(sel)openItem(sel);}};
-  $$("[data-view]",root).forEach(b=>b.addEventListener("click",()=>setView(b.dataset.view)));
+  $$("[data-view]",root).forEach(b=>b.addEventListener("click",()=>setView(b.dataset.view,true)));
   /* ---- pointer: drag to pan, pinch to zoom, tap to focus ---- */
   const pts=new Map();let drag=null,pinch=null,moved=false;
   box.addEventListener("pointerdown",e=>{if(e.button>0)return;box.setPointerCapture&&box.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=false;box.dataset.active="1";
@@ -177,7 +178,7 @@ route("learn:map",(id)=>(CMAPS.find(m=>m.id===id)||{}).title||"Map",(root,id,nid
     else if(e.key==="0"){e.preventDefault();fit();}});
   $$("[data-z]",root).forEach(b=>b.addEventListener("click",()=>{const z=b.dataset.z;if(z==="in")zoomAt(1.25,bw()/2,box.clientHeight/2);else if(z==="out")zoomAt(0.8,bw()/2,box.clientHeight/2);else if(z==="fit")fit(0);else{V.k=1;clampV();apply();}}));
   /* simple fallback for pointer-less test clicks on a node (Playwright click dispatches pointer events too) */
-  let rz=0;const onResize=()=>{clearTimeout(rz);rz=setTimeout(()=>{if(!root.isConnected){window.removeEventListener("resize",onResize);return;}if(view==="map"&&perFor()!==per)build(false);},180);};window.addEventListener("resize",onResize);
+  let rz=0,lastW=0;const onResize=()=>{clearTimeout(rz);rz=setTimeout(()=>{if(!root.isConnected){window.removeEventListener("resize",onResize);return;}const w=bw();if(view==="map"&&Math.abs(w-lastW)>40){lastW=w;build(false);}},180);};window.addEventListener("resize",onResize);
   $("#mapdone",root).addEventListener("click",()=>{Store.s.notes["map:"+id]={t:Date.now(),done:true};Store.save();tick(3,"read");Store.s.xp=(Store.s.xp||0)+5;Store.save();$("#mapdone",root).textContent="Marked as understood";toast("Nice. It will come back as questions.","good");});
   $("#maphide",root).addEventListener("click",e=>{const on=root.classList.toggle("cm-nolabels");e.target.textContent=on?"Show link labels":"Hide link labels";});
   /* ---- name-the-link drill ---- */

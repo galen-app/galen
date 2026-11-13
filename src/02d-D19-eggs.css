@@ -43,8 +43,8 @@
 /* ---- the candlelit theatre (the Konami reward): the room darkens, the engraving turns to night, every tier is lit ---- */
 .candlelight{display:none}
 html.candles .candlelight{display:block;position:fixed;inset:0;pointer-events:none;z-index:15}
-.candlelight i{position:absolute;inset:0}
-.candlelight i:nth-child(1){background:radial-gradient(ellipse 85% 75% at 50% 52%,transparent 38%,rgb(28 13 3 / .30) 72%,rgb(18 8 2 / .55) 100%);mix-blend-mode:multiply}
+.candlelight i{position:absolute;inset:0;will-change:opacity;transform:translateZ(0)}
+.candlelight i:nth-child(1){background:radial-gradient(ellipse 85% 75% at 50% 52%,transparent 38%,rgb(28 13 3 / .30) 72%,rgb(18 8 2 / .55) 100%)}
 .candlelight i:nth-child(2){background:radial-gradient(60% 45% at 50% 100%,rgb(255 150 60 / .16),transparent 70%),radial-gradient(40% 30% at 0% 50%,rgb(255 140 50 / .08),transparent 70%),radial-gradient(40% 30% at 100% 50%,rgb(255 140 50 / .08),transparent 70%);animation:candleBreath 4.7s ease-in-out infinite}
 .candlelight i:nth-child(3){background:radial-gradient(120% 90% at 50% 0%,rgb(255 170 80 / .07),transparent 60%);animation:candleBreath 6.3s ease-in-out -2s infinite}
 @keyframes candleBreath{0%,100%{opacity:.75}22%{opacity:1}41%{opacity:.82}63%{opacity:.97}80%{opacity:.7}}

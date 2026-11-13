@@ -29,6 +29,8 @@ function cardStableIds(base,items,fpOf,legacy){
 /* duplicates removed from the deck: old id → the card that now carries the same content. Store/scheduler can copy srs[old] to srs[new]
    when srs[new] is missing (handoff to D08/D10). */
 const CARD_ALIAS={};
+/* content duplicates retired from the deck (the kept card asks the same thing): id → kept id */
+const CARD_RETIRE={"f:resp:8":"f:gen:4"/* clubbing, twice */,"f:derm:4":"f:gen:6"/* fever with a non-blanching rash, twice */};
 
 /* ---------- authored supplements (content checked against the sources listed in dev-D09.md) ---------- */
 /* thin "what next" answers on finding cards: [start of the current answer, next step]. Shown under the answer while that answer still starts
@@ -130,7 +132,7 @@ const CARD_OUTLINE_PLUS={
 const cardChapSlug=t=>String(t).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,48);
 
 function buildCards(){
-  const C=[];const seen=new Set();const add=c=>{if(!c||!c.id||seen.has(c.id))return;seen.add(c.id);if(!c.sib)c.sib=c.id;C.push(c);};
+  const C=[];const seen=new Set();const add=c=>{if(!c||!c.id||seen.has(c.id))return;if(CARD_RETIRE[c.id]){CARD_ALIAS[c.id]=CARD_RETIRE[c.id];return;}seen.add(c.id);if(!c.sib)c.sib=c.id;C.push(c);};
   const visible=Object.entries(SIGNS).filter(([,s])=>!s.hide);
   visible.forEach(([k,s])=>{
     const reg=s.reg||null,b={sys:s.sys,reg,ref:k,label:s.name,sib:"sign:"+k,topic:"sign:"+k};
@@ -174,7 +176,9 @@ function buildCards(){
     /* chapter: the first chapter of the story's hall that teaches one of its signs (D12's c.chap format "<hall>/<title regex>") */
     const ch=typeof OUTLINE!=="undefined"&&(OUTLINE[l.hall]||[]).find(x=>(x.signs||[]).some(k=>sg.includes(k)));const chap=ch?cardChapRef(l.hall,ch.t):undefined;
     add({id:"lo:"+l.id,type:"lore",sys,ref:l.id,label:l.t,hall:l.hall,chap,home,sib,topic:sib,signs:sg});
-    if(sg.length)add({id:"ls:"+l.id,type:"lsign",sys,ref:l.id,label:l.t,hall:l.hall,chap,home,sib,topic:sib,signs:sg});});
+    /* the story-to-sign card only where the story is about that sign: an eponym story, or a sign whose name the story itself uses */
+    const txt=`${l.t} ${l.who} ${l.sum}`,sc=sg.map(k=>[k,cfWords(SIGNS[k].name).filter(w=>cfHas(txt,w)).length]).sort((a,b)=>b[1]-a[1]);
+    if(sc.length&&(sc[0][1]>0||l.k==="eponym"&&sg.length===1))add({id:"ls:"+l.id,type:"lsign",sys,ref:l.id,label:l.t,hall:l.hall,chap,home,sib,topic:sib,signs:sg,key:sc[0][0]});});
   /* the outline: a trap card and a pearl card per chapter (ids by hall and chapter title, so reordering chapters keeps them) */
   if(typeof OUTLINE!=="undefined")Object.entries(OUTLINE).forEach(([h,chs])=>(chs||[]).forEach((ch,i)=>{const slug=cardChapSlug(ch.t),sys=cardHallSys(h),b={sys,ref:[h,slug],label:ch.t,hall:h,chap:cardChapRef(h,ch.t),home:`learn/hall/${h}`,sib:"chap:"+h+":"+slug,topic:"chap:"+h+":"+slug};
     if(ch.trap)add({id:`ot:${h}:${slug}`,type:"trap",...b});
@@ -253,7 +257,7 @@ function cardFace(c){
      return {q:`How much is this test worth?<small>${esc(s.name)} for ${esc(s.target)}</small>`,
        extra:`<dl class="kv small muted" style="margin:6px 0 0">${VERDICT_ORDER.map(v=>`<dt>${VERDICT[v]}</dt><dd>${esc(CARD_VERDICT_WHY[v])}</dd>`).join("")}</dl>`,
        opts:VERDICT_ORDER.map(v=>({l:VERDICT[v],ok:v===s.v})),
-       explain:`<div class="lrrow"><span class="v v-${s.v}">${VERDICT[s.v]}</span>${lrChips(s)}</div><p class="small">${esc(CARD_VERDICT_WHY[s.v])} The verdict weighs accuracy, reproducibility and whether it changes what you do, not the LR alone.</p>${open(`signs/sign/${c.ref}`,"Open the sign")}`};}
+       explain:`<div class="lrrow"><span class="v v-${s.v}">${VERDICT[s.v]}</span>${lrChips(s)}</div><p class="small">The verdict weighs accuracy, reproducibility and whether it changes what you do, not the LR alone.</p>${open(`signs/sign/${c.ref}`,"Open the sign")}`};}
    case "mech":return cardMechFace(c);
    case "snsp":{const s=SIGNS[c.ref],{p,n,derived,inf}=cardSignLRs(s),ans=cardSnspKey(s);
      const L=[["in","A positive helps rule it in"],["out","A negative helps rule it out"],["both","Both: it rules in and out"],["neither","Neither on its own"]];
@@ -285,7 +289,7 @@ function cardFace(c){
    case "lore":{const l=LORE.find(x=>x.id===c.ref);if(!l)break;const out=typeof LORE_OUT!=="undefined"&&LORE_OUT[l.id];
      return {q:`${esc(l.sum)}<small>From the codex. Who was it, roughly when, and what does the story teach at the bedside?</small>`,
        a:`<dl class="kv"><dt>Who</dt><dd>${esc(l.who)}</dd><dt>When</dt><dd>${esc(l.yr)}</dd><dt>Story</dt><dd>${esc(l.t)}</dd></dl><p><b>The lesson:</b> ${esc(l.fact)}</p>${out&&out.length?`<ul class="small">${out.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}${l.src?`<p class="tiny muted">Source: ${esc(l.src)}</p>`:""}${open(`learn/lore/${l.id}`,"Read the story")}`};}
-   case "lsign":{const l=LORE.find(x=>x.id===c.ref);if(!l)break;const sg=(c.signs||[]).filter(k=>SIGNS[k]);if(!sg.length)break;const key=sg[0],K=SIGNS[key];
+   case "lsign":{const l=LORE.find(x=>x.id===c.ref);if(!l)break;const sg=(c.signs||[]).filter(k=>SIGNS[k]);if(!sg.length)break;const key=SIGNS[c.key]?c.key:sg[0],K=SIGNS[key];
      const kw=sg.flatMap(k=>cfWords(SIGNS[k].name));const stem=cfMask(`${l.who}, ${l.yr}. ${l.sum}`,kw);
      const pool=shuf(Object.keys(SIGNS).filter(k=>!SIGNS[k].hide&&!sg.includes(k)&&SIGNS[k].target!==K.target)).sort((a,b)=>(cardSignHall(b)===l.hall)-(cardSignHall(a)===l.hall)).map(k=>({k,l:SIGNS[k].name}));
      const ds=cfPick(K.name,pool,3,x=>!cfWords(x.l).some(w=>cfHas(stem,w)));const opts=shuf([{k:key,l:K.name},...ds]);

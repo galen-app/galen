@@ -6,307 +6,6 @@
  confidence before and after, spaced "why" cards).
  Progress lives in Store.s.notes["tech:<id>"] = {t, ft:{field:time}, read, conf:[[t,v]...], walk, order, why, mcq, mcqOk:[k],
  reps:[{t,n,of,obs,clean,miss:[[key,label]],v,res,dur,ds,by,cm,note}]}. Old reps ({t,n,of,obs}) still count. */
-/* Drill metadata for each technique: a short label, the phase, ordering (chain and group), whether the item is core,
- optional or one of several alternatives, and a timer. Matched to the data by the first words of each item's "do" text,
- so a reworded step simply falls back to defaults. Fields written in TECH data (short, phase, chain, group, need, alt,
- variant, timer, noOrder, nocard) win over this table.
- Format: "first words|short label|flags", flags separated by ";": p:Phase (this item and the ones after it), c:chain,
- g:group, o (optional), a:Choice=Variant (alternatives, the first listed is the default), t:seconds, x (not in the
- order drill), nc (no spaced card). A leading "@A>B>C" fixes the phase order. */
-const TECH_DRILL={
-"anterior-rhinoscopy":[
- "seat the patient upright|Seat upright, head supported|p:Set up;g:s",
- "position the head light|Head light 25 to 35 cm away|g:s",
- "ask about anticoagulants|Ask about anticoagulants and trauma; explain|g:s",
- "before any instrument|Outside first, then lift the tip|p:Look first",
- "hold the thudichum|Speculum in your non-dominant hand|p:Speculum",
- "insert the closed blades|Blades 1 cm in, lift the ala",
- "with the head upright|Head upright: floor, septum, inferior turbinate|p:Look inside",
- "tilt the patient s head back|Head back 30°: middle turbinate",
- "assess the septum systematically|Septum: midline, spur, swelling, hole",
- "if there is a swelling|Probe a swelling; decongest if unsure|o;g:sw",
- "press a septal swelling|Press a septal swelling, compare sides|o;g:sw",
- "repeat on the other side|Other side, then airflow|p:Finish"],
-"otoscopy":[
- "adult seated head tilted|Position: adult tilted, child on a lap|p:Set up;g:s",
- "ask which ear is affected|Good ear first, clean speculum|g:s",
- "inspect the pinna|Pinna and mastoid; tug pinna, press tragus|g:s",
- "hold the otoscope like a pen|Pen grip, hand braced on the head|p:Scope in;g:in",
- "use the hand on the same side|Adult: pull up and back|g:in;a:Patient=Adult or older child",
- "in an infant or young child|Infant: pull back and down|g:in;a:Patient=Infant or young child",
- "choose the largest speculum|Largest speculum, outer third only",
- "inspect the canal on the way in|Inspect the canal on the way in|p:Look",
- "find the handle of the malleus|Malleus first, then the whole drum",
- "describe the drum in four terms|Drum: position, colour, translucency, integrity",
- "test mobility with pneumatic|Pneumatic: watch the pars tensa move|o",
- "withdraw the speculum slowly|Withdraw under vision, other ear|p:Finish"],
-"direct-ophthalmoscopy":[
- "darken the room and seat|Dark room, distant target|p:Set up;g:s",
- "decide about mydriasis|Decide on dilating drops|g:s",
- "remove your own glasses|Same side, same hand, same eye|g:s",
- "hold the ophthalmoscope vertically|Scope at your brow, thumb lifts the lid|p:Approach",
- "from arm s length|Red reflex from 50 cm",
- "keep the red reflex in view|Move in at 15° temporal to 2 to 3 cm",
- "focus by turning the dial|Focus with the dial|p:Find the disc",
- "if you land on retina|Lost? Follow a vessel to the disc|o",
- "assess the disc systematically|Disc: colour, cup, margins, pulsation|p:Survey",
- "follow each of the four|The four vascular arcades",
- "examine the macula last|Macula last",
- "repeat for the other eye|Other eye: other hand, other eye|p:Finish"],
-"red-reflex":[
- "darken the room the patient|Dark room, distant target|p:Set up;g:s",
- "sit or stand at the patient s eye level|Eye level, scope at your brow|g:s",
- "set the dial to 0|Dial to 0 or your correction|p:Look",
- "for the single eye red reflex|Each eye from 30 to 50 cm|g:rr",
- "for the bruckner test|Brückner: both eyes from 50 cm to 1 m|g:rr",
- "while doing the bruckner|Check the corneal light reflexes",
- "if you see an opacity|Opacity? Look up, then ahead|o",
- "record the reflex as present|Record each eye|p:Record;nc"],
-"swinging-torch":[
- "dim the room and ask|Dim room, distant target|p:Set up;g:s",
- "look at the pupils in dim light|Pupils in dim, then bright light|g:s",
- "position yourself slightly to one side|Light 10 to 15 cm, from below|g:s",
- "check the direct and consensual|Direct and consensual first|p:Swing",
- "shine the light into the right eye|Light on one eye, 2 to 3 s",
- "swing the light briskly|Swing across in 1 s, hold 2 to 3 s",
- "watch only the initial movement|Watch the first movement only",
- "repeat the swing several times|3 to 4 cycles, same rhythm",
- "if one pupil is unreactive|One pupil fixed? Reverse method|o",
- "grade the rapd|Grade the RAPD|p:Record"],
-"confrontation-fields":[
- "@Set up>Both eyes>Each eye>Record",
- "sit facing the patient about 1 m|Sit 1 m apart, eye level|p:Set up;g:s",
- "to test the patient s right eye|Patient covers one eye, you mirror|p:Each eye",
- "ask about glasses and visual acuity|Ask about glasses and acuity|p:Set up;g:s",
- "screen with bilateral simultaneous|Both eyes open: bilateral fingers|p:Both eyes",
- "test each eye separately|Count fingers in four quadrants|p:Each eye",
- "do kinetic testing|Kinetic: bring the target in",
- "compare red colour saturation|Red across the vertical midline|o;g:x",
- "test the central field|Central field and blind spot, red pin|o;g:x",
- "do the hand comparison test|Hand comparison test|o;g:x",
- "repeat for the other eye and record|Other eye; chart from the patient's view|p:Record"],
-"tuning-fork":[
- "use a quiet room|Quiet room, explain|p:Set up;g:s",
- "strike the fork on your knee|Strike at the upper third of the tines|g:s",
- "use a 512 hz fork|Use the 512 Hz fork|g:s",
- "weber strike the fork|Weber: base in the midline|p:Tests;c:w",
- "ask where do you hear|Ask: middle or one side?|c:w",
- "rinne strike the fork|Rinne: base on the mastoid|c:r",
- "when the patient says they cannot|Tines 1 to 2 cm, in line with the canal|c:r",
- "ask is it louder|Ask: behind or in front?|c:r",
- "repeat rinne on the other ear|Rinne on the other ear|c:r",
- "if rinne is negative|Mask and repeat if needed|o;p:If needed"],
-"tinel":[
- "ask about and record|Record baseline tingling|p:Set up;g:s",
- "explain the expected sensation|Explain: point to where you feel it|g:s",
- "position the limb|Position: nerve superficial, slightly tense|g:s",
- "median at the wrist|Median: over the carpal tunnel|p:Tap;g:t;a:Nerve=Median at the wrist",
- "set the force|Light, constant force|g:t",
- "ulnar at the elbow|Ulnar: in the groove at the elbow|g:t;a:Nerve=Ulnar at the elbow",
- "common peroneal at the fibular neck|Common peroneal: fibular neck|g:t;a:Nerve=Common peroneal",
- "posterior tibial at the tarsal tunnel|Posterior tibial: tarsal tunnel|g:t;a:Nerve=Posterior tibial",
- "for any suspected site|Distal to proximal, 1 cm steps|g:t",
- "regeneration mapping|Regeneration mapping after injury|o;x",
- "repeat on the opposite side|Other side, same site and force|p:Compare"],
-"phalen-durkan":[
- "seat the patient with forearms free|Katz hand diagram first|p:Set up;g:s",
- "ask whether they have tingling|Baseline tingling; timer ready|g:s",
- "phalen s ask the patient|Phalen's: backs of the hands together|p:Provocation;c:p",
- "start the timer and hold|Hold 60 s, ask for tingling|c:p;t:60",
- "record positive only if|Positive only in median territory|c:p",
- "reverse phalen s|Reverse Phalen's, 60 s|o;c:r;t:60",
- "durkan carpal compression|Durkan: thumbs over the tunnel|c:d;t:30",
- "record positive if median territory|Positive if median tingling by 30 s|c:d",
- "complete the assessment|Pinprick, thenar wasting, thumb abduction|p:Complete"],
-"froment":[
- "seat the patient facing you|Seat, forearms pronated|p:Set up",
- "inspect first first dorsal|Inspect: web space, guttering, claw",
- "froment s ask the patient|Key pinch, both hands|p:Froment's",
- "grasp the far end|Pull: 'Don't let me take it'|g:f",
- "watch the thumb|Watch the thumb joints|g:f",
- "card test|Card test|o;p:Other ulnar tests;g:u",
- "crossed finger test|Crossed-finger test|o;g:u",
- "test first dorsal interosseous directly|First dorsal interosseous directly|g:u",
- "test a median innervated thenar|Compare a median and an ulnar muscle|p:Compare"],
-"mrc-power":[
- "expose the limbs|Expose; wasting, fasciculation, tone|p:Set up",
- "position for each muscle|One plane, proximal joint fixed|g:s",
- "stand on the side being tested|Match your force to the muscle|g:s",
- "demonstrate the movement|Demonstrate; patient holds the position|p:Each muscle",
- "stabilise the proximal segment|Stabilise the proximal segment",
- "apply resistance close to the distal|Resist distally, build over 1 to 2 s",
- "grade from the top down|Grade from the top down",
- "compare each muscle immediately|Same muscle, other side, at once|g:c",
- "assess effort and the quality|Judge effort and the quality of give|g:c",
- "use functional tests|Functional tests for strong muscles|o",
- "map the pattern|Map the pattern|p:Interpret"],
-"vibration-proprioception":[
- "patient lying supine with feet bare|Feet bare; demonstrate on the sternum|p:Test;c:v",
- "for joint position demonstrate|JPS: show 'up' and 'down', eyes open|c:j",
- "strike the tuning fork prongs|Strike the fork softly|c:v",
- "place the base of the fork|Base on the hallux IP joint|c:v",
- "timed method|'Stop' when it fades; compare with yours|c:v;g:v",
- "do a sham|Sham: a still fork|c:v;g:v",
- "if abnormal at the hallux|Abnormal? Move proximally|o;c:v",
- "joint position hold the patient s hallux|Hold the toe by its sides|c:j",
- "do 5 to 10 trials|5 to 10 random moves|c:j",
- "compare both sides|Compare sides, feet and hands|p:Compare"],
-"pinprick-sensory-level":[
- "explain then demonstrate pinprick|Demonstrate sharp and blunt|p:Set up;g:s",
- "expose the area needed|Expose limbs and trunk|g:s",
- "use a fresh neurotip|Fresh Neurotip, even pressure|p:Screen",
- "screen in a pattern|One point per dermatome, both sides",
- "when you find an abnormal area|Map edges from abnormal to normal|o;p:Map;g:m",
- "glove and stocking|Glove and stocking: from distal up|o;g:m",
- "sensory level with the patient supine|Sensory level: up the trunk, front and back|o;g:m",
- "test the saddle region|Saddle area (S3 to S5)|p:Safety and other modalities;g:o",
- "light touch dab|Light touch: dab, vary the timing|g:o",
- "map pain and temperature|Pain and temperature versus dorsal columns|o;g:o"],
-"monofilament":[
- "patient lying or sitting with shoes|Shoes and socks off, feet supported|p:Set up;g:s",
- "demonstrate the monofilament|Demonstrate on the hand; eyes closed|g:s",
- "inspect the plantar surfaces|Pick sites off callus and scars|p:Test",
- "apply the monofilament perpendicular|Perpendicular until it buckles, about 2 s|g:m",
- "iwgdf method|3 sites: 2 touches and 1 sham each|g:m",
- "ask after each application|Ask: 'Feel it? Which foot?'|g:m",
- "score protective sensation|2 of 3 correct per site|p:Score",
- "combine with a 128 hz|Add fork, reflexes, pulses, footwear",
- "clean the monofilament|Clean it, store it straight|p:Finish;nc"],
-"two-point":[
- "rest the patient s hand|Hand palm-up, supported|p:Set up;g:s",
- "demonstrate on an unaffected digit|Demonstrate one and two points|g:s",
- "static 2pd start|Static: start at 10 mm, along the axis|p:Static",
- "randomly alternate|Randomly one or two points",
- "reduce the distance|Down in 1 mm steps, 7 of 10",
- "test the radial and ulnar sides|Radial and ulnar sides separately",
- "moving 2pd|Moving 2PD, proximal to distal|o;p:Moving",
- "record the threshold|Record mm, compare|p:Record"],
-"tendon-reflexes":[
- "patient lying supine with the head|Relaxed and supported; compare at once|p:Set up;g:s",
- "position each joint|Each joint at mid-range|g:s",
- "explain briefly|Explain, keep chatting|g:s",
- "hold the hammer loosely|Hold the end, swing from the wrist|p:Technique",
- "biceps|Biceps jerk|p:The reflexes;g:r",
- "supinator|Supinator jerk|g:r",
- "triceps|Triceps jerk|g:r",
- "knee|Knee jerk|g:r",
- "ankle|Ankle jerk|g:r",
- "if a reflex seems absent|Absent? Reinforce (Jendrassik)|o;p:If absent",
- "grade each reflex|Grade each reflex|p:Grade"],
-"plantar-response":[
- "patient supine with legs straight|Supine, legs straight, stand at the side|p:Set up;g:s",
- "hold the ankle gently|Hold the ankle; warn it may tickle|g:s",
- "start at the lateral border|Lateral sole from the heel, slowly|p:Stroke",
- "at the metatarsal heads|Curve in, stop before the hallux",
- "watch the hallux|Watch the first hallux movement|p:Watch",
- "if the toe extends|Toe up? Check EHL and hamstrings|o;g:w",
- "distinguish withdrawal|Tell withdrawal from an extensor plantar|o;g:w",
- "if equivocal or the patient withdraws|Equivocal? Chaddock|o",
- "compare both sides and record|Compare sides and record|p:Record"],
-"hoffmann":[
- "patient seated or supine with the arm|Hand pronated, relaxed, supported|p:Set up;g:s",
- "test both hands and compare|Both hands; look away, go limp|g:s",
- "support the patient s hand|Hold the middle finger, tip free|p:Flick",
- "with your right thumb|Flick the nail sharply",
- "watch the thumb and index|Watch thumb and index",
- "repeat three to five times|3 to 5 times each side",
- "if negative but myelopathy|Dynamic Hoffmann or Trömner|o;p:If negative"],
-"clonus-tone":[
- "patient supine and as relaxed|Supine, 'go floppy'|p:Set up;g:s",
- "distract by chatting|Distract: chat or count back|g:s",
- "upper limb shake hands|Arm: rotate and flex at varying speed|p:Tone and clonus;c:u",
- "feel specifically for a supinator|Feel for a supinator catch|c:u",
- "lower limb knee roll|Knee roll|c:l;g:k",
- "knee lift|Knee lift|c:l;g:k",
- "ankle clonus|Ankle clonus: brisk dorsiflexion, hold|c:l",
- "count the beats|Count the beats, both sides|c:l",
- "if you suspect rigidity|Rigidity? Slow and fast, add activation|o;p:If rigid"],
-"pronator-drift":[
- "patient sitting upright or standing|Seated or standing, room for the arms|p:Set up;g:s",
- "demonstrate the position|Demonstrate the position|g:s",
- "ask the patient to hold both arms|Arms out, palms up|p:Hold",
- "ask them to close their eyes|Eyes closed, 20 to 30 s|g:w;t:30",
- "watch both hands|Watch: pronation first, then drift|g:w",
- "optionally tap each arm|Tap down, watch the return|o",
- "note any other drift|Other drift: up, out, searching fingers"],
-"romberg":[
- "stand close beside or behind|Guard closely, clear obstacles|p:Set up;g:s",
- "explain stand with your feet together|Explain; promise to catch|g:s",
- "ask the patient to stand with feet together|Feet together, eyes open, 30 s|p:Test;t:30",
- "ask them to close their eyes and hold|Eyes closed, up to 60 s, guard|t:60",
- "record positive if|Positive only if unsteady with eyes closed|p:Record",
- "if normal and you suspect|Sharpened Romberg|o;t:60;p:If normal",
- "if the patient cannot stand|Unsteady with eyes open? Stop there|o;x"],
-"cerebellar-tests":[
- "patient seated upright facing you|Seated at arm's length; check power|p:Set up;g:s",
- "explain and demonstrate each test|Demonstrate each test|g:s",
- "finger nose|Finger-nose at full stretch|p:Upper limb;c:f",
- "move your finger to a new position|Move the target|c:f;g:f",
- "watch for intention tremor|Intention tremor, past-pointing|c:f;g:f",
- "dysdiadochokinesia|Rapid alternating movements|c:d",
- "heel shin|Heel-shin|p:Lower limb",
- "rebound|Rebound, shield the face|o;p:Upper limb;c:r",
- "compare sides and consider|Compare sides; finger-nose eyes closed|p:Compare"],
-"tandem-gait":[
- "clear a straight path|Clear a path, guard|p:Set up",
- "ask the patient to walk normally|Walk, turn, walk back|p:Walk",
- "observe normal walking|Watch ordinary gait over 10 m",
- "ask the patient to walk heel to toe|Tandem: heel to toe, 10 steps|p:Variations;g:v",
- "ask the patient to walk on the heels|Heels, then toes|g:v",
- "observe the patient standing up|Rise from a chair without arms|g:v",
- "identify the named gait|Name the gait|p:Interpret"],
-"eye-movements":[
- "sit facing the patient about 50|Sit 50 to 60 cm, target in the midline|p:Set up;g:s",
- "ask the patient to keep their head still|Head still|g:s",
- "ask about double vision before|Ask about double vision|g:s",
- "observe the eyes in primary position|Look first: deviation, ptosis, head tilt|p:Look",
- "pursuit|Pursuit: trace an H|p:Pursuit",
- "stop about 30 degrees|Stop at 30°, not at the extreme|g:p",
- "ask at each position|Ask about diplopia at each position|g:p",
- "in the position of maximal diplopia|Maximal diplopia: cover, which image goes?|o",
- "saccades|Saccades|p:Other movements;g:o",
- "nystagmus hold the target|Nystagmus in each gaze|g:o",
- "remove fixation|Remove fixation (Frenzel)|o;g:o",
- "cover test|Cover test, distance and near|g:o"],
-"dix-hallpike":[
- "screen for contraindications|Screen for neck and vascular risks|p:Set up",
- "sit the patient on the couch|Seat so the head clears the end; eyes open",
- "stand beside or behind|Turn the head 45° to the test side|p:Test",
- "holding the head in your hands|Lie back fast, head 20 to 30° down",
- "hold the position for at least 30|Hold at least 30 s, watch the eyes|g:w;t:30",
- "look for the posterior canal|Latency, torsional upbeat, fatigues|g:w",
- "sit the patient up slowly|Sit up slowly, watch for reversal",
- "repeat on the other side|Other side; roll test if both negative",
- "if findings are atypical|Atypical? Think central|p:Interpret"],
-"hints":[
- "confirm that the patient has acute|Confirm acute vestibular syndrome|p:Set up",
- "sit the patient upright facing you|Upright, eyes on your nose",
- "head impulse test|Head impulse: small, fast thrust|p:HINTS;c:h",
- "look for a corrective saccade|Look for a corrective saccade|c:h",
- "nystagmus observe the eyes|Nystagmus: centre and 30° each side|c:n",
- "test of skew|Test of skew: alternate cover|c:k",
- "interpret using infarct|Interpret: INFARCT|p:Interpret",
- "add hints plus|HINTS plus: bedside hearing|p:HINTS;c:p",
- "assess gait and sitting balance|Gait and sitting balance|c:g"],
-"meningism":[
- "patient supine relaxed with no pillow|Supine, flat, neck exposed|p:Set up;g:s",
- "explain each manoeuvre|Explain; stop if severe pain|g:s",
- "neck stiffness|Neck flexion: chin to chest|p:Neck",
- "then gently rotate the head|Rotate side to side|g:n",
- "brudzinski neck sign|Brudzinski: watch hips and knees|g:n",
- "kernig sign|Kernig: hip and knee 90°, extend the knee|p:Other signs;g:o",
- "jolt accentuation|Jolt accentuation: 2 to 3 turns a second|g:o",
- "interpret signs in context|Interpret in context|p:Interpret"],
-"hoover":[
- "patient supine legs straight|Supine, stand at the foot|p:Set up;g:s",
- "explain neutrally|Explain neutrally|g:s",
- "place your hand under the heel|Hand under the weak heel: push down|p:Hoover's",
- "keeping your hand under the weak heel|Lift the good leg; feel the weak heel",
- "compare voluntary hip extension|Compare voluntary with involuntary",
- "hip abductor sign|Hip abductor sign|o;p:Other",
- "present the result respectfully|Show the patient, respectfully|p:Explain"]
-};
-
 IC.timer=IC.timer||'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/>';
 IC.observe=IC.observe||'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 11l2 2 4-4"/>';
 IC.why=IC.why||'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7v.5M12 17.2v.1"/>';
@@ -327,30 +26,29 @@ function techConf(id){const c=techRec(id).conf||[];return c.length?c[c.length-1]
 function techFirstConf(id){const c=techRec(id).conf||[];return c.length?c[0][1]:null;}
 const techRepClean=x=>x.clean!=null?!!x.clean:x.n>=x.of;
 function techHideToast(){const t=document.getElementById("toast");if(t)t.hidden=true;}
-const techNorm=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 function techAutoShort(d){let s=String(d||"").split(/[.;:(]/)[0].trim();const w=s.split(/\s+/);if(w.length>8)s=w.slice(0,7).join(" ")+"…";return s.replace(/,$/,"");}
 
-/* ---------- items: setup and steps as one list with drill metadata ---------- */
+/* ---------- items: setup and steps as one list with drill metadata ----------
+ Optional fields on each setup/step item in TECH data: short, phase, chain, group, need ("core"|"optional"|"alt"),
+ alt + variant, timer (s), noOrder, nocard; optional per technique: phases (fixed phase order). All have defaults. */
 const _techItemsCache=new Map();
 function techItems(t){
   if(typeof t==="string")t=techById(t);if(!t)return [];
-  const ck=t.id+"|"+(t.setup||[]).length+"|"+t.steps.length+"|"+t.steps.map(s=>s.do.slice(0,12)).join("");
+  const ck=t.id+"|"+(t.setup||[]).length+"|"+t.steps.length+"|"+t.steps.map(s=>(s.short||"")+s.do.slice(0,12)).join("");
   if(_techItemsCache.has(ck))return _techItemsCache.get(ck);
-  const ov=(TECH_DRILL[t.id]||[]).filter(x=>x[0]!=="@").map(x=>{const [p,short,fl]=x.split("|");const f={};(fl||"").split(";").filter(Boolean).forEach(z=>{const i=z.indexOf(":");if(i<0)f[z]=true;else f[z.slice(0,i)]=z.slice(i+1);});return {p:techNorm(p),short,f,used:false};});
   const raw=[...(t.setup||[]).map((s,i)=>({s,setup:true,i,k:"S"+i})),...t.steps.map((s,i)=>({s,setup:false,i,k:String(i)}))];
   let phase=null;
-  const out=raw.map((r,n)=>{const s=r.s,nd=techNorm(s.do);const o=ov.find(x=>!x.used&&nd.startsWith(x.p));if(o)o.used=true;const f=o?o.f:{};
-    const ph=s.phase||f.p||phase||(r.setup?"Set up":"Technique");phase=ph;
-    let need=s.need||(f.o?"optional":f.a||s.alt?"alt":"core");
-    let alt=null,variant=null;if(s.alt){alt=s.alt;variant=s.variant||techAutoShort(s.do);}else if(f.a){const [a,v]=f.a.split("=");alt=a;variant=v;}
-    return {k:r.k,n,setup:r.setup,i:r.i,step:r.setup?-1:r.i,do:s.do,why:s.why,cue:s.cue,short:s.short||(o&&o.short)||techAutoShort(s.do),phase:ph,
-      chain:s.chain||f.c||"main",group:s.group||f.g||null,need,alt,variant,timer:+(s.timer||f.t||0)||0,noOrder:!!(s.noOrder||f.x),nocard:!!(s.nocard||f.nc)};});
-  const head=(TECH_DRILL[t.id]||[]).find(x=>x[0]==="@");
-  const order=t.phases||(head?head.slice(1).split(">"):[]);
+  const out=raw.map((r,n)=>{const s=r.s;const ph=s.phase||phase||(r.setup?"Set up":"Technique");phase=ph;
+    const need=s.need==="optional"||s.need==="alt"?s.need:s.alt?"alt":"core";
+    return {k:r.k,n,setup:r.setup,i:r.i,step:r.setup?-1:r.i,do:s.do,why:s.why,cue:s.cue,short:s.short||techAutoShort(s.do),phase:ph,
+      chain:s.chain||"main",group:s.group||null,need,alt:need==="alt"?(s.alt||"version"):null,variant:need==="alt"?(s.variant||s.short||techAutoShort(s.do)):null,
+      timer:+(s.timer||0)||0,noOrder:!!s.noOrder,nocard:!!s.nocard};});
+  const order=(t.phases||[]).filter(p=>out.some(x=>x.phase===p));
   out.phases=[...order,...[...new Set(out.map(x=>x.phase))].filter(p=>!order.includes(p))];
-  out.alts={};out.forEach(x=>{if(x.alt){(out.alts[x.alt]||(out.alts[x.alt]=[])).includes(x.variant)||out.alts[x.alt].push(x.variant);}});
+  out.alts={};out.forEach(x=>{if(x.alt){const L=out.alts[x.alt]||(out.alts[x.alt]=[]);if(!L.includes(x.variant))L.push(x.variant);}});
   _techItemsCache.set(ck,out);return out;
 }
+const techCap=s=>String(s||"").charAt(0).toUpperCase()+String(s||"").slice(1);
 /* ordering: phases in order; inside a phase, each chain is sequential except for consecutive items sharing a group */
 function techOrderModel(items){
   const slots={};items.forEach(x=>{const key=x.phase+"\u0001"+x.chain;const L=slots[key]||(slots[key]={n:-1,g:null});
@@ -510,7 +208,7 @@ route("practice:techorder",(id)=>{const t=id&&techById(id);return t?"Put it in o
   const t=techById(id);if(!t)throw new Error("Technique not found");
   const all=techItems(t);
   const items=all.filter(x=>!x.noOrder&&(!x.alt||x.variant===all.alts[x.alt][0]));items.phases=all.phases.filter(p=>items.some(x=>x.phase===p));techOrderModel(items);
-  const altNote=Object.keys(all.alts).map(a=>`${a}: ${all.alts[a][0]}`).join(" · ");
+  const altNote=Object.keys(all.alts).map(a=>`${techCap(a)}: ${all.alts[a][0]}`).join(" · ");
   let pool=shuf(items);const S={placed:[],set:new Set(),miss:0,fb:null,missAt:{},full:techPref("full")==="1"};
   const draw=()=>{const hadFocus=techFocusedIn(root);const done=S.placed.length>=items.length;
     const curPh=done?null:items.filter(x=>!S.set.has(x.n)).reduce((a,x)=>Math.min(a,x._pr),99);
@@ -648,7 +346,7 @@ route("practice:techrep",(id,mode)=>{const t=id&&techById(id);return (mode==="ob
     const byPh=items.phases.map(p=>[p,items.filter(x=>x.phase===p&&S.need(x)!=="na")]).filter(x=>x[1].length);let num=0;
     const obsReps=reps.filter(x=>x.obs&&Array.isArray(x.ds));
     root.innerHTML=`<section class="ph"><span class="eyebrow">${obs?"Observed checklist":"Bedside checklist"} · ${clean} clean of 3</span><h1>${esc(t.name)}</h1><p class="lede">${obs?"Hand the phone to the colleague watching you. They tick each step as they see you do it, then rate five areas. Optional steps never count against you.":"Do it on a patient, a colleague or yourself. Tap each step as you actually do it, not from memory afterwards. A rep is clean when every core step is done; optional steps and the versions you did not pick do not count."}</p></section>
-     ${Object.keys(items.alts).map(a=>`<div class="tk-alt"><span class="label">${esc(a)}</span><div class="chips" role="group" aria-label="${esc(a)}">${items.alts[a].map(v=>`<button class="chip${S.v[a]===v?" on":""}" data-alt="${esc(a)}" data-v="${esc(v)}" aria-pressed="${S.v[a]===v}">${esc(v)}</button>`).join("")}</div></div>`).join("")}
+     ${Object.keys(items.alts).map(a=>`<div class="tk-alt"><span class="label">${esc(techCap(a))}</span><div class="chips" role="group" aria-label="${esc(techCap(a))}">${items.alts[a].map(v=>`<button class="chip${S.v[a]===v?" on":""}" data-alt="${esc(a)}" data-v="${esc(v)}" aria-pressed="${S.v[a]===v}">${esc(v)}</button>`).join("")}</div></div>`).join("")}
      ${!obs?techHabits(id,items):""}
      <div class="tk-rep">${byPh.map(([p,L])=>`<div class="tk-repph">${esc(p)}</div>${L.map(x=>{num++;const on=S.done.has(x.n),opt=S.need(x)==="optional";const run=S.tItem===x.n;
        return `<div class="tk-ri${on?" on":""}${opt?" tkopt":""}"><button class="tk-rb" data-i="${x.n}" aria-pressed="${on}"><span class="tk-box">${on?ic("check"):`<span class="mono">${num}</span>`}</span><span class="tk-rt"><b>${esc(x.short)}</b>${opt?`<span class="tag">if needed</span>`:""}</span></button>${x.timer?`<button class="tk-tm${run?" run":""}" data-tm="${x.n}" aria-label="${run?"Stop":"Start"} ${x.timer} second timer">${ic("timer")}<span class="mono" id="tm${x.n}">${run?Math.max(0,Math.ceil((S.tEnd-Date.now())/1000)):x.timer} s</span></button>`:""}</div>`;}).join("")}`).join("")}</div>

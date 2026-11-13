@@ -87,7 +87,7 @@ section.theatre.first .door:not(.table){opacity:.55}
 
 /* ---------- hall cards (Learn) and hall rows ---------- */
 .halls{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-@media (min-width:480px){.halls{grid-template-columns:repeat(3,1fr);gap:12px}}
+@media (min-width:340px){.halls{grid-template-columns:repeat(3,1fr)}}@media (min-width:480px){.halls{gap:12px}}
 @media (min-width:700px){.halls{grid-template-columns:repeat(4,1fr)}}
 @media (min-width:1500px){.halls{grid-template-columns:repeat(6,1fr)}}
 .hall{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:5px;padding:14px 8px 12px;border:1px solid var(--line);border-radius:999px 999px 6px 6px;background:var(--surface);background-image:var(--paper);box-shadow:var(--shadow),inset 0 0 0 3px var(--surface),inset 0 0 0 4px color-mix(in srgb,var(--line) 80%,transparent);min-width:0;color:var(--ink)}
@@ -106,7 +106,7 @@ section.theatre.first .door:not(.table){opacity:.55}
 .hall.table .emb{width:48px;height:48px;flex:none}
 .hall.table .tx{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
 .hall.table .prog{width:90px;margin:0;flex:none}
-@media (max-width:420px){.hall .sc{display:none}}
+@media (max-width:480px){.hall:not(.table) .sc{display:none}.hall .emb{width:40px;height:40px}.hall{padding:12px 6px 10px}}
 .hallrow{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:8px 10px;text-align:left;color:var(--ink);border:1px solid var(--line);border-radius:8px;background:var(--surface)}
 .hallrow:hover{border-color:var(--accent)}
 .hallrow .emb{flex:none;width:32px;height:32px;color:var(--ink-engr)}

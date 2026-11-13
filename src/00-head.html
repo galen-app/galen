@@ -76,6 +76,7 @@ code{font-family:var(--f-mono);font-size:.88em;background:var(--surface2);border
 .top-title b{font-family:var(--f-display);font-weight:700;font-size:1.3rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:lining-nums}
 .brandmark{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;flex:none}
 .brandmark svg{width:18px;height:18px;stroke:var(--on-accent);stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:480px){.top-in:has(#backbtn:not([hidden])) .brandmark{display:none}.top-in{gap:2px}}
 .sync{display:inline-flex;align-items:center;gap:6px;font-size:var(--t-xs);color:var(--muted);padding:4px 8px;border-radius:99px;white-space:nowrap}
 .sync::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
 .sync.ok::before{background:var(--good)}
