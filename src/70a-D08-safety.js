@@ -31,6 +31,7 @@ const Safety=(()=>{
 @media (prefers-reduced-motion:no-preference){.st-hold i{transition:width .05s linear}}`;document.head.append(st);}
   const el=(html)=>{const d=document.createElement("div");d.innerHTML=html.trim();return d.firstChild;};
   const e=s=>(typeof esc==="function"?esc(s):String(s));
+  const pl=(n,one,many)=>`${n} ${n===1?one:(many||one+"s")}`;
   const say=(m,k)=>{try{toast(m,k);}catch(x){}};
   const rerender=()=>{try{if(typeof render==="function")render(false,true);}catch(x){}};
   /* ---------- downloads ---------- */
@@ -68,7 +69,7 @@ const Safety=(()=>{
       <p>Choose what to clear. It is cleared on every device that syncs, so it will not come back with the next sync. Your settings stay.</p>
       <fieldset class="st-groups">${groups}</fieldset>
       <p class="small muted">Galen keeps a copy on this device first, and you can undo for 30 seconds.</p>
-      <div class="st-row"><button type="button" class="st-hold" id="st-go"><i></i><span>Hold to reset</span></button><button type="button" class="btn ghost" id="st-bk" data-focus>Download a backup first</button><button type="button" class="btn ghost" id="st-x">Cancel</button></div>
+      <div class="st-row"><button type="button" class="st-hold" id="st-go"><i></i><span>Hold to reset (1.5 s)</span></button><button type="button" class="btn ghost" id="st-bk" data-focus>Download a backup first</button><button type="button" class="btn ghost" id="st-x">Cancel</button></div>
       ${prev&&prev.t?`<p class="small">Last reset on ${fmtDate(prev.t)}. <button type="button" class="btn sm soft" id="st-back">Bring back what it cleared</button></p>`:""}`);
     const chosen=()=>[...v.querySelectorAll("input[name=g]:checked")].map(x=>x.value);
     v.querySelector("#st-x").addEventListener("click",closeModal);
@@ -87,7 +88,7 @@ const Safety=(()=>{
     if(!p){say("This file is not a Galen backup. Nothing was changed.","bad");return;}
     if(p.newer){say("This backup was made by a newer Galen. Update this device first. Nothing was changed.","bad");return;}
     const v=modal(`<h2>Restore a backup</h2>
-      <p class="st-pre">${p.cards} cards · ${p.log} log entries · ${p.tech} techniques · ${p.eggs} eggs · ${p.xp} XP${p.updated?` · saved ${fmtDate(p.updated)}`:""}</p>
+      <p class="st-pre">${pl(p.cards,"card")} · ${pl(p.log,"log entry","log entries")} · ${pl(p.tech,"technique")} · ${pl(p.eggs,"egg")} · ${p.xp} XP${p.updated?` · saved ${fmtDate(p.updated)}`:""}</p>
       <fieldset class="st-groups">
         <label><input type="radio" name="m" value="merge" checked><span><b>Merge with what you have</b><small>Nothing you have is lost. For each card or record, the more recent change wins.</small></span></label>
         <label><input type="radio" name="m" value="replace"><span><b>Replace your progress</b><small>Your progress on every synced device becomes this backup.</small></span></label>
