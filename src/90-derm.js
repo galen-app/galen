@@ -46,7 +46,7 @@ function dAtlasList(){
 function dermAtlasHTML(){
   const chips=[["all","All"],["urgent","Urgent and emergency"],["ksa","Saudi practice"],...DGROUPS.map(g=>[g,g])];
   return `${toneBar("atone")}<p class="small muted">Plates are drawn by the app (40 px = 1 cm), not photographs. Switch skin tone to see how each lesion changes on Fitzpatrick types I–VI.</p>
-   <label class="dsearch">${ic("search")}<input id="dq" type="search" placeholder="Search ${DCOND.length} conditions: name, feature or look-alike" value="${esc(DAF.q)}" autocomplete="off" aria-label="Search the skin atlas"></label>
+   <label class="dsearch">${ic("search")}<input id="dq" type="search" placeholder="Search ${DCOND.length} conditions" value="${esc(DAF.q)}" autocomplete="off" aria-label="Search the skin atlas"></label>
    <div class="chips" id="dag">${chips.map(([k,l])=>`<button class="chip${DAF.g===k?" on":""}" data-g="${esc(k)}" aria-pressed="${DAF.g===k}">${esc(l)}</button>`).join("")}</div>
    <div id="dlistwrap">${dAtlasList()}</div>`;
 }

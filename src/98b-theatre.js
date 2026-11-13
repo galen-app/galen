@@ -128,7 +128,7 @@ function theatreSVG(opt={}){
    <path d="M${cx-22} ${cy-1}c6-6 14-6 22-4s14 2 20 4c-6 6-14 6-22 4s-14-2-20-4z" fill="var(--surface2)" stroke="var(--ink-engr)" stroke-width=".8"/>
    <line x1="${cx-26}" y1="${cy+7}" x2="${cx-26}" y2="${cy+14}" stroke="var(--ink-engr)"/><line x1="${cx+26}" y1="${cy+7}" x2="${cx+26}" y2="${cy+14}" stroke="var(--ink-engr)"/>
    ${tm.pct>0?`<path d="M${cx-30} ${cy+18}h${(60*Math.min(1,tm.pct)).toFixed(1)}" stroke="var(--accent)" stroke-width="2.4"/>`:""}
-   <text class="lbl tlbl" x="${cx}" y="${cy+44}" text-anchor="middle">the table</text></g>`;
+   <text class="lbl tlbl" x="${cx}" y="${cy+(nar?59:49)}" text-anchor="middle">the table</text></g>`;
   /* candles */
   [[cx-38,cy-4],[cx+38,cy-4]].forEach(([x,y],i)=>{s+=`<rect x="${x-2}" y="${y-12}" width="4" height="12" fill="var(--surface)" stroke="var(--ink-engr)" stroke-width=".7"/><path class="flame${i?" b":""}" d="M${x} ${y-21}c-2.6 3.4-2.6 6 0 8 2.6-2 2.6-4.6 0-8z"/><circle cx="${x}" cy="${y-16}" r="9" fill="var(--accent)" opacity=".12"/>`;});
   /* the skull on the table's end (a 20-unit hit area so a finger can find it) */

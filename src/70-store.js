@@ -42,7 +42,7 @@ const ST_GROUPS={
   log:{label:"Bedside log",sub:"signs you logged on real patients"},
   seen:{label:"Pages opened",sub:"signs, modules and ER topics marked as seen"},
   xp:{label:"XP, streak and daily counts",sub:"your level and the week dots"},
-  photos:{label:"Pinned, hidden and own photos",sub:"your own photos stay in Drive; this forgets the links",optional:true}
+  photos:{label:"Pinned, hidden and own photos",sub:"your own photos stay in Drive; this forgets the links"}
 };
 const ST_RESET_DEFAULT=Object.keys(ST_GROUPS).filter(g=>!ST_GROUPS[g].optional);
 function stGroupOf(c,id){
@@ -389,7 +389,9 @@ const Store={
     if(this.readOnly)return ()=>{};
     this.commit();const gs=(Array.isArray(groups)&&groups.length?groups:ST_RESET_DEFAULT).filter(g=>ST_GROUPS[g]);
     const before=JSON.stringify(this._s);this.keepAside(LS+".beforeReset",before);try{localStorage.setItem(LS+".beforeReset.groups",JSON.stringify(gs));}catch(e){}
-    const t=GClock.stamp(),s=this._s;s.epochs=stObj(s.epochs)?s.epochs:{};gs.forEach(g=>{s.epochs[g]=t;});
+    const t=GClock.stamp(),s=this._s;
+    if(Object.keys(ST_GROUPS).every(g=>gs.includes(g)))s.epoch=t;      /* everything: one epoch, as before */
+    else{s.epochs=stObj(s.epochs)?s.epochs:{};gs.forEach(g=>{s.epochs[g]=t;});}
     if(gs.includes("xp")){s.ctr={};s.xp=0;s.days={};}
     if(gs.includes("seen"))for(const k of ST_LISTS)s[k]=[];
     stPrune(s);this.rebase();this._lastRaw=null;this.save(true);this.emit();

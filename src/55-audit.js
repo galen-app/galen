@@ -137,10 +137,11 @@ Object.entries(SIGN_FIX2).forEach(([k,f])=>{if(SIGNS[k])Object.assign(SIGNS[k],f
  dx   : short diagnosis key shared by signs that answer the same question. "Same target" links, calculator presets and duels
         must group on dx only (never on the first word of the target). Signs without dx have no partners.
  aka  : search synonyms (abbreviations, US spellings, old names).
- use  : DERIVED here from the final LRs, so it can never disagree with them. "in" (LR+ ≥ 5 or LR+ ≤ 0.2 is not used),
-        "out" (LR− ≤ 0.2, or sensitivity ≥ 99% when LR− cannot be estimated), "both", "neither" (LRs weaker than that),
+ use  : DERIVED here from the final LRs, so it can never disagree with them. "in" (LR+ ≥ 5),
+        "out" (LR− ≤ 0.2; a finding whose LR+ is ≤ 0.2; or sensitivity ≥ 99% when LR− cannot be estimated), "both", "neither" (weaker),
         or null (no numbers: scores, scales, descriptive signs). Card generation (rule in or out) should key on s.use.
- best : the decisive likelihood ratio for list rows and the 10-second card: {k:"p"|"n", v} whichever is further from 1. */
+ best : the decisive figure for list rows and the 10-second card: {k:"p"|"n", v} whichever LR is further from 1, or
+        {k:"sens", v} for a rule-out rule whose sensitivity is ≥ 99% and whose LR− cannot be estimated (show "Sn 100%: a negative rules out"). */
 const SIGN_DX={
  appendicitis:["rlq-tender","rovsing","psoas","obturator","heel-drop","alvarado"],
  peritonitis:["rebound","cough-test"],
@@ -241,6 +242,8 @@ function signUse(s){
 }
 function signBest(s){
   const c=[];if(s.p!=null&&s.p>0)c.push({k:"p",v:s.p,d:Math.abs(Math.log(s.p))});if(s.n!=null&&s.n>0)c.push({k:"n",v:s.n,d:Math.abs(Math.log(s.n))});
+  /* a rule-out rule with sensitivity ≥ 99% and no estimable LR−: its decisive figure is the sensitivity */
+  if(s.n==null&&s.sens!=null&&s.sens>=99)return {k:"sens",v:s.sens};
   if(!c.length)return null;c.sort((a,b)=>b.d-a.d);return {k:c[0].k,v:c[0].v};
 }
 function finaliseSigns(){Object.values(SIGNS).forEach(s=>{s.use=signUse(s);s.best=signBest(s);});}
