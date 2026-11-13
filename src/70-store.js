@@ -427,6 +427,9 @@ const Store={
       const L=this._s,t=GClock.stamp(),lifted=new Set(Object.keys(ST_GROUPS).filter(g=>stGroupEpoch(L,g)>stGroupEpoch(r,g)));
       for(const c of ST_REC)for(const id of Object.keys(r[c])){const g=stGroupOf(c,id);if(lifted.has(g)&&stRecTime(c,r[c][id])<=stGroupEpoch(L,g)){r[c][id]._m=t;delete r[c][id]._ft;}}
       if(lifted.has("log"))for(const x of r.log)if(stRecTime("log",x)<=stGroupEpoch(L,"log")){x._m=t;delete x._ft;}
+      /* and over deletions made since: a restore means "bring these back" */
+      const TB=L.tomb||{};for(const c of ST_REC)for(const id of Object.keys(r[c])){const tb=(TB[c]||{})[id];if(tb&&stRecTime(c,r[c][id])<=tb){r[c][id]._m=t;delete r[c][id]._ft;}}
+      for(const x of r.log){const tb=(TB.log||{})[x.id];if(tb&&stRecTime("log",x)<=tb){x._m=t;delete x._ft;}}
       const extra=lifted.has("xp")?{xp:r.xp,days:Object.assign({},r.days)}:null,lists=lifted.has("seen")?ST_LISTS.map(k=>r[k]):null;
       if(extra){delete r.ctr;r.xp=0;r.days={};}
       if(L.epoch)r.epoch=Math.max(r.epoch||0,L.epoch);r.epochs=Object.assign({},r.epochs||{},L.epochs||{});

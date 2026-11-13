@@ -635,6 +635,12 @@ canvas.plate{width:100%;height:auto;aspect-ratio:3/2;display:block;border-radius
 .sk-in{width:min(100%,980px)}.sk-wrap{position:relative;background:var(--surface2)}.sk-c{width:100%;height:auto;display:block;touch-action:none;cursor:crosshair}
 .sk-fig{position:absolute;inset:0;opacity:.55;pointer-events:none;display:grid;place-items:center}.sk-fig .fig{margin:0;width:100%;height:100%;padding:0;background:none;border:0}.sk-fig svg{width:100%;height:100%;max-height:none;max-width:none}
 
+/* ---------- Windows high contrast / forced colours ---------- */
+@media (forced-colors:active){
+  .btn,.chip,.seg button,.opt,.tile,.lrow,.acc,.card,.pill,.v,.lr,.tag{border:1px solid CanvasText}
+  .chip.on,.chip[aria-pressed="true"],.seg button[aria-pressed="true"],.opt.sel,.nav button[aria-current="page"]{outline:2px solid Highlight;outline-offset:-2px}
+  :focus-visible{outline:3px solid Highlight}
+}
 /* ---------- motion: respect the setting ---------- */
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;animation-delay:0s!important;transition-duration:.01ms!important;transition-delay:0s!important;scroll-behavior:auto!important}

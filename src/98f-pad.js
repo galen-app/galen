@@ -10,7 +10,7 @@ const MODAL_SEL=".helpov,.pal-back,.sheet-wrap,[data-modal]";
 function modalTop(){MODAL.stack=MODAL.stack.filter(m=>m.el.isConnected);const d=$("dialog[open]");if(d&&d.matches(":modal"))return d;const t=MODAL.stack[MODAL.stack.length-1];return t?t.el:null;}
 const routeSig=()=>{try{const r=cur();return NAV.tab+":"+r.v+":"+(r.a||"")+":"+(r.b||"");}catch(e){return "";}};
 function setInert(on){$$("body > .shell, body > nav.nav").forEach(x=>{try{x.inert=on;}catch(e){}});}
-document.addEventListener("focusin",e=>{const t=e.target;if(!t||!t.closest)return;if(!t.closest(MODAL_SEL))MODAL.last=t;if(typeof PAD!=="undefined")PAD.last[zoneOf(t)]=t;});
+document.addEventListener("focusin",e=>{const t=e.target;if(!t||!t.closest)return;if(!t.closest(MODAL_SEL))MODAL.last=t;if(typeof PAD!=="undefined"){PAD.last[zoneOf(t)]=t;padLegend();}});
 new MutationObserver(ms=>{for(const m of ms){
   m.addedNodes.forEach(n=>{if(n.nodeType!==1||!n.matches(MODAL_SEL))return;
     const a=document.activeElement;const opener=a&&a!==document.body&&!a.closest(MODAL_SEL)?a:MODAL.last;
@@ -40,7 +40,7 @@ function helpOverlay(){const old=$(".helpov[data-help]");if(old){old.remove();re
   ${sec("Everywhere",[
    ["Choose",K("Enter"),B("A")],["Back, or close a dialog",K("Esc"),B("B")],
    ["Move",`${K("Tab")}, arrows in lists`,"D-pad or left stick"],
-   ["Jump to a section",`${K("Alt 1")} to ${K("Alt 5")}`,"none"],["Previous or next section",K("[")+" "+K("]"),B("L1")+" "+B("R1")],
+   ["Jump to a section",`${K("Alt 1")} to ${K("Alt 5")}`,"Step with L1 and R1"],["Previous or next section",K("[")+" "+K("]"),B("L1")+" "+B("R1")],
    ["Next area: page, rail, reference, top bar",K("F6")+" (Shift for back)",B("L2")+" "+B("R2")+", or the d-pad at the edge"],
    ["Search",`${K("/")} or ${K("Ctrl K")}`,B("Menu")+" (≡). Type with Steam + X"],
    ["Play, pause or reveal",K("Space"),B("X")],["Theatre sound on or off",K("M"),B("Y")],
@@ -49,16 +49,16 @@ function helpOverlay(){const old=$(".helpov[data-help]");if(old){old.remove();re
    ["Show or hide the reference pane",K("R"),"Click the right stick (R3)"],["This help",K("?"),B("View")+" (⧉)"]])}
   ${sec("In a session",[
    ["Show the answer",`${K("Space")} or ${K("Enter")}`,B("X")+" or "+B("A")],
-   ["Again · Hard · Good · Easy",`${K("1")} ${K("2")} ${K("3")} ${K("4")}`,B("B")+" "+B("X")+" "+B("A")+" "+B("Y")+" (A takes the focused grade; Good is focused first)"],
-   ["Answer a question",`${K("1")} to ${K("9")}, then ${K("Enter")}`,"D-pad, then "+B("A")],
-   ["Undo the last grade",`${K("U")} or ${K("Ctrl Z")}`,B("L1")+" while Undo shows"],["Leave",K("Esc"),B("B")+" before you reveal"]])}
+   ["Again · Hard · Good · Easy",`${K("1")} ${K("2")} ${K("3")} ${K("4")}`,B("B")+" "+B("X")+" "+B("A")+" "+B("Y")+" (A takes the grade in focus; Good is focused first)"],
+   ["Answer a question",`${K("1")} to ${K("9")}, then ${K("Enter")}`,"D-pad, then "+B("A")],["A hint",K("H"),B("X")+" before you answer"],
+   ["Undo the last grade",`${K("U")} or ${K("Ctrl Z")}`,B("L1")],["Leave the session",K("Esc"),B("Menu")+" (≡). B never leaves a session"]])}
   <p class="tiny muted" style="margin:0">In drills: ${K("Space")} or ${B("X")} plays the sound, ${K("1")} to ${K("9")} or the d-pad and ${B("A")} answer.</p></div>`;
   document.body.append(el);el.addEventListener("click",e=>{if(e.target===el||e.target.closest("[data-x]"))el.remove();});setTimeout(()=>$("[data-x]",el)?.focus(),10);}
 function tabStep(d){const tabs=TABS.filter(t=>!t[3]).map(t=>t[0]);const i=tabs.indexOf(typeof navTab==="function"?navTab():NAV_PARENT[NAV.tab]||NAV.tab);switchTab(tabs[(i+d+tabs.length)%tabs.length]);}
 /* a help button in the top bar, so help is not only behind a key */
 {const sb=$("#searchbtn");if(sb&&!$("#helpbtn")){const b=document.createElement("button");b.className="iconbtn";b.id="helpbtn";b.setAttribute("aria-label","Keys and controller (press ?)");b.title="Keys and controller (?)";
   b.innerHTML=`<span class="qmark" aria-hidden="true">?</span>`;b.addEventListener("click",helpOverlay);sb.before(b);}}
-const undoSnack=()=>{const b=$(".snack button");if(b){b.click();return true;}return false;};
+const undoSnack=()=>{if(!$(".snack"))return false;if(typeof Hands!=="undefined"&&Hands.undoNow&&Hands.undoNow())return true;const b=$(".snack button");if(b){b.click();return true;}return false;};
 
 /* ================= KEYBOARD ================= */
 const HOLD_TARGET=".railbrand,.brandmark,[data-pad-hold]";
@@ -164,8 +164,8 @@ function padOn(){const de=document.documentElement;if(!de.classList.contains("pa
 /* what the face buttons mean right now */
 function padCtx(){if(PAL)return "pal";if(modalTop())return "modal";let r;try{r=cur();}catch(e){return "main";}const k=NAV.tab+":"+r.v;
   if(k==="practice:session"&&typeof SES!=="undefined"&&SES&&!SES.finished&&SES.queue[SES.i]){const c=SES.queue[SES.i];
-    if(typeof AUTO!=="undefined"&&AUTO[c.type])return SES.answered==null?"mcq":"next";return SES.shown&&$("#view .grades [data-g]")?"grade":"card";}
-  if(k==="practice:drill"&&typeof DR!=="undefined"&&DR&&r.a){if(DR.phase==="q")return "drill";if(DR.phase==="fb")return "next";}
+    if(typeof AUTO!=="undefined"&&AUTO[c.type])return SES.answered==null?"mcq":$("#view #fb [data-g]")?"mcqgrade":"next";return SES.shown&&$("#view .grades [data-g]")?"grade":"card";}
+  if(k==="practice:drill"&&typeof DR!=="undefined"&&DR&&r.a){if(DR.phase==="q")return "drill";if(DR.phase==="fb")return "drillnext";}
   return "main";}
 const gradeBtn=g=>{const b=$(`#view .grades [data-g="${g}"]`);if(b){b.click();return true;}return false;};
 /* the old code on the pad must not also press B (back) and A (open) underneath the reward */
@@ -178,8 +178,12 @@ function padTick(){const pads=navigator.getGamepads?[...navigator.getGamepads()]
   const edge=i=>{const p=b(i),was=!!PAD.prev[i];PAD.prev[i]=p;return p&&!was?1:!p&&was?-1:0;};
   const any=g.buttons.some((x,i)=>i!==16&&x&&x.pressed);if(any)padOn();
   const ctx=padCtx();
+  /* in a session, 84-practice.js owns the face buttons (A good or reveal, B again, X hard or hint, Y easy, L1 undo) */
+  const ses=/^(card|grade|mcq|next|mcqgrade)$/.test(ctx)&&NAV.tab==="practice"&&typeof sessionPad==="function";
+  const used={};if(ses)for(const i of [0,1,2,3,4]){const p=b(i);if(p&&!PAD.prev[i]){padOn();if(sessionPad(i)){used[i]=1;PAD.prev[i]=p;if(i<2)padCode(i?"b":"a");}}}
+  if(ses&&b(9)&&!PAD.prev[9]){PAD.prev[9]=true;used[9]=1;back();}
   /* A: acts on release, so a long hold explains (the twin of touch and hold) */
-  const eA=edge(0);
+  const eA=used[0]?0:edge(0);
   if(eA===1){const swallow=padCode("a");const a=document.activeElement;
     if(swallow){PAD.aDown=null;}
     else if(ctx==="pal"){const q=$("#palq");if(q&&document.activeElement!==q)q.focus();padKey("Enter");PAD.aDown=null;}
@@ -188,15 +192,15 @@ function padTick(){const pads=navigator.getGamepads?[...navigator.getGamepads()]
   else if(eA===-1&&PAD.aDown){const h=PAD.aDown;PAD.aDown=null;if(h.up)h.up();if(now-h.t<650){const el=h.el.isConnected?h.el:document.activeElement;if(el&&el!==document.body)padActivate(el);}}
   /* a hold starts the touch-and-hold twin only after a quarter of a second, so a tap never fires pointer events */
   if(PAD.aDown&&!PAD.aDown.up&&b(0)&&now-PAD.aDown.t>250&&PAD.aDown.el.isConnected&&!PAD.aDown.el.matches("input,select,textarea"))PAD.aDown.up=synthHold(PAD.aDown.el);
-  if(edge(1)===1){const swallow=padCode("b");
+  if(!used[1]&&edge(1)===1){const swallow=padCode("b");
     if(!swallow){if(padCloseTop()){}else if(ctx==="grade")gradeBtn(0);else back();}}
-  if(edge(2)===1){if(ctx==="card")$("#reveal")?.click();else if(ctx==="grade")gradeBtn(1);else padKey(" ");}
-  if(edge(3)===1){if(ctx==="grade")gradeBtn(3);else toggleSound();}
-  if(edge(4)===1){if(!modalTop()&&!PAL){if(!undoSnack())tabStep(-1);}}
+  if(!used[2]&&edge(2)===1){if(ctx==="card")$("#reveal")?.click();else if(ctx==="grade")gradeBtn(1);else padKey(" ");}
+  if(!used[3]&&edge(3)===1){if(ctx==="grade")gradeBtn(3);else toggleSound();}
+  if(!used[4]&&edge(4)===1){if(!modalTop()&&!PAL){if(!undoSnack())tabStep(-1);}}
   if(edge(5)===1){if(!modalTop()&&!PAL)tabStep(1);}
   if(edge(6)===1)padZoneStep(-1);if(edge(7)===1)padZoneStep(1);
   if(edge(8)===1)helpOverlay();
-  if(edge(9)===1){if(PAL)closePalette();else if(!modalTop())openPalette();}
+  if(!used[9]&&edge(9)===1){if(PAL)closePalette();else if(!modalTop())openPalette();}
   if(edge(10)===1){const a=document.activeElement;if(a&&a!==document.body)synthHold(a,700);}
   if(edge(11)===1&&wide()&&!modalTop())rpToggle();
   const ax=g.axes[0]||0,ay=g.axes[1]||0,rx=g.axes[2]||0,ry=g.axes[3]||0;
@@ -232,16 +236,18 @@ function padLegend(force){const on=document.documentElement.classList.contains("
   const Z={main:"Page",rail:"Sections",pane:"Reference",top:"Top bar",modal:"Dialog"}[z]||"Page";
   const sets={
     main:[G("A","choose"),G("B","back"),G("X","play or reveal"),G("Y","sound"),G("L1","R1")+"",G("L2","R2"),G("≡","search"),G("⧉","help")],
-    card:[G("A","show answer"),G("X","show answer"),G("B","leave")],
-    grade:[G("B","Again"),G("X","Hard"),G("A","Good, or the one in focus"),G("Y","Easy")],
-    mcq:[G("✣","choose"),G("A","answer"),G("B","leave")],
-    next:[G("A","continue"),G("B","leave")],
+    card:[G("A","show answer"),G("X","show answer"),G("≡","leave")],
+    grade:[G("B","Again"),G("X","Hard"),G("A","Good, or the one in focus"),G("Y","Easy"),G("≡","leave")],
+    mcq:[G("✣","choose"),G("A","answer"),G("X","hint"),G("≡","leave")],
+    mcqgrade:[G("A","the grade in focus"),G("X","guessed or slow"),G("Y","easy"),G("≡","leave")],
+    next:[G("A","continue"),G("≡","leave")],
     drill:[G("X","play or pause"),G("✣","choose"),G("A","answer"),G("B","leave")],
+    drillnext:[G("A","next sound"),G("B","leave")],
     pal:[G("✣","move"),G("A","open"),G("B","close")],
     modal:[G("✣","move"),G("A","choose"),G("B","close"),G("RS","scroll")]};
   let items=(sets[ctx]||sets.main).slice();
   if(ctx==="main"){items[4]=`<span class="pl"><span class="pg pg-l1">L1</span><span class="pg pg-r1">R1</span>section</span>`;items[5]=`<span class="pl"><span class="pg pg-l2">L2</span><span class="pg pg-r2">R2</span>area</span>`;}
-  if(snack&&ctx!=="pal"&&ctx!=="modal")items.push(G("L1","undo"));
+  if(snack&&ctx!=="pal"&&ctx!=="modal"&&ctx!=="drill"&&ctx!=="drillnext")items.push(G("L1","undo"));
   PAD.legend.innerHTML=`<span class="pz">${Z}</span>${items.join("")}`;}
 /* the right-click (and menu key) twin of hold-to-explain */
 document.addEventListener("contextmenu",e=>{if(performance.now()-_ctxKey<900){e.preventDefault();return;}const h=e.target.closest("[data-hint],.lr,.v,.chip,.lrow,.tile,.dtile,.fc,.ring,.sync,.grades button,.pill,.tag,#nav [data-tab]");if(!h)return;e.preventDefault();

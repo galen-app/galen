@@ -30,7 +30,7 @@ function rpHash(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0
 const rpTechFor=id=>typeof TECH==="undefined"?[]:TECH.filter(t=>(t.signs||[]).includes(id));
 const rpSignBtn=id=>{const s=SIGNS[id];return s?`<button class="chip" data-rp-sign="${esc(id)}"><span class="v v-${s.v}">${VERDICT[s.v]}</span>${esc(s.name)}</button>`:"";};
 const rpTechBtn=t=>`<button class="chip" data-rp-tech="${esc(t.id)}">${ic("check")}${esc(t.name)}</button>`;
-const rpHallRow=h=>`<button class="rp-hall" data-go="learn/hall/${h.id}"><span class="emb" aria-hidden="true"><svg viewBox="0 0 64 64">${EMB[h.id]||""}</svg></span><span class="tx"><span class="tiny muted">${h.id==="table"?"The centre":"Hall "+esc(h.rn)}</span><b>${esc(h.n)}</b></span>${ic("chev","chev")}</button>`;
+const rpHallRow=h=>typeof hallRow==="function"?hallRow(h):`<button class="rp-hall" data-go="learn/hall/${h.id}"><span class="emb" aria-hidden="true"><svg viewBox="0 0 64 64">${EMB[h.id]||""}</svg></span><span class="tx"><span class="tiny muted">${h.id==="table"?"The centre":"Hall "+esc(h.rn)}</span><b>${esc(h.n)}</b></span>${ic("chev","chev")}</button>`;
 function rpStories(id,hid){const own=LORE_BY_SIGN[id]||[];const more=hid?LORE.filter(l=>l.hall===hid&&!own.includes(l)):[];return own.concat(more).slice(0,own.length?own.length:1);}
 function rpRecentHTML(skip){const r=RP.recent.filter(x=>!(skip&&x[0]===skip[0]&&x[1]===skip[1])).filter(x=>x[0]==="sign"?SIGNS[x[1]]:typeof TECH!=="undefined"&&TECH.find(t=>t.id===x[1])).slice(0,5);
   if(!r.length)return "";
@@ -40,7 +40,7 @@ function rpQuip(line){const [la,en]=line||[null,""];return `<p class="rp-say">${
 /* ---------- pinned references ---------- */
 function rpSign(id,opt={}){const s=SIGNS[id];if(!s)return "";const hid=signHall(id),h=hid&&HALL[hid];const tech=rpTechFor(id),ls=opt.brief?[]:rpStories(id,null);
   return `<div class="card stack rp-ref" style="gap:10px"><span class="row-x" style="gap:8px;flex-wrap:wrap"><span class="v v-${s.v}">${VERDICT[s.v]}</span><span class="tiny muted">${esc(s.target||"")}</span></span><h2>${esc(s.name)}</h2>
-   ${typeof lrChips==="function"?`<div class="chips">${lrChips(s)}</div>`:""}
+   ${typeof evChips==="function"?`<div class="chips">${evChips(s,id)}</div>${typeof probShift==="function"?probShift(s):""}`:typeof lrChips==="function"?`<div class="chips">${lrChips(s)}</div>`:""}
    ${s.how&&!opt.brief?`<div><span class="label">How</span><p class="small">${esc(s.how)}</p></div>`:""}
    ${s.mech?`<div><span class="label">Why it works</span><p class="small">${esc(s.mech)}</p></div>`:""}
    ${s.think?`<div><span class="label">What to think</span><p class="small">${esc(s.think)}</p></div>`:""}
@@ -56,7 +56,8 @@ function rpTech(id){const t=typeof TECH!=="undefined"&&TECH.find(x=>x.id===id);i
 
 /* ---------- context panels ---------- */
 function rpSession(){const S=SES,c=S.queue[S.i],tot=S.queue.length;const [a,hd,g,e]=S.res;const done=a+hd+g+e;const rl=Object.keys(S.relearn||{}).length;
-  const answered=S.shown||S.answered!=null;let card="";
+  const answered=S.shown||S.answered!=null;let card="",left="";
+  try{if(typeof sesCounts==="function"&&S.kinds){const k=sesCounts(S);left=`<p class="tiny muted" style="margin:0">Left: ${k.n} new · ${k.l} learning · ${k.r} review</p>`;}}catch(e){}
   if(c){const home=typeof cardHome==="function"?cardHome(c)||"":"";const hid=typeof cardHall==="function"?cardHall(c):null;const p=home.split("/");
     card=`<section class="rp-sec"><span class="label">This card</span><p class="small" style="margin:0">${esc(CARD_TYPE_LABEL[c.type]||"Card")}${hid&&HALL[hid]?` · ${esc(HALL[hid].short||HALL[hid].n)}`:""}</p></section>`;
     if(!answered)card+=`<div class="card rp-wait"><p class="small muted" style="margin:0">The reference for this card opens here once you have answered. No peeking.</p></div>`;
@@ -64,15 +65,15 @@ function rpSession(){const S=SES,c=S.queue[S.i],tot=S.queue.length;const [a,hd,g
     else if(p[0]==="learn"&&p[1]==="tech"&&p[2])card+=`<div class="card stack" style="gap:8px"><span class="label">Technique</span>${(()=>{const t=TECH.find(x=>x.id===p[2]);return t?`<b>${esc(t.name)}</b><button class="btn sm soft" data-rp-tech="${esc(t.id)}">Show the steps here</button>`:"";})()}</div>`;
     else if(home)card+=`<div class="card"><button class="btn sm soft" data-go="${esc(home)}">Open where this card comes from</button></div>`;}
   return `<section class="rp-sec"><span class="label">This session</span><b class="rp-big">Card ${Math.min(S.i+1,tot)} of ${tot}</b><div class="meter"><i style="width:${Math.round(S.i/Math.max(1,tot)*100)}%"></i></div>
-   <p class="tiny muted" style="margin:0">${done?`Again ${a} · Hard ${hd} · Good ${g} · Easy ${e}`:"Nothing graded yet"}${rl?` · ${rl} coming back to relearn`:""}</p></section>${card}
-   <p class="tiny muted rp-keys">Keys: <kbd>Space</kbd> reveal · <kbd>1</kbd>–<kbd>4</kbd> grade · <kbd>U</kbd> undo · <kbd>Esc</kbd> leave</p>`;}
+   <p class="tiny muted" style="margin:0">${done?`Again ${a} · Hard ${hd} · Good ${g} · Easy ${e}`:"Nothing graded yet"}${rl?` · ${rl} coming back to relearn`:""}</p>${left}</section>${card}
+   <p class="tiny muted rp-keys">Keys: <kbd>Space</kbd> reveal · <kbd>1</kbd>–<kbd>4</kbd> grade · <kbd>H</kbd> hint · <kbd>U</kbd> undo · <kbd>Esc</kbd> leave</p>`;}
 function rpDrill(){const d=DRILLS.find(x=>x.id===DR.id);if(!d)return "";const cats=DR.cats||[];const m=cats.filter(c=>drStat(c.key).m).length;
   const heart=d.real?d.real==="heart":SOUNDS[(cats[0]||{}).key]&&SOUNDS[cats[0].key].kind==="heart";const target=heart?DR_TARGET.heart:DR_TARGET.lung;
   let fb="";if(DR.phase==="fb"&&DR.cur){const k=DR.cur.cat.key,s=SOUNDS[k];fb=`<div class="card stack" style="gap:8px"><span class="label">That sound</span><b style="font-family:var(--f-display);font-size:1.2rem">${esc(DR.cur.cat.label)}</b>${s&&s.timing?`<p class="small muted" style="margin:0">${esc(s.timing)}${s.area?` · ${esc(s.area)}`:""}</p>`:""}${s&&s.diff?`<div><span class="label">Tell it apart</span><p class="small">${esc(s.diff)}</p></div>`:""}${s&&s.mech?`<div><span class="label">Why it sounds like that</span><p class="small">${esc(s.mech)}</p></div>`:""}</div>`;}
   return `<section class="rp-sec"><span class="label">This drill</span><b class="rp-big">${esc(d.name)}</b><div class="meter"><i style="width:${Math.round(m/Math.max(1,cats.length)*100)}%"></i></div>
    <p class="tiny muted" style="margin:0">${m} of ${cats.length} mastered${DR.n?` · ${DR.n} trials, ${Math.round(DR.right/DR.n*100)}% correct`:""} · answer within ${target} s to count</p></section>${fb}
    <p class="tiny muted rp-keys">Keys: <kbd>Space</kbd> play or pause · <kbd>1</kbd>–<kbd>9</kbd> answer · <kbd>Enter</kbd> next</p>`;}
-function rpHall(hid){const h=HALL[hid],chs=OUTLINE[hid]||[];let due=0;try{due=dueCards().filter(c=>cardHall(c)===hid).length;}catch(e){}
+function rpHall(hid){const chs=OUTLINE[hid]||[];let due=0;try{due=typeof hallDue==="function"?hallDue(hid):dueCards().filter(c=>cardHall(c)===hid).length;}catch(e){}
   return `${rpQuip(GALEN.hall[hid])}<section class="rp-sec"><span class="label">The outline · where you are</span><nav class="rp-toc" aria-label="Chapters of this hall">${chs.map((c,i)=>`<button class="rp-chap${i===RP.chap?" on":""}" data-rp-chap="${i}"${i===RP.chap?' aria-current="true"':""}><span class="cn">${ROMAN[i]||i+1}</span><span>${esc(c.t)}</span></button>`).join("")}</nav></section>
    <div class="card stack" style="gap:8px"><span class="label">This hall</span><b class="rp-big">${due?`${due} card${due>1?"s":""} due here`:"Nothing due in this hall"}</b><button class="btn sm soft" data-go="practice/session/hall:${hid}">${ic("play")}${due?"Review this hall":"Learn from this hall"}</button></div>${rpRecentHTML()}`;}
 function rpSignCtx(id){const hid=signHall(id),h=hid&&HALL[hid],tech=rpTechFor(id),ls=rpStories(id,hid);
@@ -85,7 +86,7 @@ function rpTechCtx(id){const t=TECH.find(x=>x.id===id);if(!t)return rpGeneric();
    ${others.length?`<section class="rp-sec"><span class="label">Same clinic room</span><div class="chips">${others.map(rpTechBtn).join("")}</div></section>`:""}${rpRecentHTML(["tech",id])}`;}
 function rpLoreCtx(id){const l=typeof loreById==="function"?loreById(id):null;if(!l)return rpGeneric();const sg=(l.signs||[]).filter(k=>SIGNS[k]);const h=HALL[l.hall];
   return `${sg.length?`<section class="rp-sec"><span class="label">The signs in this story</span><div class="chips">${sg.map(rpSignBtn).join("")}</div></section>`:""}${h?`<section class="rp-sec"><span class="label">Its hall</span>${rpHallRow(h)}</section>`:""}${rpRecentHTML()}`;}
-function rpHome(){let rows=[];try{const by={};dueCards().forEach(c=>{const h=cardHall(c)||"table";by[h]=(by[h]||0)+1;});rows=HALLS.filter(h=>by[h.id]).map(h=>[h,by[h.id]]);}catch(e){}
+function rpHome(){let rows=[];try{if(typeof hallDue==="function")rows=HALLS.map(h=>[h,hallDue(h.id)]).filter(x=>x[1]);else{const by={};dueCards().forEach(c=>{const h=cardHall(c)||"table";by[h]=(by[h]||0)+1;});rows=HALLS.filter(h=>by[h.id]).map(h=>[h,by[h.id]]);}}catch(e){}
   const found=typeof EGGS!=="undefined"&&typeof eggFound==="function"?EGGS.filter(e=>eggFound(e.id)).length:0;
   return `<section class="rp-sec"><span class="label">Due by hall</span>${rows.length?`<div class="rp-due">${rows.map(([h,n])=>`<button class="rp-dueh" data-go="practice/session/hall:${h.id}"><span class="emb" aria-hidden="true"><svg viewBox="0 0 64 64">${EMB[h.id]||""}</svg></span><span class="tx">${esc(h.short||h.n)}</span><b>${n}</b></button>`).join("")}</div>`:`<p class="small muted" style="margin:0">Nothing due in any hall today. New cards come from the hall you open next.</p>`}</section>
    ${rpRecentHTML()||`<section class="rp-sec"><span class="label">Recently opened here</span><p class="small muted" style="margin:0">Signs and techniques you open beside a lesson, drill or case collect here.</p></section>`}
@@ -96,7 +97,7 @@ function rpGeneric(){const rk=rpRouteKey();let due=0;try{due=dueCards().length;}
 function rpContext(){const r=cur(),key=NAV.tab+":"+r.v;
   if(key==="practice:session"&&typeof SES!=="undefined"&&SES&&!SES.finished&&SES.queue[SES.i])return ["Beside this card",rpSession()];
   if(key==="practice:drill"&&r.a&&typeof DR!=="undefined"&&DR&&DR.id===r.a&&DR.phase!=="intro"&&DR.phase!=="done")return ["Beside this drill",rpDrill()];
-  if(key==="learn:hall"&&HALL[r.a])return ["Hall outline",rpHall(r.a)];
+  if((key==="learn:hall"||key==="today:hall")&&HALL[r.a])return ["Hall outline",rpHall(r.a)];
   if(key==="signs:sign"&&SIGNS[r.a])return ["Around this sign",rpSignCtx(r.a)];
   if(key==="learn:tech"&&r.a&&typeof TECH!=="undefined")return ["Around this technique",rpTechCtx(r.a)];
   if(key==="learn:lore"&&r.a)return ["Around this story",rpLoreCtx(r.a)];
@@ -136,7 +137,7 @@ document.addEventListener("click",e=>{
   if(e.target.closest("[data-rp-full]")){RP.pin=null;RP.peek=false;setTimeout(()=>rpRender(true),0);return;}
   if(!wide())return;const g=e.target.closest("[data-go]");if(!g||pane||g.closest(".pal-back,.helpov,.sheet-wrap"))return;
   const p=g.dataset.go.split("/"),r=cur();
-  const inStudy=NAV.tab==="practice"||(NAV.tab==="learn"&&r.v!=="hall"&&r.v!=="home"&&r.v!=="codex")||(NAV.tab==="today"&&r.v!=="home");
+  const inStudy=r.v!=="hall"&&(NAV.tab==="practice"||(NAV.tab==="learn"&&r.v!=="home"&&r.v!=="codex")||(NAV.tab==="today"&&r.v!=="home"));
   if(!inStudy)return;
   if(p[0]==="signs"&&p[1]==="sign"&&SIGNS[p[2]]){e.preventDefault();e.stopImmediatePropagation();rpPin("sign",p[2]);}
   /* a link back to the technique you are already practising still navigates */
