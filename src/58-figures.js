@@ -39,12 +39,12 @@ ajr:{t:"Abdominojugular reflux",c:"Firm abdominal pressure returns splanchnic bl
  ${P.r(204,120,18,46,"var(--vein)","none",6)}${P.r(254,70,18,96,"var(--vein)","none",6)}
  ${P.T(213,186,"Before","middle")}${P.T(263,186,"After 10 s","middle")}${P.ar(232,118,248,78,"var(--accent)",1.8)}
  ${P.t(312,30,"rise ≥ 3 cm, sustained","end","fa")}`},
-pulsus:{t:"Pulsus paradoxus",c:"On inspiration the right ventricle fills, the septum bulges left in the fixed pericardial space, and LV stroke volume and systolic pressure fall by more than 12 mmHg.",
+pulsus:{t:"Pulsus paradoxus",c:"On inspiration the right ventricle fills, the septum bulges left in the fixed pericardial space, and LV stroke volume and systolic pressure fall. A fall of more than 10 mmHg is the usual threshold; more than 12 mmHg is more specific but less sensitive.",
  s:()=>{const pk=(u,i)=>{const b=(u*6)%1,beat=Math.exp(-Math.pow((b-.25)/.09,2))*.9+Math.exp(-Math.pow((b-.5)/.08,2))*.25;const k=Math.floor(u*6);const d=(k===2||k===3)?.62:1;return beat*d;};
   return `${P.r(118,24,92,150,"var(--insp)","none",0).replace("fill","fill-opacity=\".1\" fill")}${P.t(164,36,"INSPIRATION","middle","fa2")}
   ${P.pa(P.wave(pk,20,300,160,120,1.2),"none","var(--artery)",2)}
   ${P.ln(20,52,300,52,"var(--muted)",1,"4 3")}${P.t(304,55,"systolic first heard","end")}${P.ln(20,84,300,84,"var(--accent)",1,"4 3")}${P.t(304,96,"heard in every beat","end","fa")}
-  ${P.ar(110,55,110,82,"var(--accent)",1.6)}${P.t(104,72,"> 12 mmHg","end","fa")}${P.t(20,186,"Deflate slowly: the gap between the levels is the paradox")}`;}},
+  ${P.ar(110,55,110,82,"var(--accent)",1.6)}${P.t(104,72,"> 10 mmHg","end","fa")}${P.t(20,186,"Deflate slowly: the gap between the levels is the paradox")}`;}},
 "pulse-shapes":{t:"Arterial pulse character",c:"The aortic valve and the left ventricle shape the carotid pulse: a slow, small rise in aortic stenosis; a sharp rise and collapse in aortic regurgitation.",
  s:()=>{const N=u=>Math.exp(-Math.pow((u-.25)/.08,2))*.95+.25*Math.exp(-Math.pow((u-.55)/.1,2));
   const AS=u=>.55*Math.exp(-Math.pow((u-.45)/.17,2));const AR=u=>(u<.18?u/.18:Math.exp(-(u-.18)*5.5))*1.0;
@@ -209,9 +209,9 @@ homunculus:{t:"The motor strip and its arteries",c:"In a coronal slice, the leg 
 rinne:{t:"Rinne and Weber",c:"Bone conduction bypasses the middle ear. Conductive loss: bone louder than air (Rinne negative) and Weber lateralises to the bad ear. Sensorineural loss: Weber goes to the good ear.",
  s:()=>`${P.e(90,100,40,56,"var(--skin)","var(--line)")}${P.pa("M60 76 L60 130","none","var(--ink)",2)}${P.pa("M120 92 q14 8 0 20","none","var(--line)",2)}${P.r(138,66,6,40,"var(--muted)","none",2)}${P.r(150,66,6,40,"var(--muted)","none",2)}${P.t(150,120,"air","middle")}${P.r(110,130,8,30,"var(--muted)","none",2)}${P.t(104,194,"bone (mastoid)","middle")}
  ${P.e(240,100,40,56,"var(--skin)","var(--line)")}${P.r(236,26,8,30,"var(--muted)","none",2)}${P.t(240,20,"vertex","middle")}${P.ar(240,70,212,110,"var(--accent)",1.6)}${P.t(240,176,"Weber: goes to conductive side","middle")}`},
-tm:{t:"Tympanic membrane (right ear)",c:"Handle of the malleus runs down and back to the umbo; the cone of light points antero-inferiorly. Bulging with loss of landmarks is otitis media; the attic (pars flaccida) is where cholesteatoma starts.",
- s:()=>`${P.c(160,100,72,"var(--skin)","var(--line)",2)}${P.pa("M152 40 L170 104","none","var(--ink)",4)}${P.c(170,104,4,"var(--ink)","none")}${P.pa("M176 112 L214 150 L196 156 Z","var(--surface)","none")}${P.r(128,32,48,16,"var(--accent-soft)","none",8)}
- ${P.t(152,26,"pars flaccida (attic)","middle")}${P.t(232,162,"cone of light")}${P.t(176,96,"umbo")}${P.t(96,60,"malleus")}`},
+tm:{t:"Tympanic membrane (right ear)",c:"Seen through the otoscope, the right drum has its front (anterior) on your right. The handle of the malleus runs from the lateral process at about 1 o'clock down and back to the umbo; the cone of light points antero-inferiorly, at about 5 o'clock in a right ear (7 o'clock in a left). Bulging with loss of landmarks is otitis media; the attic (pars flaccida) is where cholesteatoma starts.",
+ s:()=>`${P.c(160,100,72,"var(--skin)","var(--line)",2)}${P.pa("M150 34 Q170 26 192 36 L184 46 Q168 40 156 44 Z","var(--accent-soft)","var(--accent)",1)}${P.pa("M182 46 L162 102","none","var(--ink)",4)}${P.c(183,44,4,"var(--ink)","none")}${P.c(162,104,4,"var(--ink)","none")}${P.pa("M168 112 L206 152 L190 160 Z","var(--surface)","none")}
+ ${P.t(170,20,"pars flaccida (attic)","middle")}${P.t(196,52,"lateral process","start")}${P.t(118,74,"handle of malleus","end")}${P.ln(120,72,170,80,"var(--muted)",1,"2 2")}${P.t(150,112,"umbo","end")}${P.t(212,172,"cone of light (5 o'clock)","middle")}${P.t(296,100,"anterior","end","fb")}${P.t(24,100,"posterior","start","fb")}`},
 thyroid:{t:"Thyroid and the larynx",c:"The isthmus lies over tracheal rings 2–4 below the cricoid. The gland is invested in pretracheal fascia attached to the larynx, so it rises when the patient swallows.",
  s:()=>`${P.r(140,20,40,30,"var(--bone)","var(--bone-line)",8)}${P.t(186,38,"thyroid cartilage")}${P.r(146,54,28,12,"var(--bone)","var(--bone-line)",6)}${P.t(186,64,"cricoid")}${P.r(148,70,24,110,"var(--surface2)","var(--line)",6)}
  ${P.e(126,104,18,34,"var(--artery)","none")}${P.e(194,104,18,34,"var(--artery)","none")}${P.r(140,94,40,16,"var(--artery)","none",6)}${P.t(60,108,"lobes","start")}${P.ar(230,130,230,96)}${P.t(316,152,"rises on swallowing","end")}`},
@@ -224,8 +224,8 @@ nodes:{t:"Cervical lymph node levels",c:"I submental and submandibular, II–IV 
  ${P.pa("M150 96 m60 0 a60 60 0 0 0 -30 -52","none","var(--good)",6)}${P.pa("M150 96 m-30 -52 a60 60 0 0 0 -42 -6","none","var(--bad)",6)}${P.pa("M150 96 m-72 -58 a60 60 0 0 0 -0 0","none","var(--good)",6)}
  ${P.t(230,120,"0–60° painless")}${P.T(60,24,"60–120° painful")}${P.t(20,64,"> 120°: AC joint")}`},
 cuff:{t:"Rotator cuff and its tests",c:"Supraspinatus (empty can, drop arm), infraspinatus and teres minor (external rotation, lag sign), subscapularis (lift-off, belly press). They compress the humeral head into the glenoid so deltoid can elevate the arm.",
- s:()=>`${P.c(160,100,44,"var(--bone)","var(--bone-line)")}${P.mus("M126 64 Q160 36 200 58 L192 70 Q160 54 132 74 Z")}${P.T(204,52,"Supraspinatus")}${P.t(204,64,"empty can · drop arm")}
- ${P.mus("M206 92 Q228 110 212 140 L200 132 Q210 112 196 98 Z")}${P.T(222,108,"Infraspinatus +")}${P.T(222,120,"teres minor")}${P.t(222,132,"ER strength, lag")}${P.mus("M116 92 Q96 116 112 144 L124 136 Q112 116 126 100 Z")}${P.T(20,112,"Subscapularis")}${P.t(20,124,"lift-off · belly press")}
+ s:()=>`${P.c(160,100,44,"var(--bone)","var(--bone-line)")}${P.mus("M126 64 Q160 36 200 58 L192 70 Q160 54 132 74 Z")}${P.T(204,48,"Supraspinatus")}${P.t(204,62,"empty can · drop arm")}
+ ${P.mus("M206 92 Q228 110 212 140 L200 132 Q210 112 196 98 Z")}${P.T(222,104,"Infraspinatus +")}${P.T(222,118,"teres minor")}${P.t(222,132,"ER strength, lag")}${P.mus("M116 92 Q96 116 112 144 L124 136 Q112 116 126 100 Z")}${P.T(12,104,"Subscapularis")}${P.t(12,118,"lift-off,")}${P.t(12,130,"belly press")}
  ${P.t(160,104,"humeral head","middle")}`},
 "er-lag":{t:"External rotation lag sign",c:"Passively rotate the forearm outward, support the elbow, release the wrist. A torn infraspinatus/supraspinatus can't hold the position and the forearm drifts back toward the abdomen.",
  s:()=>`${P.c(160,40,12,"var(--skin)","var(--line)")}${P.pa("M160 52 L160 130","none","var(--line)",14)}${P.pa("M174 62 L180 120","none","var(--skin)",12)}${P.pa("M180 120 L260 112","none","var(--skin)",11)}${P.pa("M180 120 L232 160","none","var(--skin)",11,'stroke-opacity=".45"')}
@@ -266,7 +266,7 @@ effusion:{t:"Bulge sign and patellar tap",c:"Stroke fluid up the medial side int
  s:()=>`${P.e(160,100,70,86,"var(--skin)","var(--line)")}${P.e(160,96,26,30,"var(--bone)","var(--bone-line)")}${P.pa("M120 40 Q160 20 200 40 Q190 60 160 62 Q130 60 120 40 Z","var(--fluid)","none")}${P.t(316,26,"suprapatellar pouch","end")}
  ${P.ar(118,150,118,70)}${P.ar(204,70,204,150,"var(--vein)",2)}${P.t(60,110,"1. stroke up")}${P.t(212,120,"2. stroke down")}`},
 ottawa:{t:"Ottawa ankle and foot rules",c:"X-ray if there is malleolar-zone pain plus bone tenderness at the posterior edge or tip of either malleolus (distal 6 cm), or inability to bear weight for four steps. Foot: navicular or base of 5th metatarsal.",
- s:()=>`${P.pa("M120 20 L170 20 L172 120 Q176 150 220 156 L296 160 Q306 176 290 184 L130 184 Q112 180 116 150 Z","var(--skin)","var(--line)")}${P.pa("M164 60 L168 128","none","var(--accent)",6)}${P.c(168,132,8,"var(--accent)","none")}${P.T(178,72,"Posterior edge,")}${P.T(178,84,"distal 6 cm")}
+ s:()=>`${P.pa("M120 20 L170 20 L172 120 Q176 150 220 156 L296 160 Q306 176 290 184 L130 184 Q112 180 116 150 Z","var(--skin)","var(--line)")}${P.pa("M164 60 L168 128","none","var(--accent)",6)}${P.c(168,132,8,"var(--accent)","none")}${P.T(178,70,"Posterior edge,")}${P.T(178,84,"distal 6 cm")}
  ${P.c(238,166,7,"var(--vein)","none")}${P.t(218,196,"5th MT base")}${P.c(150,150,7,"var(--vein)","none")}${P.t(84,150,"navicular")}`},
 "ankle-drawer":{t:"Ankle anterior drawer",c:"The ATFL is the first ligament torn in inversion. Draw the heel forward with the tibia stabilised; excess translation or a dimple at the front of the lateral ankle means rupture. Best at 4–5 days.",
  s:()=>`${P.bone(140,20,146,110,20)}${P.c(150,124,18,"var(--bone)","var(--bone-line)")}${P.pa("M160 112 L188 128","none","var(--accent)",4)}${P.t(194,124,"ATFL")}${P.pa("M120 140 L272 150","none","var(--skin)",22)}${P.ar(110,160,140,160)}${P.t(40,180,"draw heel forward")}`},
@@ -278,8 +278,39 @@ foot:{t:"Diabetic foot screen",c:"10 g monofilament at the plantar big toe and 1
  s:()=>`${P.pa("M120 30 Q170 10 200 40 Q214 80 206 130 Q200 184 160 188 Q118 186 116 140 Q110 90 120 30 Z","var(--skin)","var(--line)")}${[[150,40],[132,70],[160,70],[192,74]].map(([x,y])=>P.c(x,y,7,"var(--accent-soft)","var(--accent)")).join("")}${P.t(214,44,"big toe")}${P.t(214,80,"metatarsal heads")}${P.pa("M60 70 L110 70 M60 70 Q60 40 70 30","none","var(--ink)",2)}${P.t(20,96,"10 g")}`}
 };
 const FIG_USED=new Set();Object.values(SIGNS).forEach(s=>{if(s.fig)FIG_USED.add(s.fig);});
+/* Figures can teach in layers. A figure may add L:[{l:"short label",c:"what to notice",s:()=>svg,bad:true,hide:true}] and mode:
+   "solo" (show one layer at a time over the base), "dim" (layers sit side by side; the others fade) or "build" (layers add up in order).
+   "bad" marks a common-mistake drawing (drawn in red, hidden from the "All" view when hide:true). In small or caption-less
+   contexts (cards, sketch reveal) the "All" view is drawn with no controls. */
+function figLayers(f){return Array.isArray(f.L)?f.L:[];}
 function fig(id,opt={}){
   const f=FIG[id];if(!f)return "";
-  let inner="";try{inner=f.s();}catch(e){console.warn("figure",id,e);return "";}
-  return `<figure class="fig${opt.small?" small":""}"><svg viewBox="0 0 320 200" role="img" aria-label="${esc(f.t)}">${inner}</svg>${opt.nocap?"":`<figcaption><b>${esc(f.t)}.</b> ${esc(f.c)}${opt.nosketch?"":` <button class="link small" data-sketch="${id}" data-title="${esc(f.t)}">Draw it from memory</button>`}</figcaption>`}</figure>`;
+  let inner="",lay="";const L=figLayers(f);
+  try{inner=f.s();lay=L.map((x,i)=>`<g class="fly${x.bad?" fbad":""}" data-ly="${i}"${x.hide?' data-hide="1" style="display:none"':""}>${x.s()}</g>`).join("");}catch(e){console.warn("figure",id,e);return "";}
+  const ctl=L.length&&!opt.small&&!opt.nocap;
+  const bar=ctl?`<div class="fly-bar" role="toolbar" aria-label="Figure steps"><button type="button" class="fly-b on" data-fly="all" aria-pressed="true">All</button>${L.map((x,i)=>`<button type="button" class="fly-b${x.bad?" bad":""}" data-fly="${i}" aria-pressed="false" aria-label="${x.bad?"Common mistake":`Step ${i+1}`}: ${esc(x.l)}" title="${esc(x.l)}"><span class="n">${x.bad?"✗ Mistake":i+1}</span><span class="lb">${x.bad?": ":" "}${esc(x.l)}</span></button>`).join("")}<button type="button" class="fly-b play" data-fly="play" aria-label="Play the steps">▶</button></div><p class="fly-c small" aria-live="polite">${esc(f.hint||"Tap a step to see it on its own.")}</p>`:"";
+  return `<figure class="fig${opt.small?" small":""}${ctl?" fig-ly":""}" data-fig="${id}" data-mode="${f.mode||"solo"}"><svg viewBox="0 0 320 200" role="img" aria-label="${esc(f.t)}">${inner}${lay}</svg>${bar}${opt.nocap?"":`<figcaption><b>${esc(f.t)}.</b> ${esc(f.c)}${opt.nosketch?"":` <button class="link small" data-sketch="${id}" data-title="${esc(f.t)}">Draw it from memory</button>`}</figcaption>`}</figure>`;
+}
+/* show one layer (k = index) or the "All" view (k = "all") */
+function figShow(fg,k){
+  const f=FIG[fg.dataset.fig];if(!f)return;const L=figLayers(f),mode=fg.dataset.mode||"solo";
+  fg.querySelectorAll("g.fly").forEach(g=>{const i=+g.dataset.ly;let show,dim=false;
+    if(k==="all"){show=!g.dataset.hide;}
+    else if(L[k]&&L[k].bad)show=i===k;
+    else if(mode==="build"){show=i<=k&&(!g.dataset.hide||i===k);}
+    else if(mode==="dim"){show=!g.dataset.hide||i===k;dim=i!==k;}
+    else show=i===k;
+    g.style.display=show?"":"none";g.style.opacity=dim?".16":"";});
+  fg.querySelectorAll(".fly-b[data-fly]").forEach(b=>{const on=b.dataset.fly===String(k);b.classList.toggle("on",on);if(b.dataset.fly!=="play")b.setAttribute("aria-pressed",on?"true":"false");});
+  const c=fg.querySelector(".fly-c");if(c){const x=k==="all"?null:L[k];c.innerHTML=x?`<b>${x.bad?"Common mistake":`Step ${k+1}`}: ${esc(x.l)}.</b> ${esc(x.c||"")}`:esc(f.hint||"Tap a step to see it on its own.");}
+  fg.dataset.on=String(k);
+}
+const FigPlay={t:null,fg:null,stop(){clearTimeout(this.t);this.t=null;if(this.fg){const b=this.fg.querySelector('[data-fly="play"]');if(b){b.textContent="▶";b.setAttribute("aria-label","Play the steps");}}this.fg=null;},
+  start(fg){this.stop();const f=FIG[fg.dataset.fig];const idx=figLayers(f).map((x,i)=>x.bad?-1:i).filter(i=>i>=0);if(!idx.length)return;this.fg=fg;let n=0;
+    const b=fg.querySelector('[data-fly="play"]');if(b){b.textContent="❚❚";b.setAttribute("aria-label","Pause");}
+    const go=()=>{if(!document.body.contains(fg)){this.stop();return;}if(n>=idx.length){figShow(fg,"all");this.stop();return;}figShow(fg,idx[n++]);this.t=setTimeout(go,2600);};go();}};
+if(typeof document!=="undefined"&&document.addEventListener){
+  document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest(".fly-b");if(!b)return;const fg=b.closest(".fig-ly");if(!fg)return;e.preventDefault();
+    const k=b.dataset.fly;if(k==="play"){if(FigPlay.fg===fg)FigPlay.stop();else FigPlay.start(fg);return;}FigPlay.stop();figShow(fg,k==="all"?"all":+k);});
+  document.addEventListener("keydown",e=>{const b=e.target.closest&&e.target.closest(".fly-bar");if(!b||(e.key!=="ArrowRight"&&e.key!=="ArrowLeft"))return;const bs=[...b.querySelectorAll(".fly-b")];const i=bs.indexOf(e.target);if(i<0)return;e.preventDefault();const n=bs[(i+(e.key==="ArrowRight"?1:bs.length-1))%bs.length];n.focus();});
 }

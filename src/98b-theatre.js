@@ -11,7 +11,8 @@ IC.door='<path d="M6 21V9a6 6 0 0 1 12 0v12M4 21h16"/><circle cx="14.5" cy="14" 
 IC.pad='<rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 10.5v4M5 12.5h4"/><circle cx="16" cy="11.5" r="1"/><circle cx="18.5" cy="14" r="1"/>';
 
 /* ---------- device preferences ---------- */
-const TP=(()=>{const wide=matchMedia("(min-width:980px)").matches;const d={amb:wide?1:0,music:wide?1:0,tones:1,vol:.55,size:"m",seen:0};
+/* sound starts off on every device: the theatre never surprises a work PC (t01#29); Settings turns it on */
+const TP=(()=>{const d={amb:0,music:0,tones:1,vol:.55,size:"m",seen:0};
   try{return Object.assign(d,JSON.parse(localStorage.getItem("galen.theatre")||"{}"));}catch(e){return d;}})();
 function tpSave(){try{localStorage.setItem("galen.theatre",JSON.stringify(TP));}catch(e){}}
 function applySize(){document.documentElement.dataset.size=TP.size||"m";}
@@ -40,77 +41,171 @@ function medal(size){const u="md"+(++MEDAL_N);const beads=[...Array(36)].map((_,
   </g></svg>`;}
 function timeSlot(){const h=new Date().getHours();return h>=0&&h<5?"night":h<12?"morning":h<17?"afternoon":h<22?"evening":"night";}
 function daySeed(){const d=new Date();return d.getFullYear()*400+d.getMonth()*32+d.getDate();}
+const FIRST_LINE=[null,"So. Another student. I am Galen of Pergamon, physician to emperors. Sit down; we begin at the table."];
+function isFirstRun(){return !Store.s.notes.welcome&&!Object.keys(Store.s.srs).length;}
 function galenFor(ctx){
   if(ctx==="home"){
+    const hr=new Date().getHours();if(hr<5&&!isFirstRun())setTimeout(()=>findEgg("night",true),2500);
+    if(isFirstRun())return FIRST_LINE;
     const bd=BIRTHDAYS[fmtDate(Date.now()).slice(0,5)];if(bd){if(bd[0]==="Babinski")setTimeout(()=>findEgg("birthday",true),1500);return [null,bd[1]];}
-    if(!TP.seen){return GALEN.first[0];}
     const last=Store.s.last||0;if(last&&Date.now()-last>4*DAY_MS)return galenPick(GALEN.back,daySeed());
     try{const p=Hub.todayFromPlan();if(p&&p.afterNight)return galenPick(GALEN.afterNight,daySeed());}catch(e){}
-    if(timeSlot()==="night"){setTimeout(()=>findEgg("night",true),2500);}
-    const pool=GALEN[timeSlot()].concat(GALEN.idle);return galenPick(pool,daySeed()+new Date().getHours());}
+    const pool=GALEN[timeSlot()].concat(GALEN.idle);return galenPick(pool,daySeed()+hr);}
   if(GALEN.hall[ctx])return GALEN.hall[ctx];
   return galenPick(GALEN.idle,daySeed());
 }
-function guideHTML(line,opt={}){const [la,en]=line;return `<div class="guide${opt.small?" small":""}"><button class="medal" data-egg-medal aria-label="Galen">${medal()}</button><div class="say"><span class="who">Galen says</span>${la?`<span class="latin">${esc(la)}</span>`:""}<span class="line">${esc(en)}</span></div></div>`;}
+function guideHTML(line,opt={}){const [la,en]=line;return `<div class="guide${opt.small?" small":""}"><button class="medal" data-egg-medal aria-label="Galen of Pergamon, portrait">${medal()}</button><div class="say"><span class="who">Galen says</span>${la?`<span class="latin">${esc(la)}</span>`:""}<span class="line">${esc(en)}</span></div></div>`;}
 
-/* quips: the top bar title borrows Galen's voice for a moment, so nothing on the page is covered */
+/* ================= PROGRESS: chapters, halls, where you left off =================
+   Mastery is computed from the cards (Store.s.srs). The only new state is two small timestamped notes, which merge per record:
+   notes.place {t,h,i}: the chapter you were last in · notes["hall:"+id] {t}: you have read this hall's story · notes.welcome {t}. */
+const ROMAN=["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"];
+const SEAL_AT=.8;/* a chapter or hall is sealed when 80% of its cards are held a week or more */
+let _CC=null,_CCN=-1,_CCO=-1;
+function chapMap(){if(!CARDS)buildCards();const no=Object.values(OUTLINE).reduce((a,c)=>a+c.length,0);
+  if(_CC&&_CCN===CARDS.length&&_CCO===no)return _CC;const m={};
+  for(const [h,cs] of Object.entries(OUTLINE))cs.forEach((c,i)=>{const k=h+":"+i,set=m[k]=new Set();
+    const sg=new Set(c.signs||[]),tc=new Set(c.tech||[]),pr=new Set(c.pres||[]),sd=new Set(c.sounds||[]);
+    CARDS.forEach(x=>{const t=x.type;
+      if((t==="think"||t==="verdict"||t==="mech"||t==="snsp"||t==="teach")&&sg.has(x.ref))set.add(x.id);
+      else if((t==="twhy"||t==="terr")&&tc.has(x.ref[0]))set.add(x.id);
+      else if(t==="hlr"&&pr.has(x.ref[0]))set.add(x.id);
+      else if(t==="red"&&pr.has(x.ref))set.add(x.id);
+      else if(t==="sound"&&sd.has(x.ref))set.add(x.id);});});
+  CARDS.forEach(x=>{const ch=cardChapter(x);if(ch){const k=ch[0]+":"+ch[1];if(m[k])m[k].add(x.id);}});
+  /* anything new that no chapter links yet goes to the chapter of its hall whose words it shares most */
+  const inAny=new Set();Object.values(m).forEach(st=>st.forEach(id=>inAny.add(id)));
+  const words=t=>new Set(String(t||"").toLowerCase().split(/[^a-z0-9]+/).filter(w=>w.length>3&&!STOPW.has(w)));
+  const chW={};for(const [h,cs] of Object.entries(OUTLINE))chW[h]=cs.map(c=>words([c.t,c.aim,c.master.join(" "),c.trap,c.pearl,(c.signs||[]).map(k=>SIGNS[k]?SIGNS[k].name+" "+SIGNS[k].target:"").join(" ")].join(" ")));
+  CARDS.forEach(x=>{if(inAny.has(x.id))return;const h=cardHall(x);if(!chW[h])return;
+    const it=itemText(x),w=words(it);let best=0,bi=0;chW[h].forEach((cw,i)=>{let n=0;w.forEach(t=>{if(cw.has(t))n++;});if(n>best){best=n;bi=i;}});m[h+":"+bi].add(x.id);});
+  _CC=m;_CCN=CARDS.length;_CCO=no;return m;}
+const STOPW=new Set("with that this from have when what your their there which about into than then they them were will been only also more most over does each after before".split(" "));
+function itemText(x){const t=x.type;try{
+  if(t==="think"||t==="verdict"||t==="mech"||t==="snsp"||t==="teach"){const s=SIGNS[x.ref];return s?s.name+" "+s.target+" "+(s.think||""):x.label;}
+  if(t==="hlr"||t==="red"){const p=HIST.pres.find(y=>y.id===(Array.isArray(x.ref)?x.ref[0]:x.ref));return p?p.name+" "+(p.dd||[]).join(" "):x.label;}
+  if(t==="lore"||t==="lsign"){const l=LORE.find(y=>y.id===x.ref);return l?l.t+" "+l.sum+" "+(l.body||[]).join(" "):x.label;}}catch(e){}
+  return x.label||"";}
+function chapCardIds(h,i){return (chapMap()[h+":"+i])||new Set();}
+function chapMastery(h,i){const ids=[...chapCardIds(h,i)];if(!ids.length)return null;return masteryOf(ids);}
+/* scoped sessions: the set of card ids in "hall:<id>" or "chap:<hall>:<i>", null for any other scope */
+function scopeIds(sys){sys=String(sys||"");
+  if(sys.startsWith("chap:")){const [,h,i]=sys.split(":");if(!OUTLINE[h]||!OUTLINE[h][+i])return new Set();return chapCardIds(h,+i);}
+  if(sys.startsWith("hall:")){const h=sys.slice(5);return HALL[h]?new Set(hallCardIds(h)):new Set();}
+  return null;}
+function hallDue(h){const ids=new Set(hallCardIds(h));return dueCards().filter(c=>ids.has(c.id)).length;}
+function chapState(h,i){const m=chapMastery(h,i);return {m,sealed:!!(m&&m.pct>=SEAL_AT),started:!!(m&&m.seen)};}
+function hallChapters(h){return (OUTLINE[h]||[]).map((c,i)=>chapState(h,i));}
+function sealedCount(h){return hallChapters(h).filter(x=>x.sealed).length;}
+function place(){const p=Store.s.notes.place;return p&&HALL[p.h]?p:null;}
+function setPlace(h,i){const p=place();if(p&&p.h===h&&p.i===i&&Date.now()-p.t<6e4)return;Store.s.notes.place={t:Date.now(),h,i};Store.save();}
+/* the next chapter to study in a hall: where you were, else the first chapter not yet sealed */
+function nextChap(h){const cs=OUTLINE[h]||[];if(!cs.length)return -1;const p=place(),st=hallChapters(h);
+  if(p&&p.h===h&&p.i!=null&&cs[p.i]&&!st[p.i].sealed)return p.i;
+  const i=st.findIndex(x=>!x.sealed&&x.m);return i<0?0:i;}
+/* what a door looks like: the bar, then a candle, then gilt, then a seal */
+function hallStage(m){return m.pct>=SEAL_AT?4:m.pct>=.5?3:m.pct>=.25?2:m.pct>0||m.seen?1:0;}
+const STAGE_WORD=["not started","begun","a candle lit","gilded","sealed"];
+
 /* ================= THE THEATRE (home) ================= */
 function ellPt(cx,cy,rx,ry,a){return [cx+rx*Math.cos(a),cy+ry*Math.sin(a)];}
-function theatreSVG(){
-  const cx=210,cy=176;let s="";
-  /* tiers with balustrades and a faint crowd */
+function narrowTheatre(){return matchMedia("(max-width:560px)").matches;}
+function theatreSVG(opt={}){
+  const nar=narrowTheatre();
+  /* on a phone the ring is taller, so every door gets a target of at least 44 px */
+  const W=420,H=nar?436:364,cx=210,cy=nar?216:180,DRX=nar?176:190,DRY=nar?166:132,tk=nar?.72:.6;let s="";
   let seed=7;const rnd=()=>(seed=(seed*9301+49297)%233280)/233280;
-  [64,86,108,130,152,172].forEach((rx,ti)=>{const ry=rx*.6;s+=`<ellipse class="tier" cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" stroke-width="${ti===5?1.6:1}"/>`;
+  [64,86,108,130,152,172].forEach((rx,ti)=>{const ry=rx*tk;s+=`<ellipse class="tier" cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" stroke-width="${ti===5?1.6:1}"/>`;
     if(ti>0){const n=Math.round(rx/3.2);for(let k=0;k<n;k++){const a=k/n*Math.PI*2,[x,y]=ellPt(cx,cy,rx-4,ry-3,a);s+=`<line class="rail" x1="${x.toFixed(1)}" y1="${y.toFixed(1)}" x2="${x.toFixed(1)}" y2="${(y-4).toFixed(1)}" stroke-width=".8"/>`;}
       const m=Math.round(rx/6);for(let k=0;k<m;k++){if(rnd()<.45)continue;const a=rnd()*Math.PI*2,[x,y]=ellPt(cx,cy,rx-11,ry-8,a);s+=`<circle cx="${x.toFixed(1)}" cy="${(y-6).toFixed(1)}" r="2.3" fill="var(--ink-engr)" opacity=".18"/><path d="M${(x-3).toFixed(1)} ${(y-1).toFixed(1)}q3-4 6 0" stroke="var(--ink-engr)" opacity=".18" fill="none"/>`;}}});
   /* the pit and the table */
-  s+=`<ellipse cx="${cx}" cy="${cy}" rx="46" ry="27" fill="var(--surface3)" stroke="var(--ink-engr)" stroke-width="1.2"/>`;
-  s+=`<g class="door table" tabindex="0" role="link" aria-label="The Table: the whole patient" data-go="learn/hall/table">
+  const tm=hallMastery("table"),tst=hallStage(tm),first=!!opt.first;
+  s+=`<ellipse class="pit" cx="${cx}" cy="${cy}" rx="46" ry="27"/>`;
+  s+=`<g class="door table st${tst}${first?" beckon":""}" tabindex="0" role="link" aria-label="The Table: the whole patient, ${Math.round(tm.pct*100)}% mastered" data-go="today/hall/table">
+   <rect class="hit" x="${cx-50}" y="${cy-30}" width="100" height="84" fill="transparent"/>
+   ${first?`<ellipse class="glow" cx="${cx}" cy="${cy}" rx="56" ry="35"/>`:""}
    <rect x="${cx-30}" y="${cy-9}" width="60" height="16" rx="2" fill="var(--surface)" stroke="var(--ink-engr)" stroke-width="1.2"/>
    <path d="M${cx-22} ${cy-1}c6-6 14-6 22-4s14 2 20 4c-6 6-14 6-22 4s-14-2-20-4z" fill="var(--surface2)" stroke="var(--ink-engr)" stroke-width=".8"/>
    <line x1="${cx-26}" y1="${cy+7}" x2="${cx-26}" y2="${cy+14}" stroke="var(--ink-engr)"/><line x1="${cx+26}" y1="${cy+7}" x2="${cx+26}" y2="${cy+14}" stroke="var(--ink-engr)"/>
-   <text x="${cx}" y="${cy+30}" text-anchor="middle" style="font-family:var(--f-sc);font-weight:700;font-size:12px;fill:var(--accent-ink);letter-spacing:.08em">the table</text></g>`;
+   ${tm.pct>0?`<path d="M${cx-30} ${cy+18}h${(60*Math.min(1,tm.pct)).toFixed(1)}" stroke="var(--accent)" stroke-width="2.4"/>`:""}
+   <text class="lbl tlbl" x="${cx}" y="${cy+44}" text-anchor="middle">the table</text></g>`;
   /* candles */
   [[cx-38,cy-4],[cx+38,cy-4]].forEach(([x,y],i)=>{s+=`<rect x="${x-2}" y="${y-12}" width="4" height="12" fill="var(--surface)" stroke="var(--ink-engr)" stroke-width=".7"/><path class="flame${i?" b":""}" d="M${x} ${y-21}c-2.6 3.4-2.6 6 0 8 2.6-2 2.6-4.6 0-8z"/><circle cx="${x}" cy="${y-16}" r="9" fill="var(--accent)" opacity=".12"/>`;});
-  /* the skull on the table's end */
-  s+=`<g class="egg" data-egg="skull" role="button" aria-label="A skull" tabindex="-1"><path d="M${cx-30} ${cy-14}a5 5 0 0 1 10 0v3l-1.5 1.5h-7l-1.5-1.5z" fill="var(--surface)" stroke="var(--ink-engr)" stroke-width=".9"/><circle cx="${cx-27.3}" cy="${cy-13.6}" r="1.1" fill="var(--ink-engr)"/><circle cx="${cx-22.7}" cy="${cy-13.6}" r="1.1" fill="var(--ink-engr)"/></g>`;
-  /* the doors */
-  const doors=HALLS.filter(h=>h.id!=="table");
-  doors.forEach((h,i)=>{const a=-Math.PI/2+i*Math.PI*2/doors.length,[x,y]=ellPt(cx,cy,190,132,a),m=hallMastery(h.id);
-    const below=Math.sin(a)>-.35,ly=below?33:-26;
-    s+=`<g class="door" tabindex="0" role="link" aria-label="Hall ${h.rn}: ${esc(h.short)}" data-go="learn/hall/${h.id}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})">
+  /* the skull on the table's end (a 20-unit hit area so a finger can find it) */
+  s+=`<g class="egg" data-egg="skull" role="button" aria-label="A skull" tabindex="-1"><rect x="${cx-35}" y="${cy-26}" width="20" height="20" fill="transparent"/><path d="M${cx-30} ${cy-14}a5 5 0 0 1 10 0v3l-1.5 1.5h-7l-1.5-1.5z" fill="var(--surface)" stroke="var(--ink-engr)" stroke-width=".9"/><circle cx="${cx-27.3}" cy="${cy-13.6}" r="1.1" fill="var(--ink-engr)"/><circle cx="${cx-22.7}" cy="${cy-13.6}" r="1.1" fill="var(--ink-engr)"/></g>`;
+  /* the doors, laid out as a body map */
+  const ring=(typeof THEATRE_RING!=="undefined"?THEATRE_RING:HALLS.map(h=>h.id).filter(x=>x!=="table")).filter(id=>HALL[id]);
+  const here=(place()||{}).h;
+  ring.forEach((id,i)=>{const h=HALL[id],a=-Math.PI/2+i*Math.PI*2/ring.length,[x,y]=ellPt(cx,cy,DRX,DRY,a),m=hallMastery(id),st=hallStage(m);
+    const below=Math.sin(a)>-.35,ly=below?36:-27,n=(OUTLINE[id]||[]).length,sc=st?sealedCount(id):0;
+    const hit=below?`<rect class="hit" x="-31" y="-24" width="62" height="68" fill="transparent"/>`:`<rect class="hit" x="-31" y="-44" width="62" height="68" fill="transparent"/>`;
+    s+=`<g class="door st${st}${here===id?" here":""}" tabindex="0" role="link" aria-label="Hall ${h.rn}: ${esc(h.short)}, ${Math.round(m.pct*100)}% mastered, ${STAGE_WORD[st]}" data-go="today/hall/${id}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})${nar?" scale(1.18)":""}">${hit}
+     ${st>=3?`<path class="gilt" d="M-19 21V-5a19 19 0 0 1 38 0v26z"/>`:""}
      <path class="arch" d="M-15 18V-5a15 15 0 0 1 30 0v23z"/><path d="M-10 18V-3a10 10 0 0 1 20 0v21" fill="none" stroke="var(--ink-engr)" stroke-width=".7" opacity=".6"/>
-     ${m.pct>0?`<path d="M-15 21h${(30*Math.min(1,m.pct)).toFixed(1)}" stroke="var(--accent)" stroke-width="2.4"/>`:""}
+     ${m.pct>0?`<path d="M-15 22h${(30*Math.min(1,m.pct)).toFixed(1)}" stroke="var(--accent)" stroke-width="2.6" stroke-linecap="round"/>`:""}
+     ${st>=2?`<g class="cndl" transform="translate(${below?20:-20} 8)"><rect x="-1.6" y="0" width="3.2" height="9" fill="var(--surface)" stroke="var(--ink-engr)" stroke-width=".6"/><path class="flame${i%2?" b":""}" d="M0 -7c-2 2.6-2 4.6 0 6 2-1.4 2-3.4 0-6z"/><circle cx="0" cy="-3" r="6" fill="var(--accent)" opacity=".14"/></g>`:""}
+     ${st>=4?`<g class="seal" transform="translate(0 -21)"><circle r="6.5"/><path d="M-3 0l2 2.4 4-4.6" fill="none" stroke="var(--on-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></g>`:""}
      <text class="num" x="0" y="6" text-anchor="middle">${h.rn}</text>
-     <text x="0" y="${ly}" text-anchor="middle" style="paint-order:stroke;stroke:var(--surface2);stroke-width:3px">${esc(h.short)}</text></g>`;});
-  /* a small ape hides in the corner of the engraving */
-  s+=`<g class="egg" data-egg="ape" role="button" aria-label="A small figure" tabindex="-1" opacity=".42" transform="translate(14 322) scale(.9)"><path d="M6 0a4 4 0 1 1 0 .1zM3 7c-2 2-2 7 0 10l-2 6M9 7c2 2 2 7 0 10l2 6M3 11h6M2 8l-3 5M10 8l3 5M9 17c4 0 6-3 7-6" fill="none" stroke="var(--ink-engr)" stroke-width="1.3" stroke-linecap="round"/></g>`;
-  return `<svg class="th" viewBox="0 0 420 356" role="group" aria-label="The anatomical theatre: twelve halls around the table">${s}</svg>`;
+     ${st&&n?`<text class="cnt" x="0" y="15" text-anchor="middle">${sc}/${n}</text>`:""}
+     <text class="lbl" x="0" y="${ly}" text-anchor="middle">${esc(h.short)}</text></g>`;});
+  /* a small ape hides in the corner of the engraving (a solid hit area: the drawing itself is only strokes) */
+  s+=`<g class="egg" data-egg="ape" role="button" aria-label="A small figure" tabindex="-1" opacity=".42" transform="translate(12 ${H-36}) scale(.9)"><rect x="-6" y="-6" width="32" height="34" fill="transparent"/><path d="M6 0a4 4 0 1 1 0 .1zM3 7c-2 2-2 7 0 10l-2 6M9 7c2 2 2 7 0 10l2 6M3 11h6M2 8l-3 5M10 8l3 5M9 17c4 0 6-3 7-6" fill="none" stroke="var(--ink-engr)" stroke-width="1.3" stroke-linecap="round"/></g>`;
+  return `<svg class="th" viewBox="${nar?0:-14} 0 ${nar?W:W+28} ${H}" role="group" aria-label="The anatomical theatre: twelve halls around the table">${s}</svg>`;
 }
-function hallCard(h){const m=hallMastery(h.id);return `<button class="hall${h.id==="table"?" table":""}" data-go="learn/hall/${h.id}"><span class="emb"><svg viewBox="0 0 64 64">${EMB[h.id]}</svg></span>${h.id==="table"?`<span class="tx"><span class="rn">The centre</span><b>${esc(h.n)}</b><span class="la">${esc(h.la)} · the whole patient, history and vital signs</span></span>`:`<span class="rn">${h.rn}</span><b>${esc(h.short)}</b><span class="la">${esc(h.la)}</span>`}<span class="prog" aria-label="${Math.round(m.pct*100)}% mastered"><i style="width:${Math.round(m.pct*100)}%"></i></span></button>`;}
+/* the hall card (Learn hub) and a one-line hall row (reference pane, home lists) */
+function hallCard(h){const m=hallMastery(h.id),pc=Math.round(m.pct*100),n=(OUTLINE[h.id]||[]).length,st=hallStage(m),scope=(typeof HALL_SCOPE!=="undefined"&&HALL_SCOPE[h.id])||"";
+  const lab=`${h.id==="table"?"The Table":"Hall "+(ROMAN.indexOf(h.rn)+1)}, ${h.short}: ${scope}. ${n} chapters, ${pc}% mastered`;
+  return `<button class="hall st${st}${h.id==="table"?" table":""}" data-go="learn/hall/${h.id}" aria-label="${esc(lab)}"><span class="emb" aria-hidden="true"><svg viewBox="0 0 64 64">${EMB[h.id]}</svg></span>${h.id==="table"?`<span class="tx" aria-hidden="true"><span class="rn">The centre</span><b>${esc(h.n)}</b><span class="sc">${esc(scope)} · ${n} chapters</span></span>`:`<span class="rn" aria-hidden="true">${h.rn}</span><b aria-hidden="true">${esc(h.short)}</b><span class="sc" aria-hidden="true">${esc(scope)}</span><span class="la" aria-hidden="true" title="${esc(h.la)}">${n} chapters${pc?` · ${pc}%`:""}</span>`}<span class="prog" aria-hidden="true"><i style="width:${pc}%"></i></span></button>`;}
+function hallRow(h,opt={}){const m=hallMastery(h.id),pc=Math.round(m.pct*100);const d=opt.due?hallDue(h.id):0;
+  return `<button class="hallrow st${hallStage(m)}" data-go="${opt.go||"today/hall/"+h.id}"><span class="emb" aria-hidden="true"><svg viewBox="0 0 64 64">${EMB[h.id]}</svg></span><span class="txt"><b>${esc(h.n)}</b><span>${esc((typeof HALL_SCOPE!=="undefined"&&HALL_SCOPE[h.id])||h.la)}</span></span>${d?`<span class="pill acc">${d} due</span>`:""}${ring(m.pct,30,3.5)}<span class="vh">${pc}% mastered</span></button>`;}
 function loreOfDay(){return LORE[daySeed()%LORE.length];}
-function loreCard(l,opt={}){return `<button class="tile lorecard" data-go="learn/lore/${l.id}"><span class="row-x" style="gap:8px"><span class="k ${l.k}">${LORE_KIND[l.k]}</span><span class="spacer"></span><span class="yr">${esc(l.yr)}</span></span><b>${esc(l.t)}</b><span class="sub">${esc(l.sum)}</span>${opt.hall?`<span class="tiny muted">${esc(HALL[l.hall].n)}</span>`:""}</button>`;}
+function loreCard(l,opt={}){return `<button class="tile lorecard" data-go="learn/lore/${l.id}"><span class="row-x" style="gap:8px"><span class="k k-${l.k}">${LORE_KIND[l.k]}</span><span class="spacer"></span><span class="yr">${esc(l.yr)}</span></span><b>${esc(l.t)}</b><span class="sub">${esc(l.sum)}</span>${opt.hall?`<span class="tiny muted">${esc(HALL[l.hall].n)}</span>`:""}</button>`;}
+
+/* the welcome a newcomer sees once: what this is, how the halls work, one first step */
+function welcomeHTML(){const v=k=>`<span class="v v-${k}">${VERDICT[k]}</span>`;
+  return `<div class="welcome">
+   <p class="wl-lede">Galen teaches the history and the bedside examination the way you use them on a shift: what to do, why it works, and how much each finding is worth.</p>
+   <div class="row-x wl-act"><button class="btn" data-go="today/hall/table/0" data-welcome>${ic("door")}Begin at the Table: chapter I</button><button class="btn ghost" data-welcome>Look around first</button></div>
+   <span class="tiny muted wl-time">Chapter I, "${esc((OUTLINE.table[0]||{}).t||"The end of the bed")}", takes about three minutes.</span>
+   <span class="label">How the theatre works</span>
+   <ol class="wl-steps">
+    <li><span class="wn">1</span><span><b>Choose a hall.</b> Twelve halls, one for each part of the body, stand around the Table: the whole patient.</span></li>
+    <li><span class="wn">2</span><span><b>Read a chapter.</b> What you will be able to do, the signs and techniques, a trap and a pearl.</span></li>
+    <li><span class="wn">3</span><span><b>Practise it.</b> A few cards at a time, spaced until you hold them. The hall's door lights up as you do.</span></li></ol>
+   <p class="small wl-v">Every test carries a verdict: ${v("core")} use it, ${v("useful")} it helps, ${v("low")} it rarely changes much, ${v("archaic")} it has been replaced.</p></div>`;}
+/* the one best thing to do now */
+function bestAction(){const due=dueCards().length,p=place();
+  if(due){const mins=Math.max(1,Math.round(due*.35));return `<button class="btn" data-go="practice/session/all">${ic("play")}Today's session · ${due} due · about ${mins} min</button>`;}
+  if(p){const i=p.i!=null?p.i:nextChap(p.h),c=(OUTLINE[p.h]||[])[i];if(c)return `<button class="btn" data-go="today/hall/${p.h}/${i}">${ic("door")}Continue: ${esc(c.t)}</button>`;}
+  const i=nextChap("table");return `<button class="btn" data-go="today/hall/table/${i}">${ic("door")}Begin at the Table: ${esc((OUTLINE.table[i]||{}).t||"")}</button>`;}
+/* "continue where you left off": the chapter you were in, with its progress */
+function continueHTML(){const p=place();if(!p)return "";const i=p.i!=null?p.i:nextChap(p.h);const c=(OUTLINE[p.h]||[])[i];if(!c)return "";
+  const st=chapState(p.h,i),h=HALL[p.h],pc=st.m?Math.round(st.m.pct*100):0;
+  return `<button class="contcard" data-go="today/hall/${p.h}/${i}"><span class="emb" aria-hidden="true"><svg viewBox="0 0 64 64">${EMB[p.h]}</svg></span><span class="txt"><span class="eyebrow">Continue where you left off</span><b>${ROMAN[i]}. ${esc(c.t)}</b><span>${esc(h.n)}${st.m?` · ${st.m.seen} of ${st.m.n} cards started · ${pc}%`:""}</span></span>${ic("chev","chev")}</button>`;}
+function birthdayStory(){const bd=BIRTHDAYS[fmtDate(Date.now()).slice(0,5)];if(!bd||isFirstRun())return "";const l=LORE.find(x=>(x.who||"").includes(bd[0])||x.t.includes(bd[0])||x.id===bd[0].toLowerCase());return l?`<button class="chip" data-go="learn/lore/${l.id}">${ic("scroll")}Read his story</button>`:"";}
 
 {const _home=ROUTES["today:home"];
 route("today:home","Galen",(root)=>{
-  const due=dueCards().length,line=galenFor("home");
+  const first=isFirstRun(),line=galenFor("home");
   root.innerHTML=`<section class="theatre-top">
-    <button class="searchbig" data-act="pal">${ic("search")}<span>Search signs, techniques, the codex…</span><span class="kbdhint">/</span></button>
-    <div class="card stack" style="gap:14px">${guideHTML(line)}
-      <div class="row-x"><button class="btn" data-go="practice/session/all">${ic("play")}${due?`Today's session · ${due} due`:"Learn something new"}</button><button class="btn ghost sm" data-go="learn/codex">${ic("scroll")}The codex</button></div></div>
+    <button class="searchbig" data-act="pal">${ic("search")}<span>Search signs, techniques, chapters, the codex…</span><span class="kbdhint">/</span></button>
+    <div class="card stack galen-card${first?" first":""}" style="gap:14px">${guideHTML(line)}
+      ${first?welcomeHTML():`<div class="row-x best">${bestAction()}${birthdayStory()}<span class="spacer"></span><button class="link small" data-go="learn/codex">${ic("scroll")}The codex</button></div>`}</div>
+    ${first||!dueCards().length?"":continueHTML()}
   </section>
-  <section class="theatre">${theatreSVG()}</section><p class="marg" style="text-align:center;margin:-10px 0 0">Teatro anatomico · after Padua, 1594 · tap a door</p>
-  <section class="section"><div class="row-x"><span class="label">The halls</span><span class="spacer"></span><span class="tiny muted">The bar under each door is what you have mastered there</span></div><div class="halls">${HALLS.map(hallCard).join("")}</div></section>
+  <section class="theatre${first?" first":""}">${theatreSVG({first})}</section>
+  <p class="marg th-cap">Teatro anatomico, after Padua, 1594. A door shows a bar as you learn, a candle at a quarter, gilt at half, a seal when mastered.</p>
   <section class="section"><div class="row-x"><span class="label">From the codex, today</span><span class="spacer"></span><button class="link small" data-go="learn/codex">All ${LORE.length} stories</button></div><div class="grid">${loreCard(loreOfDay(),{hall:1})}</div></section>
-  <div class="orn">❦</div><div id="today-old"></div>`;
-  const old=$("#today-old",root);_home(old);
-  /* the old greeting and system rings are replaced by Galen and the halls */
-  const sg=$(".sysgrid",old);if(sg)sg.closest("section")?.remove();
-  const h1=$(".hero h1",old);if(h1){h1.textContent="Today's round";h1.style.fontSize="1.9rem";}
-  $(".hero .trace",old)?.remove();
+  <div class="orn" aria-hidden="true">❦</div><div id="today-old" class="today-old"></div>`;
+  const old=$("#today-old",root);if(!first){try{_home(old);}catch(e){console.error(e);}}
+  /* the old greeting, counts and second CTA are replaced by Galen's card; the system rings by the doors */
+  $(".hero",old)?.remove();const sg=$(".sysgrid",old);if(sg)sg.closest("section")?.remove();
   $("[data-act=pal]",root).addEventListener("click",openPalette);
+  $$("[data-welcome]",root).forEach(b=>b.addEventListener("click",()=>{Store.s.notes.welcome={t:Date.now()};Store.save();if(!b.dataset.go)render(false,true);}));
   if(!TP.seen){TP.seen=1;tpSave();}
 });}
+/* the doors are drawn for the width: re-draw when a phone turns or a window narrows */
+matchMedia("(max-width:560px)").addEventListener("change",()=>{const t=$("#view section.theatre");if(t&&NAV.tab==="today"&&cur().v==="home")t.innerHTML=theatreSVG({first:isFirstRun()});});
 
 /* ================= HALLS ================= */
 const HALL_LINKS={
@@ -130,39 +225,42 @@ const HALL_LINKS={
 };
 
 /* ---- outline chapters ---- */
-const ROMAN=["I","II","III","IV","V","VI","VII","VIII","IX","X"];
-function chapCardIds(h,i){const c=(OUTLINE[h]||[])[i];if(!c)return new Set();if(!CARDS)buildCards();const sg=new Set(c.signs||[]),tc=new Set(c.tech||[]),pr=new Set(c.pres||[]),sd=new Set(c.sounds||[]);
-  return new Set(CARDS.filter(k=>((k.type==="think"||k.type==="verdict"||k.type==="mech"||k.type==="snsp"||k.type==="teach")&&sg.has(k.ref))||((k.type==="twhy"||k.type==="terr")&&tc.has(k.ref[0]))||((k.type==="hlr")&&pr.has(k.ref[0]))||(k.type==="red"&&pr.has(k.ref))||(k.type==="sound"&&sd.has(k.ref))).map(k=>k.id));}
-function chapMastery(h,i){const ids=[...chapCardIds(h,i)];if(!ids.length)return null;let m=0,seen=0;ids.forEach(id=>{const r=Store.s.srs[id];if(r){seen++;if(r.iv>=7)m++;else if(r.iv>=2)m+=.4;}});return {pct:m/ids.length,seen,n:ids.length};}
 function chapItems(c){const out=[];
   (c.tech||[]).forEach(x=>{const t=TECH.find(y=>y.id===x);if(t)out.push(`<button class="chip" data-go="learn/tech/${x}">${ic("check")}${esc(t.name)}</button>`);});
   (c.signs||[]).forEach(x=>out.push(signChip(x)));
   (c.sounds||[]).forEach(x=>{if(SOUNDS[x])out.push(`<button class="chip" data-go="sounds/sound/${x}">${ic("ear")}${esc(SOUNDS[x].name)}</button>`);});
-  (c.pres||[]).forEach(x=>{const p=HIST.pres.find(y=>y.id===x);if(p)out.push(`<button class="chip" data-go="learn/pres/${x}">${ic("history")}${esc(p.name)}</button>`);});
-  (c.cases||[]).forEach(x=>{const k=HDPE.find(y=>y.id===x);if(k)out.push(`<button class="chip" data-go="practice/hdpe/${x}">${ic("target")}${esc(k.title)}</button>`);});
-  (c.scen||[]).forEach(x=>{const k=SCEN.find(y=>y.id===x);if(k)out.push(`<button class="chip" data-go="practice/er/${x}">${ic("case")}${esc(k.title)}</button>`);});
-  (c.maps||[]).forEach(x=>{const k=CMAPS.find(y=>y.id===x);if(k)out.push(`<button class="chip" data-go="learn/map/${x}">${ic("map")}${esc(k.title)}</button>`);});
-  (c.tools||[]).forEach(x=>{const k=TOOLS.find(y=>y.id===x);if(k)out.push(`<button class="chip" data-go="tools/calc/${x}">${ic("scale")}${esc(k.name)}</button>`);});
-  (c.labs||[]).forEach(x=>{const k=typeof LABS!=="undefined"&&LABS.find(y=>y.id===x);if(k)out.push(`<button class="chip" data-go="tools/lab/${x}">${ic("log")}${esc(k.name)}</button>`);});
+  (c.pres||[]).forEach(x=>{const p=HIST.pres.find(y=>y.id===x);if(p)out.push(`<button class="chip" data-go="learn/pres/${x}">${ic("history")}History: ${esc(p.name)}</button>`);});
+  (c.cases||[]).forEach(x=>{const k=HDPE.find(y=>y.id===x);if(k)out.push(`<button class="chip" data-go="practice/hdpe/${x}">${ic("target")}Case: ${esc(k.title)}</button>`);});
+  (c.scen||[]).forEach(x=>{const k=SCEN.find(y=>y.id===x);if(k)out.push(`<button class="chip" data-go="practice/er/${x}">${ic("case")}ER case: ${esc(k.title)}</button>`);});
+  (c.maps||[]).forEach(x=>{const k=CMAPS.find(y=>y.id===x);if(k)out.push(`<button class="chip" data-go="learn/map/${x}">${ic("map")}Map: ${esc(k.title)}</button>`);});
+  /* a calculator chip says so, because a sign of the same name often sits beside it (t01#17) */
+  (c.tools||[]).forEach(x=>{const k=TOOLS.find(y=>y.id===x);if(k)out.push(`<button class="chip calc" data-go="tools/calc/${x}">${ic("scale")}Calculate: ${esc(k.name)}</button>`);});
+  (c.labs||[]).forEach(x=>{const k=typeof LABS!=="undefined"&&LABS.find(y=>y.id===x);if(k)out.push(`<button class="chip" data-go="tools/lab/${x}">${ic("log")}Labs: ${esc(k.name)}</button>`);});
   (c.go||[]).forEach(([g,t])=>out.push(`<button class="chip" data-go="${g}">${ic("door")}${esc(t)}</button>`));
   return out.join("");}
-function outlineHTML(h){const chs=OUTLINE[h]||[];if(!chs.length)return "";
-  return `<section class="section"><div class="row-x"><span class="label">The outline · ${chs.length} chapters</span><span class="spacer"></span><button class="link small" data-act="chap-all">Open all</button></div><div class="outline">${chs.map((c,i)=>{const m=chapMastery(h,i);
-   return `<details class="chap"${i===0?" open":""}><summary><span class="cn">${ROMAN[i]||i+1}</span><span class="ct"><b>${esc(c.t)}</b><span>${esc(c.aim)}</span></span>${m?ring(m.pct,30,3.5):""}</summary>
+function cnBadge(i,st){const p=st.m?Math.round(st.m.pct*100):0;return `<span class="cn${st.sealed?" sealed":st.started?" part":""}" style="--p:${p}" aria-hidden="true">${st.sealed?`<svg viewBox="0 0 24 24" class="i"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`:(ROMAN[i]||i+1)}</span>`;}
+function outlineHTML(h,openI){const chs=OUTLINE[h]||[];if(!chs.length)return "";const nx=nextChap(h);
+  return `<section class="section" id="outline"><div class="row-x"><span class="label">The outline · ${chs.length} chapters · ${sealedCount(h)} sealed</span><span class="spacer"></span><button class="link small chap-all" data-act="chap-all" aria-pressed="false">Open all</button></div><div class="outline">${chs.map((c,i)=>{const st=chapState(h,i),m=st.m;
+   const status=st.sealed?"Sealed":m&&m.seen?`${m.seen} of ${m.n} started · ${Math.round(m.pct*100)}%`:m?`${m.n} cards`:"";
+   return `<details class="chap${i===nx?" next":""}${st.sealed?" sealed":""}" id="chap-${i}" data-i="${i}"${i===openI?" open":""}><summary><span class="vh">Chapter ${i+1}${st.sealed?", sealed":""}. </span>${cnBadge(i,st)}<span class="ct"><b>${esc(c.t)}</b><span>${esc(c.aim)}</span>${status||i===nx?`<span class="cst">${i===nx?`<span class="cnx">${st.started?"Continue here":"Next"}</span>`:""}${esc(status)}</span>`:""}</span><svg class="i chv" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
    <div class="cbody"><span class="k">You will be able to</span><ul class="obj">${c.master.map(o=>`<li>${esc(o)}</li>`).join("")}</ul>
    <span class="k">Study and practise</span><div class="chips">${chapItems(c)}</div>
    <div class="tp"><div class="trap"><span class="k">The trap</span>${esc(c.trap)}</div><div class="pearl"><span class="k">The pearl</span>${esc(c.pearl)}</div></div>
-   ${m?`<div class="row-x"><span class="tiny muted">${m.seen} of ${m.n} cards started · ${Math.round(m.pct*100)}% mastered</span><span class="spacer"></span><button class="btn sm soft" data-go="practice/session/chap:${h}:${i}">${ic("play")}Practise this chapter</button></div>`:""}</div></details>`;}).join("")}</div></section>`;}
+   ${m?`<div class="row-x cfoot">${ring(m.pct,34,4)}<span class="small muted" style="flex:1;min-width:0">${m.seen} of ${m.n} cards started · ${m.held} held a week or more</span><button class="btn sm${i===nx?"":" soft"}" data-go="practice/session/chap:${h}:${i}">${ic("play")}Practise this chapter</button></div>`:`<p class="small muted" style="margin:0">This chapter has no practice cards yet. Study the pages above; their cards arrive with the next update.</p>`}</div></details>`;}).join("")}</div></section>`;}
 
-route("learn:hall",(id)=>(HALL[id]||{}).n||"Hall",(root,id)=>{
-  const h=HALL[id];if(!h)throw new Error("No such hall");
-  const sg=hallSigns(id),tc=hallTech(id),pr=hallPres(id),lo=LORE.filter(l=>l.hall===id),m=hallMastery(id);
+function hallPage(root,id,ch){
+  const h=HALL[id];if(!h)throw new Error("That hall is not in the theatre.");
+  const sg=hallSigns(id),tc=hallTech(id),pr=hallPres(id),lo=LORE.filter(l=>l.hall===id),m=hallMastery(id),st=hallStage(m),chs=OUTLINE[id]||[];
+  const nx=nextChap(id),openI=ch!=null&&ch!==""&&chs[+ch]?+ch:nx,read=!!Store.s.notes["hall:"+id],sealed=sealedCount(id);
   const vOrder=s=>VERDICT_ORDER.indexOf(SIGNS[s].v);sg.sort((a,b)=>vOrder(a)-vOrder(b)||SIGNS[a].name.localeCompare(SIGNS[b].name));
-  root.innerHTML=`<section class="hallhead"><span class="emb"><svg viewBox="0 0 64 64">${EMB[id]}</svg></span><span class="eyebrow">${id==="table"?"The centre of the theatre":"Hall "+h.rn}</span><h1>${esc(h.n)}</h1><span class="latin">${esc(h.la)} · ${esc(h.patron)}</span></section>
+  const nc=chs[nx],nst=nc?chapState(id,nx):null;
+  root.innerHTML=`<section class="hallhead st${st}"><span class="emb" aria-hidden="true"><svg viewBox="0 0 64 64">${EMB[id]}</svg></span><span class="eyebrow">${id==="table"?"The centre of the theatre":"Hall "+h.rn}</span><h1>${esc(h.n)}</h1><span class="latin">${esc(h.la)} · ${esc(h.patron)}</span>${HALL_SCOPE&&HALL_SCOPE[id]?`<span class="hscope">${esc(HALL_SCOPE[id])}</span>`:""}</section>
+  <div class="card hallprog">
+   <div class="hp-top">${ring(m.pct,52,5)}<div class="hp-tx"><b>${Math.round(m.pct*100)}% mastered</b><span class="small muted">${sealed} of ${chs.length} chapters sealed · ${m.seen} of ${m.n} cards started</span><span class="tiny muted">${st<4?`Next for this door: ${STAGE_WORD[Math.min(4,st+1)]} at ${[1,25,50,80][st]}%`:"This door is sealed. Keep it so with a hall review now and then."}</span></div></div>
+   <div class="hp-act">${nc?`<button class="btn" data-open-chap="${nx}">${ic("door")}${nst.started?"Continue":"Start"}: ${ROMAN[nx]}. ${esc(nc.t)}</button>`:""}<button class="btn ${nc?"ghost":""}" data-go="practice/session/hall:${id}">${ic("play")}Practise the whole hall</button></div></div>
   <div class="card stack">${guideHTML(GALEN.hall[id]||galenPick(GALEN.idle),{small:1})}</div>
-  <section class="story"><p class="dropcap">${esc(h.intro[0])}</p><p>${esc(h.intro[1])}</p><p class="latin" style="margin-top:.4em">${esc(h.maxim[0])}</p><p class="en" style="margin-top:-.6em">${esc(h.maxim[1])}</p></section>
-  <div class="card row-x" style="gap:14px">${ring(m.pct,48,5)}<div class="stack" style="gap:2px;flex:1;min-width:0"><b style="font-family:var(--f-display);font-size:1.2rem">${Math.round(m.pct*100)}% mastered</b><span class="small muted">${m.seen} of ${m.n} cards started in this hall</span></div><button class="btn" data-go="practice/session/hall:${id}">${ic("play")}Practise this hall</button></div>
-  ${outlineHTML(id)}
+  <details class="story"${read?"":" open"}><summary><span class="label">The story of this hall</span><svg class="i chv" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary><p class="dropcap">${esc(h.intro[0])}</p><p>${esc(h.intro[1])}</p><p class="latin" style="margin-top:.4em">${esc(h.maxim[0])}</p><p class="en" style="margin-top:-.6em">${esc(h.maxim[1])}</p></details>
+  ${outlineHTML(id,openI)}
   ${(HALL_LINKS[id]||[]).length?`<section class="section"><span class="label">Rooms of this hall</span><div class="list">${HALL_LINKS[id].map(([go,t])=>`<button class="lrow" data-go="${go}"><span class="icwrap n">${ic("door")}</span><span class="txt"><b>${esc(t)}</b></span>${ic("chev","chev")}</button>`).join("")}</div></section>`:""}
   <details class="acc" style="padding:4px 14px"><summary style="padding:10px 0"><b style="font-family:var(--f-display);font-size:1.15rem">Everything in this hall</b> <span class="tiny muted">${sg.length} signs · ${tc.length} techniques · ${pr.length} histories</span></summary>
   ${tc.length?`<section class="section"><span class="label">Techniques · do it properly</span><div class="list">${tc.map(t=>`<button class="lrow" data-go="learn/tech/${t.id}"><span class="icwrap">${ic("check")}</span><span class="txt"><b>${esc(t.name)}</b><span>${esc(t.hook||t.purpose)}</span></span>${typeof pips==="function"?pips(t.id):""}</button>`).join("")}</div></section>`:""}
@@ -170,29 +268,45 @@ route("learn:hall",(id)=>(HALL[id]||{}).n||"Hall",(root,id)=>{
   ${pr.length?`<section class="section"><span class="label">Histories</span><div class="list">${pr.map(p=>`<button class="lrow" data-go="learn/pres/${p.id}"><span class="icwrap n">${ic("history")}</span><span class="txt"><b>${esc(p.name)}</b><span>${esc((p.dd||[]).slice(0,3).join(", "))}</span></span>${ic("chev","chev")}</button>`).join("")}</div></section>`:""}
   </details>
   ${lo.length?`<section class="section"><span class="label">Stories of this hall</span><div class="grid">${lo.map(l=>loreCard(l)).join("")}</div></section>`:""}
-  <div class="orn">❦</div>`;
-  $("[data-act=chap-all]",root)?.addEventListener("click",()=>$$(".chap",root).forEach(d=>d.open=true));
+  <div class="orn" aria-hidden="true">❦</div>`;
+  const allB=$("[data-act=chap-all]",root);
+  const syncAll=()=>{if(!allB)return;const all=$$(".chap",root).every(d=>d.open);allB.textContent=all?"Close all":"Open all";allB.setAttribute("aria-pressed",all);};
+  allB?.addEventListener("click",()=>{const all=$$(".chap",root).every(d=>d.open);$$(".chap",root).forEach(d=>d.open=!all);syncAll();});
+  const goChap=i=>{const d=$("#chap-"+i,root);if(!d)return;d.open=true;setPlace(id,i);d.scrollIntoView({block:"start",behavior:matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth"});d.querySelector("summary")?.focus({preventScroll:true});};
+  $$("[data-open-chap]",root).forEach(b=>b.addEventListener("click",()=>goChap(+b.dataset.openChap)));
+  $$(".chap",root).forEach(d=>d.addEventListener("toggle",()=>{if(d.open&&d.dataset.user)setPlace(id,+d.dataset.i);syncAll();}));
+  $$(".chap>summary",root).forEach(s=>s.addEventListener("click",()=>{s.parentElement.dataset.user=1;}));
+  $(".story",root)?.addEventListener("toggle",e=>{if(!e.target.open&&!read){Store.s.notes["hall:"+id]={t:Date.now()};Store.save();}});
+  /* a hall you have opened before keeps its story folded */
+  if(!read){Store.s.notes["hall:"+id]={t:Date.now()};Store.save();}
+  if(!place()||place().h!==id)setPlace(id,null);
+  if(ch!=null&&ch!==""&&chs[+ch])requestAnimationFrame(()=>requestAnimationFrame(()=>goChap(+ch)));
   SND.fx("door");
-});
+}
+route("learn:hall",(id)=>(HALL[id]||{}).n||"No such hall",hallPage);
+/* halls entered from the theatre stay on the theatre's stack, so Back returns to the doors */
+route("today:hall",(id)=>(HALL[id]||{}).n||"No such hall",hallPage);
 
-/* Learn opens with the theatre */
+/* Learn opens with the theatre's halls as a grid */
 {const _learn=ROUTES["learn:home"];ROUTES["learn:home"]=(root)=>{_learn(root);const ph=$(".ph",root);const el=document.createElement("section");el.className="section";
   el.innerHTML=`<div class="row-x"><span class="label">The theatre · twelve halls and the table</span><span class="spacer"></span><button class="link small" data-go="learn/codex">The codex</button></div><div class="halls">${HALLS.map(hallCard).join("")}</div>`;
   if(ph)ph.after(el);else root.prepend(el);};}
 
-/* search finds halls and stories */
+/* search finds halls, chapters and stories */
 {const _pi=palIndex;palIndex=function(){const I=_pi();if(I._th)return I;
-  HALLS.forEach(h=>I.push({t:h.n,s:`The theatre · ${h.la}`,k:"door",go:`learn/hall/${h.id}`,x:h.intro.join(" ")+" "+h.patron}));
+  HALLS.forEach(h=>I.push({t:h.n,s:`The theatre · ${HALL_SCOPE[h.id]||h.la}`,k:"door",go:`today/hall/${h.id}`,x:h.intro.join(" ")+" "+h.patron+" "+h.la+" "+h.short}));
+  Object.entries(OUTLINE).forEach(([h,cs])=>cs.forEach((c,i)=>{if(HALL[h])I.push({t:c.t,s:`Chapter ${ROMAN[i]||i+1} · ${HALL[h].n}`,k:"door",go:`today/hall/${h}/${i}`,x:c.aim+" "+c.master.join(" ")});}));
   LORE.forEach(l=>I.push({t:l.t,s:`Codex · ${LORE_KIND[l.k]} · ${l.yr}`,k:"scroll",go:`learn/lore/${l.id}`,x:l.who+" "+l.sum+" "+l.body.join(" ")}));
   I.push({t:"The codex",s:"Medical history, dark and bright",k:"scroll",go:"learn/codex",x:"history lore stories"});
   I.forEach(o=>{if(!o.lt){o.lt=o.t.toLowerCase();o.lx=(o.s+" "+o.x).toLowerCase();}});I._th=1;return I;};}
 
+/* after every render: the hall's tint and the room's key; remember the chapter a session came from */
 {const _chrome=chrome;chrome=function(){_chrome();const r=cur(),key=NAV.tab+":"+r.v;
-  const hid=key==="learn:hall"?r.a:key==="signs:sign"?signHall(r.a):key==="learn:tech"&&r.a?techHall(r.a):key==="learn:lore"?(loreById(r.a)||{}).hall:null;
-  const h=hid&&HALL[hid];document.documentElement.style.setProperty("--hall-tint",h?h.tint:"transparent");document.documentElement.dataset.hall=hid||"";
-  SND.setHall(hid||"table");rpRender();};}
+  if(key==="practice:session"&&String(r.a||"").startsWith("chap:")){const [,h,i]=String(r.a).split(":");if(OUTLINE[h]&&OUTLINE[h][+i])setPlace(h,+i);}
+  const hid=(key==="learn:hall"||key==="today:hall")?r.a:key==="signs:sign"?signHall(r.a):key==="learn:tech"&&r.a?techHall(r.a):key==="learn:lore"?(loreById(r.a)||{}).hall:key==="practice:session"&&/^(hall|chap):/.test(r.a||"")?String(r.a).split(":")[1]:null;
+  const h=hid&&HALL[hid];document.documentElement.style.setProperty("--hall-tint",h?h.tint:"transparent");document.documentElement.dataset.hall=h?hid:"";
+  SND.setHall(h?hid:"table");if(typeof rpRender==="function")rpRender();};}
 
 /* nav labels for the world */
 {const b=$('#nav [data-tab="today"]');if(b){b.querySelector(".l").textContent="Theatre";const s=b.querySelector("svg.i");if(s)s.outerHTML=ic("theatre");}
  const rb=$("#nav .railbrand .brandmark");const tb=$(".top .brandmark");if(rb&&tb)rb.innerHTML=tb.innerHTML;}
-

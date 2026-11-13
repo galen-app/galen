@@ -81,10 +81,10 @@ const DESCRIBE={
   ["Palpation","Blanching, consistency, tenderness, warmth, depth, mobility; Nikolsky, Auspitz, dermographism when relevant."],
   ["Also look at","Hair, nails, mucous membranes, lymph nodes; and the whole skin, not just the area shown."]
  ],
- formula:"[Number] [size] [shape] [colour] [border] [primary lesion] with [surface] on the [site], [arrangement / distribution]. On palpation, [findings].",
+ formula:"[Number] [border], [shape], [colour] [primary lesion], [size], with [surface], [arrangement] on the [site]. On palpation, [findings].",
  example:"Multiple well-demarcated, salmon-pink plaques, 2–6 cm, with thick silvery scale, symmetrically distributed over the extensor surfaces of the elbows and knees and the scalp. The scale scratches off to leave pinpoint bleeding (Auspitz sign).",
  tips:[
-  "Lead with the primary lesion in your head, but say the sentence in the order above: it sounds like a dermatologist and forces you to look at each feature.",
+  "Look in the order above (step back first, then close up), but say it in the sentence order: number, border, shape, colour, lesion, size, surface, then where. It sounds like a dermatologist and forces you to look at each feature.",
   "Use the precise term once, not a stack of near-synonyms. 'Well-demarcated' says more than 'clear, sharp, distinct'.",
   "Measure. 'A 6 mm papule' beats 'a small papule'.",
   "Describe colour for the skin in front of you: on brown and black skin, inflammation looks violaceous, grey or dark brown and leaves post-inflammatory pigment change.",
@@ -103,14 +103,23 @@ const DMOLE=[
 ];
 /* Emergencies */
 const DEMERG=[
- ["Stevens–Johnson syndrome / TEN","Dusky or atypical targets, blisters and erosions with Nikolsky sign, usually two or more mucosal sites, skin pain, usually 4–28 days (up to 8 weeks) after a new drug (allopurinol, anticonvulsants, sulfonamides, nevirapine, NSAIDs).","Stop the drug, estimate body surface detached (SJS < 10%, TEN > 30%), SCORTEN, burns or ICU care, eye review."],
- ["DRESS","Widespread morbilliform rash, facial oedema, fever, lymphadenopathy, eosinophilia, liver or kidney involvement, 2–8 weeks after a drug.","Stop the drug; check FBC with eosinophils, LFTs, creatinine; dermatology."],
- ["Necrotising fasciitis","Pain out of proportion, rapidly spreading dusky erythema, tense oedema beyond the redness, bullae, crepitus, numbness, systemic toxicity.","Surgery now; don't wait for imaging. LRINEC is not reliable enough to rule out."],
- ["Meningococcal sepsis","Fever with a non-blanching petechial or purpuric rash; can start as a blanching rash.","Antibiotics immediately; the glass test must not reassure."],
- ["Erythroderma","Erythema over 90% of the skin: heat and fluid loss, high-output failure, infection.","Admit; look for the cause (eczema, psoriasis, drug, lymphoma)."],
- ["Eczema herpeticum","Painful monomorphic punched-out erosions and umbilicated vesicles in eczematous skin, fever.","Oral or IV aciclovir the same day; ophthalmology if around the eyes."],
- ["Pemphigus vulgaris","Painful mucosal erosions and flaccid blisters that rupture into erosions; Nikolsky positive.","Urgent dermatology; systemic treatment."],
- ["Acute generalised exanthematous pustulosis (AGEP)","Hundreds of small sterile pustules on erythema, flexures first, fever, within days of a drug (often antibiotics).","Stop the drug; usually resolves in two weeks."]
+ /* [name, features, do now, condition id, calculator id] */
+ ["Meningococcal sepsis","Fever with a non-blanching petechial or purpuric rash; it can start as a blanching rash. Limb pain, cold hands and feet, and mottling come early.","Antibiotics immediately (benzylpenicillin before transfer if there will be a delay); the glass test must not reassure.","meningococcal",null],
+ ["Purpura fulminans","Purpura spreading within hours into necrotic, sharply bordered patches with haemorrhagic bullae, in a shocked patient with DIC.","Resuscitate, antibiotics, critical care; correct DIC with haematology.","purpura-fulminans",null],
+ ["Stevens–Johnson syndrome / TEN","Dusky or atypical targets, blisters and erosions with Nikolsky sign, two or more mucosal sites, skin pain, usually 4–28 days (up to 8 weeks) after a new drug (allopurinol, anticonvulsants, sulfonamides, nevirapine, NSAIDs).","Stop the drug; estimate the body surface detached (SJS under 10%, SJS/TEN overlap 10–30%, TEN over 30%); SCORTEN; burns unit or ICU; eye review within 24 h.","sjs","scorten"],
+ ["Necrotising fasciitis","Pain out of proportion, rapidly spreading dusky erythema, tense oedema beyond the redness, bullae, crepitus, numbness, systemic toxicity.","Surgeon now; don't wait for imaging. LRINEC can rule in, never rule out.","necfasc","lrinec"],
+ ["Anaphylaxis and angio-oedema","Lip, tongue or throat swelling, hoarse voice or stridor, wheeze, hypotension, with or without hives.","IM adrenaline 500 micrograms (adult) into the thigh, repeat at 5 minutes; bradykinin angio-oedema (ACE inhibitor) may not respond.","angioedema",null],
+ ["Toxic shock syndrome","High fever, hypotension and a diffuse sunburn-like erythroderma with red eyes and mouth; tampon, packing, wound or soft-tissue source.","Resuscitate, remove the source, beta-lactam plus clindamycin.","tss",null],
+ ["Erythroderma","Erythema over 90% of the skin: heat and fluid loss, high-output failure, infection.","Admit; look for the cause (eczema, psoriasis, drug, lymphoma).","erythroderma",null],
+ ["DRESS","Widespread morbilliform rash, facial oedema, fever, lymph nodes, eosinophilia, liver or kidney involvement, 2–8 weeks after a drug (allopurinol, carbamazepine, phenytoin, lamotrigine, sulfonamides, vancomycin).","Stop the drug; FBC with eosinophils, LFTs, creatinine; same-day admission.","dress",null],
+ ["Staphylococcal scalded skin syndrome","A febrile child with tender, red skin that wrinkles and peels in sheets, crusting around the mouth and eyes, Nikolsky positive, mucosae spared.","Admit; IV flucloxacillin, fluids, analgesia.","ssss",null],
+ ["Kawasaki disease","Fever 5 days or more with red eyes (no discharge), red cracked lips, strawberry tongue, a polymorphous rash, swollen red hands and feet, and a neck node, in a young child.","Same-day paediatrics; IVIG within 10 days of fever onset and echocardiography.","kawasaki",null],
+ ["Eczema herpeticum","Painful, monomorphic, punched-out erosions and umbilicated vesicles in eczematous skin, fever.","Aciclovir the same day; ophthalmology if around the eyes.","eczema-herpeticum",null],
+ ["Herpes zoster ophthalmicus","Vesicles over the forehead and upper lid on one side; nose-tip vesicles (Hutchinson's sign); red or painful eye.","Oral antiviral now; same-day ophthalmology if the eye is involved.","hzo",null],
+ ["Pemphigus vulgaris","Painful mucosal erosions and flaccid blisters that rupture into erosions; Nikolsky positive.","Urgent dermatology; systemic treatment.","pemphigus",null],
+ ["Generalised pustular psoriasis","Sheets of small sterile pustules on painful erythema, fever and malaise, often after stopping steroids.","Same-day admission.","psoriasis-pustular",null],
+ ["Acute generalised exanthematous pustulosis (AGEP)","Hundreds of small sterile pustules on erythema, flexures first, fever, within days of a drug (often antibiotics).","Stop the drug; usually resolves in two weeks.","agep",null],
+ ["Dengue with warning signs","Fever, confluent rash with white islands and petechiae; abdominal pain, vomiting, bleeding gums, lethargy as the fever settles.","Admit; paracetamol only, no NSAIDs; watch haematocrit and platelets.","dengue",null]
 ];
 /* Conditions atlas. d = structured description used by the 'Describe' trainer.
  keys: prim, col, shape, border, surf, arr, dist (DDIST id) */
@@ -201,14 +210,14 @@ const DCOND=[
   key:["Staphylococcus aureus or Streptococcus pyogenes","Bullous form: flaccid blisters from staphylococcal toxin","Look for underlying eczema or scabies"],dd:["Herpes simplex","Eczema (secondarily infected)"],soc:"Crusts are easy to see; surrounding redness may not be."},
  {id:"hsv",n:"Herpes simplex",g:"Infection",slug:"herpes-simplex",
   p:{zoom:2.5,L:[{k:"vesicle",n:14,r:[3,5.5],arr:"group",spread:24}]},
-  d:{prim:["Vesicle"],col:["Erythematous base"],shape:["Grouped"],border:["Well-demarcated"],surf:["Vesicles, later crust"],arr:["Grouped (herpetiform)"],dist:"face"},
+  d:{prim:["Vesicle"],col:["Erythematous base"],shape:["Round / oval"],border:["Well-demarcated"],surf:["Vesicles, later crust"],arr:["Grouped (herpetiform)"],dist:"face"},
   m:"A cluster of uniform small (1–3 mm) vesicles on an erythematous base at the lip border, preceded by tingling, later crusting.",
-  key:["Recurs at the same site","Eczema herpeticum: punched-out erosions in eczema — urgent aciclovir","Herpetic whitlow: don't incise"],dd:["Impetigo","Herpes zoster","Contact dermatitis"],soc:"Base may look dark rather than red."},
+  key:["Recurs at the same site","Eczema herpeticum: punched-out erosions in eczema: urgent aciclovir","Herpetic whitlow: don't incise"],dd:["Impetigo","Herpes zoster","Contact dermatitis"],soc:"Base may look dark rather than red."},
  {id:"zoster",n:"Herpes zoster (shingles)",g:"Infection",slug:"herpes-zoster",
   p:{L:[{k:"vesicle",n:12,r:[2.5,4.5],arr:"bandGroups",groups:5,spread:24}]},
-  d:{prim:["Vesicle"],col:["Erythematous base"],shape:["Grouped"],border:["Well-demarcated"],surf:["Vesicles, later crust"],arr:["Dermatomal"],dist:"dermatomal"},
+  d:{prim:["Vesicle"],col:["Erythematous base"],shape:["Round / oval"],border:["Well-demarcated"],surf:["Vesicles, later crust"],arr:["Dermatomal"],dist:"dermatomal"},
   m:"Grouped vesicles on erythematous bases in a unilateral band within one dermatome (here T8), not crossing the midline, preceded by pain.",
-  key:["Antivirals within 72 h help most","Nose tip involved (Hutchinson's sign): eye at risk — ophthalmology","Ear vesicles and facial palsy: Ramsay Hunt","Disseminated (> 20 vesicles outside the primary and adjacent dermatomes): immunosuppression"],dd:["Herpes simplex (zosteriform)","Contact dermatitis","Before the rash: cardiac, renal or abdominal pain"],soc:"Leaves post-inflammatory hyper- or hypopigmentation."},
+  key:["Antivirals within 72 h help most","Nose tip involved (Hutchinson's sign): eye at risk, same-day ophthalmology","Ear vesicles and facial palsy: Ramsay Hunt","Disseminated (> 20 vesicles outside the primary and adjacent dermatomes): immunosuppression"],dd:["Herpes simplex (zosteriform)","Contact dermatitis","Before the rash: cardiac, renal or abdominal pain"],soc:"Leaves post-inflammatory hyper- or hypopigmentation."},
  {id:"varicella",n:"Chickenpox (varicella)",g:"Infection",slug:"chickenpox",
   p:{L:[{k:"vesicle",n:16,r:[3,5],arr:"scatter"},{k:"papule",n:14,r:[2.5,4],arr:"scatter",col:"ery"},{k:"crust",n:10,r:[3,5],arr:"scatter",col:"darkbrown"}]},
   d:{prim:["Vesicle","Papule"],col:["Erythematous"],shape:["Round / oval"],border:["Well-demarcated"],surf:["Crusts at different stages"],arr:["Scattered"],dist:"trunk"},
@@ -348,14 +357,14 @@ SYSTEMS.push({id:"derm",name:"Dermatology",short:"Skin",tag:"Lesions, patterns, 
   {t:"Bedside tests",how:"Skin scrapings for fungus, swabs for bacteria and viral PCR, Wood's lamp, dermoscopy, and biopsy when the diagnosis is uncertain or malignancy possible.",why:"Simple tests prevent wrong treatment (steroid on tinea, antifungal on psoriasis).",find:"Hyphae on microscopy: tinea. Coral-red fluorescence: erythrasma.",v:"useful",signs:["woods","koebner"]}
  ],
  think:[
-  ["Annular, scaly edge, central clearing, one or few lesions","Tinea: scrape before treating."],["Annular without scale, dermal papules in a ring, on the hands","Granuloma annulare."],
-  ["Wheals that come and go within 24 h","Urticaria; look for angio-oedema and anaphylaxis features."],["Fixed targets on hands after a cold sore","Erythema multiforme (HSV)."],
+  ["Annular, scaly edge, central clearing, one or few lesions","Tinea: scrape before treating; topical terbinafine, never a steroid combination."],["Annular without scale, dermal papules in a ring, on the hands","Granuloma annulare: no scale, no itch; reassure (most clear within 2 years); check HbA1c if widespread."],
+  ["Wheals that come and go within 24 h","Urticaria; look for angio-oedema and anaphylaxis features."],["Fixed targets on hands after a cold sore","Erythema multiforme (HSV): treat the herpes; mucosal involvement means same-day dermatology to exclude SJS."],
   ["Fever and a non-blanching rash","Meningococcal sepsis until proven otherwise: antibiotics now."],["Palpable purpura on both legs","Small-vessel vasculitis: urine dip, BP, renal function."],
   ["Painful skin, dusky macules, mucosal erosions, new drug","SJS/TEN: stop the drug, admit."],["Tense blisters on an elderly, itchy patient","Bullous pemphigoid."],
-  ["Pain out of proportion with spreading dusky erythema","Necrotising fasciitis: surgeon now."],["Unilateral painful vesicles in a band","Herpes zoster; nose tip involved = eye risk."],
-  ["Pearly papule with telangiectasia on the face","Basal cell carcinoma."],["Changing, asymmetrical, multicoloured mole","Melanoma: urgent referral."],
-  ["Itch at night, family affected, finger-web burrows","Scabies: treat all contacts together."],["Comedones present","Acne, not rosacea."],
-  ["Symmetrical depigmented patches, brighter under Wood's lamp","Vitiligo; screen for thyroid disease."],["Bilateral 'cellulitis'","Usually venous eczema or lipodermatosclerosis."]
+  ["Pain out of proportion with spreading dusky erythema","Necrotising fasciitis: surgeon now."],["Unilateral painful vesicles in a band","Herpes zoster: antiviral within 72 h; nose tip involved (Hutchinson) means eye risk, same-day ophthalmology."],
+  ["Pearly papule with telangiectasia on the face","Basal cell carcinoma: rolled pearly edge; routine referral, urgent only if near the eye, nose or ear."],["Changing, asymmetrical, multicoloured mole","Melanoma: urgent suspected-cancer referral; do not shave or freeze it."],
+  ["Itch at night, family affected, finger-web burrows","Scabies: treat all contacts together."],["Comedones present","Acne, not rosacea: 12-week topical combination (adapalene with benzoyl peroxide); refer for isotretinoin if scarring."],
+  ["Symmetrical depigmented patches, brighter under Wood's lamp","Vitiligo; screen for thyroid disease."],["Bilateral 'cellulitis'","Usually venous eczema or lipodermatosclerosis."],["Painless ulcerated nodule on exposed skin after a summer in Qassim or Al-Ahsa","Cutaneous leishmaniasis: smear from the edge before treating."],["Fever and a rash in Jeddah or Jazan, platelets falling","Dengue: paracetamol only, admit for warning signs."]
  ],
  pitfalls:["Describing only the biggest or oldest lesion; choose a typical new one.","Calling all redness 'erythema' on darker skin without palpating: warmth and swelling may be the main signs, and the colour may be violaceous or brown.","Treating an annular scaly rash with steroid before scraping (tinea incognito).","Missing mucosal involvement in a blistering patient.","Using the glass test to reassure in a febrile, unwell patient.","Shaving or curetting a suspected melanoma: it destroys the depth measurement.","Forgetting nails, scalp and soles."]
 });

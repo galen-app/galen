@@ -61,13 +61,19 @@ page = f'''<!doctype html>
 <script src="app.js?v={h}"></script>
 <script>
 if ('serviceWorker' in navigator) {{
-  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').then(reg => {{
-    window.GALEN_SW = reg;
-    reg.addEventListener('updatefound', () => {{ const w = reg.installing; w && w.addEventListener('statechange', () => {{ if (w.state === 'installed' && navigator.serviceWorker.controller) document.dispatchEvent(new CustomEvent('galen:update', {{ detail: reg }})); }}); }});
+  /* The update banner follows reg.waiting, so it comes back on every start until the user updates.
+     The app also checks for an update when it comes back into view (Android keeps the PWA alive for days), when it comes online, and hourly. */
+  const tell = reg => {{ if (reg.waiting && navigator.serviceWorker.controller) document.dispatchEvent(new CustomEvent('galen:update', {{ detail: reg }})); }};
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js', {{ updateViaCache: 'none' }}).then(reg => {{
+    window.GALEN_SW = reg; tell(reg);
+    reg.addEventListener('updatefound', () => {{ const w = reg.installing; w && w.addEventListener('statechange', () => {{ if (w.state === 'installed') tell(reg); }}); }});
+    let last = Date.now(); const check = () => {{ if (Date.now() - last < 60000 || navigator.onLine === false) return; last = Date.now(); reg.update().catch(() => {{}}); }};
+    document.addEventListener('visibilitychange', () => {{ if (!document.hidden) check(); }});
+    window.addEventListener('online', check); setInterval(check, 3600000);
   }}).catch(e => console.warn('sw', e)));
   /* reload only when an update replaces a worker that was already in control (the user tapped Update), never on the first install */
   let refreshing = false; const hadController = !!navigator.serviceWorker.controller;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {{ if (refreshing || !hadController) return; refreshing = true; location.reload(); }});
+  navigator.serviceWorker.addEventListener('controllerchange', () => {{ if (refreshing || !hadController) return; refreshing = true; try {{ if (typeof Store !== 'undefined' && Store.cache) Store.cache(); }} catch (e) {{}} location.reload(); }});
 }}
 </script>
 </body>
@@ -75,9 +81,6 @@ if ('serviceWorker' in navigator) {{
 '''
 open('docs/index.html', 'w', encoding='utf-8').write(page)
 recs = sorted(os.path.basename(p) for p in glob.glob('docs/rec/*'))
-precache = ['./', 'index.html', f'app.css?v={h}', f'app.js?v={h}', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'] + [f'rec/{r}' for r in recs]
-sw = open('src/sw.template', encoding='utf-8').read().replace('__VERSION__', h).replace('__PRECACHE__', json.dumps(precache))
-open('docs/sw.js', 'w', encoding='utf-8').write(sw)
 manifest = {
   "id": "/galen-app", "name": "Galen", "short_name": "Galen", "start_url": "./", "scope": "./", "display": "standalone",
   "background_color": "#efe6d4", "theme_color": "#d4621a", "description": "History, examination and the reasons behind them.",
@@ -85,4 +88,15 @@ manifest = {
   "categories": ["education", "medical"], "lang": "en"
 }
 open('docs/manifest.webmanifest', 'w', encoding='utf-8').write(json.dumps(manifest, indent=1))
+# every precached asset with its SHA-256: the service worker verifies each one, so a broken download can never become the offline app
+def sha256(path):
+    return hashlib.sha256(open(path, 'rb').read()).hexdigest()
+assets = [('./', 'docs/index.html'), ('index.html', 'docs/index.html'), (f'app.css?v={h}', 'docs/app.css'), (f'app.js?v={h}', 'docs/app.js'), ('manifest.webmanifest', 'docs/manifest.webmanifest')]
+assets += [(f'icons/{n}', f'docs/icons/{n}') for n in ('icon-192.png', 'icon-512.png', 'maskable-512.png', 'apple-touch-icon.png') if os.path.exists(f'docs/icons/{n}')]
+assets += [(f'rec/{r}', f'docs/rec/{r}') for r in recs]
+precache = [{'u': u, 'h': sha256(f)} for u, f in assets]
+# the cache is named by a hash over every asset, so any change (even only a recording or index.html) gets a fresh cache
+cache_ver = hashlib.sha1(''.join(x['u'] + x['h'] for x in precache).encode()).hexdigest()[:12]
+sw = open('src/sw.template', encoding='utf-8').read().replace('__VERSION__', cache_ver).replace('__PRECACHE__', json.dumps(precache, separators=(',', ':')))
+open('docs/sw.js', 'w', encoding='utf-8').write(sw)
 print('built', VERSION, h, len(art), 'bytes artifact;', len(js), 'bytes js;', len(recs), 'recordings;', [os.path.basename(p) for p in parts])

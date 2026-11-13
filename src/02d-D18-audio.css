@@ -1,0 +1,27 @@
+/* ---------- D18: clinical player and theatre sound ---------- */
+.readout{flex:1 1 150px}
+.readout b,.readout span{overflow-wrap:anywhere;font-variant-numeric:lining-nums tabular-nums}
+.readout b{line-height:1.2}
+.pfoot .seg button,.pout .seg button{white-space:nowrap}
+.player.is-playing .play,.is-playing .play{box-shadow:0 0 0 4px var(--accent-soft),0 2px 8px color-mix(in srgb,var(--accent) 35%,transparent)}
+@media (max-width:460px){
+  .pctl{gap:8px 12px;padding:10px 12px}
+  .pctl .hr{flex:1 1 100%;order:3}
+  .pctl .hr input{flex:1;width:auto;min-width:0}
+  .pfoot{padding:0 12px 10px}
+  .pfoot .hint{min-width:0;flex-basis:100%}
+  .pout{padding:8px 12px}
+}
+/* theatre settings rows: checkbox and its label stay on one line, the label wraps beside the box */
+.theatre-set .ts-row{display:flex;gap:10px;align-items:flex-start;flex-wrap:nowrap;cursor:pointer}
+.theatre-set .ts-row input{flex:none;margin-top:.25em;accent-color:var(--accent);width:1.05rem;height:1.05rem}
+.theatre-set .ts-row span{min-width:0}
+.theatre-set .ts-btns .btn svg{width:16px;height:16px}
+/* first-visit sound question */
+.snd-ask{position:fixed;z-index:60;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));width:min(440px,calc(100vw - 32px));
+  display:flex;flex-direction:column;gap:10px;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.snd-ask-t{display:flex;flex-direction:column;gap:2px}
+.snd-ask-t b{font-family:var(--f-display);font-size:1.1rem}
+.snd-ask .btn svg{width:16px;height:16px}
+@media (prefers-reduced-motion:no-preference){.snd-ask{animation:sndAskIn .25s ease-out}}
+@keyframes sndAskIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}

@@ -3,7 +3,7 @@
  Body geometry: two views (front, back) in a 460×470 viewBox; each limb is a strip of horizontal cross-sections
  [y, lateral x, medial x] for the image-left limb, mirrored for the other side. Regions are (t0,t1,s0,s1) boxes along a strip:
  t = proportion down the strip, s = 0 lateral edge → 1 medial edge. Sources: ISNCSCI 2019 key sensory points and key muscles
- (ASIA); evidence-based dermatome map (Lee et al., Clin Anat 2008) — dermatomes overlap and vary, so test the key points. */
+ (ASIA); evidence-based dermatome map (Lee et al., Clin Anat 2008): dermatomes overlap and vary, so test the key points. */
 const BODY={
   W:220,
   trunk:[[52,101,119],[74,101,119],[74,70,150],[100,72,148],[150,78,142],[200,80,140],[235,74,146],[262,76,144]],
@@ -59,8 +59,8 @@ const DERM_INFO={
  L1:{n:"L1",d:"Groin and upper anterior thigh; upper buttock behind.",k:"Midway between the T12 and L2 points.",w:"'L1 = in the groin, where the 'one' underwear line lies'. Cremasteric reflex afferent."},
  L2:{n:"L2",d:"Anterior and medial thigh.",k:"Anterior–medial thigh, midway between the midpoint of the inguinal ligament and the medial femoral condyle."},
  L3:{n:"L3",d:"Lower anterior thigh to the medial knee.",k:"Medial femoral condyle above the knee.",w:"L3/L4 radiculopathy mimics meralgia or knee pain: check quadriceps and the knee jerk."},
- L4:{n:"L4",d:"Medial leg to the medial malleolus and medial foot.",k:"Medial malleolus.",w:"'L4: down on all fours, knees to the floor' — L4 is the knee: knee jerk, quadriceps, medial shin."},
- L5:{n:"L5",d:"Lateral leg, dorsum of the foot and big toe.",k:"Dorsum of the foot at the 3rd metatarsophalangeal joint.",w:"'L5: the 5 toes on the top of the foot'. L5 root (L4/5 disc) weakens big toe extension and also ankle inversion and hip abduction — common peroneal palsy spares those two."},
+ L4:{n:"L4",d:"Medial leg to the medial malleolus and medial foot.",k:"Medial malleolus.",w:"'L4: down on all fours, knees to the floor'. L4 is the knee: knee jerk, quadriceps, medial shin."},
+ L5:{n:"L5",d:"Lateral leg, dorsum of the foot and big toe.",k:"Dorsum of the foot at the 3rd metatarsophalangeal joint.",w:"'L5: the 5 toes on the top of the foot'. L5 root (L4/5 disc) weakens big toe extension and also ankle inversion and hip abduction; common peroneal palsy spares those two."},
  S1:{n:"S1",d:"Lateral foot, sole and heel; posterolateral calf.",k:"Lateral heel (calcaneus).",w:"'S1: stand on the 1 sole'. S1 root (L5/S1 disc): ankle jerk lost, weak plantar flexion (can't tiptoe), lateral foot numb."},
  S2:{n:"S2",d:"Strip down the back of the thigh and calf.",k:"Midpoint of the popliteal fossa."},
  S3:{n:"S3",d:"Medial buttock.",k:"Ischial tuberosity or infragluteal fold."},
@@ -110,7 +110,7 @@ const MYO=[
  ["C6","Wrist extensors (extensor carpi radialis)","Also forearm supination","Brachioradialis reflex (C5–6)"],
  ["C7","Elbow extensors (triceps)","Also wrist flexion, finger extension","Triceps reflex (C7)"],
  ["C8","Finger flexors (FDP to middle finger)","Grip; thumb flexion (FPL)","Finger jerk (C8)"],
- ["T1","Small finger abductors (abductor digiti minimi)","All intrinsic hand muscles (interossei, APB)","—"],
+ ["T1","Small finger abductors (abductor digiti minimi)","All intrinsic hand muscles (interossei, APB)","No reliable reflex"],
  ["L2","Hip flexors (iliopsoas)","Also hip adduction (L2–4)","Cremasteric (L1–2)"],
  ["L3","Knee extensors (quadriceps)","Hip adduction","Knee jerk (L3–4)"],
  ["L4","Ankle dorsiflexors (tibialis anterior)","Ankle inversion (tibialis posterior, L4–5)","Knee jerk (L4)"],
@@ -122,7 +122,7 @@ const REFLEX=[
  ["Biceps","C5–6","Tap your thumb on the biceps tendon at the elbow crease","Brisk with UMN lesion above C5; reduced in C5/6 radiculopathy"],
  ["Brachioradialis (supinator)","C5–6","Tap the distal radius (brachioradialis tendon) about 5 cm above the wrist","'Inverted supinator': finger flexion with absent brachioradialis jerk = C5/6 cord compression (myelopathy)"],
  ["Triceps","C7","Tap the triceps tendon above the olecranon, forearm hanging","Lost in C7 radiculopathy (the commonest)"],
- ["Finger jerk / Hoffmann","C8","Flick the middle finger's distal phalanx; watch the thumb","Hoffmann's present suggests cervical cord compression, but is found in some healthy people"],
+ ["Finger flexor jerk","C8","Patient's fingers lightly flexed; lay your fingers across the pads of theirs and tap your own fingers; watch the fingers flex","Reduced in C8 radiculopathy; brisk with an upper motor neuron lesion above C8. Not the same as Hoffmann's sign (flick the middle finger's distal phalanx and watch the thumb), which is a pathological UMN sign of cervical myelopathy that also occurs in some healthy people and tests no single segment"],
  ["Abdominal","T8–12","Stroke each quadrant toward the umbilicus","Absent early in MS; often absent after surgery, obesity, pregnancy"],
  ["Cremasteric","L1–2","Stroke the inner thigh","Absent in most torsions"],
  ["Knee (patellar)","L3–4","Tap the patellar tendon, legs dangling","Lost in L4 radiculopathy, femoral neuropathy, diabetic neuropathy"],
@@ -144,7 +144,7 @@ const ROOTNERVE=[
 const LOCALISE=[
  ["Cortex","UMN signs (brisk reflexes, extensor plantar, pyramidal weakness) on the opposite side; plus cortical signs: aphasia, neglect, visual field loss, face and arm more than leg (MCA) or leg more than arm (ACA)","Seizures, cortical sensory loss (astereognosis, 2-point)"],
  ["Internal capsule / pons","Pure motor hemiparesis: face, arm and leg equally, no cortical signs","Lacunar stroke; 'dense hemiplegia without aphasia'"],
- ["Brainstem","Crossed signs: cranial nerve palsy on one side, long tract signs on the other","Diplopia, dysarthria, dysphagia, vertigo, ataxia — 'the Ds'"],
+ ["Brainstem","Crossed signs: cranial nerve palsy on one side, long tract signs on the other","Diplopia, dysarthria, dysphagia, vertigo, ataxia: 'the Ds'"],
  ["Spinal cord","A sensory level, bilateral UMN signs below it, LMN signs at it; sphincters involved","Neck pain or back pain at the level; bladder early in conus lesions"],
  ["Root","Pain in a dermatome, weakness in a myotome, the reflex for that root lost","Pain worse with cough, neck or straight leg raise"],
  ["Plexus","Several roots and nerves in one limb, patchy, often painful","Trauma, tumour (Pancoast), radiation, diabetic amyotrophy"],
@@ -171,8 +171,8 @@ const CRANIAL=[
  ["VI","Abducens","Abduction","Horizontal diplopia worse looking to the affected side; a false localising sign of raised intracranial pressure","Long course over the petrous apex"],
  ["VII","Facial","Raise eyebrows, close eyes tight, show teeth, puff cheeks","Forehead spared = UMN (stroke); whole side = LMN (Bell's). Check ears for vesicles (Ramsay Hunt) and the parotid","Taste anterior two-thirds of tongue, stapedius (hyperacusis)"],
  ["VIII","Vestibulocochlear","Whisper test, Rinne, Weber; HINTS and Dix–Hallpike when dizzy","Sudden sensorineural hearing loss is an emergency (steroids within days)","Weber goes to the bad ear in conductive loss, to the good ear in sensorineural loss"],
- ["IX","Glossopharyngeal","Palate elevation, gag (sensory)","Lost with X in lateral medullary syndrome","The gag reflex is absent in many healthy people and does not predict aspiration"],
- ["X","Vagus","Say 'ah': uvula deviates away from the weak side; voice, cough","Hoarse voice: recurrent laryngeal nerve (left: thoracic course around the aortic arch — lung cancer, aortic aneurysm)","Use a water swallow test, not the gag, for swallow safety"],
+ ["IX","Glossopharyngeal","Sensory limb of the gag (touch each side of the posterior pharyngeal wall and ask if it feels the same); taste and sensation of the posterior third of the tongue","Lost with X in lateral medullary syndrome; an isolated IX lesion is rare. Palate elevation is X, not IX","The gag reflex is absent in many healthy people and does not predict aspiration"],
+ ["X","Vagus","Say 'ah': the palate elevates (the uvula is pulled away from the weak side); motor limb of the gag; voice, cough","Hoarse voice: recurrent laryngeal nerve (the left loops around the aortic arch in the chest, so think lung cancer or aortic aneurysm)","Use a water swallow test, not the gag, for swallow safety"],
  ["XI","Accessory","Shrug (trapezius), turn head (sternocleidomastoid)","Turning the head left uses the right SCM. Posterior triangle surgery injures it (shoulder droop)","Weak SCM and trapezius on the same side as a hemiparesis: suspect a non-anatomical pattern"],
  ["XII","Hypoglossal","Tongue out: deviates toward the weak side; wasting, fasciculations","Fasciculating, wasted tongue: motor neuron disease (bulbar)","Watch the tongue at rest in the mouth: protrusion causes normal flickers"]
 ];

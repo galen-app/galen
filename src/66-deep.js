@@ -12,3 +12,24 @@ function deepDive(id){
    <details class="acc"><summary><span class="st"><b>History, name and story</b><span>Who, when, and why it's called that</span></span></summary><div class="acc-body">${p("History",d.hist)}${p("The name",d.etym)}${p("The story",d.culture)}</div></details>
    ${d.sources&&d.sources.length?`<div class="src">Sources: ${d.sources.slice(0,6).map(u=>`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(host(u))}</a>`).join(" · ")}</div>`:""}</div>`;
 }
+/* ================= ER ESSENTIALS, by presentation (13/11/2026) =================
+ The signs:er page should build from ER_ESS, not from Object.keys(DEEP). Archaic and myth-level signs live only in the
+ "myths" group, with what to do instead (REPLACED). `first` is the decisive manoeuvre for that presentation. */
+const ER_ESS=[
+ {id:"chest",t:"Chest pain",ids:["acs-radiation","chest-wall-tender","bp-arms","add-rs","pericardial-rub","pulsus-paradoxus","tamponade-signs","wells-pe"]},
+ {id:"breath",t:"Breathless",ids:["resp-rate","jvp","ajr","tension-ptx","ptx-signs","percussion-dull","kussmaul-breathing","kussmaul-sign"]},
+ {id:"shock",t:"Collapse, shock and sepsis",ids:["shock-index","postural","qsofa","news2","purpura-glass","gcs"]},
+ {id:"head",t:"Headache, confusion and weakness",ids:["ottawa-sah","jaw-claudication","temporal-artery","befast","pronator-drift","babinski","cn3-pupil","rapd","horner","four-at","asterixis"]},
+ {id:"dizzy",t:"Dizziness and vertigo",ids:["hints","dix-hallpike","epley"]},
+ {id:"trauma",t:"Head and neck injury",ids:["ct-head-rule","c-spine-rule","battle"]},
+ {id:"abdo",t:"Abdomen and scrotum",ids:["rlq-tender","rovsing","psoas","alvarado","murphy","carnett","aaa-palp","cremasteric"]},
+ {id:"limb",t:"Injured limb and back",ids:["ottawa-ankle","ottawa-knee","thompson","scaphoid","compartment","cauda","wells-dvt"]},
+ {id:"myths",t:"Myths we still see (know them, do not lean on them)",ids:["homans","kernig","neck-stiffness","chvostek","cap-refill","cullen"]}
+];
+(function(){
+  const seen=new Set();
+  ER_ESS.forEach(g=>{g.ids=g.ids.filter(k=>{if(!SIGNS[k]){console.warn("ER_ESS unknown",k);return false;}return true;});
+    g.ids.forEach(k=>{if(g.id!=="myths"&&SIGNS[k].v==="archaic")console.warn("ER_ESS: archaic sign outside myths",k);seen.add(k);});});
+  /* Fallback for any page still listing Object.keys(DEEP): hide archaic signs from enumeration (DEEP[id] still works). */
+  Object.keys(DEEP).forEach(k=>{if(SIGNS[k]&&SIGNS[k].v==="archaic"){const v=DEEP[k];delete DEEP[k];Object.defineProperty(DEEP,k,{value:v,enumerable:false,configurable:true,writable:true});}});
+})();

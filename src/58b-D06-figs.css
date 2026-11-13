@@ -1,0 +1,22 @@
+/* D06: figure layers, sizing on wide screens, legible figure labels */
+.fig svg{max-width:560px;margin-inline:auto}
+.fig.small svg{max-width:420px}
+.fig .fl.lg{font-size:12px}
+.fig .fl.sm{font-size:9.5px}
+.fig .fl.bad{fill:var(--bad);font-weight:700}
+.fig .fl.good{fill:var(--good);font-weight:700}
+.fig .fl,.fig .fl.fb,.fig .fl.fa{paint-order:stroke;stroke:var(--surface2);stroke-width:3px;stroke-linejoin:round}
+.fig g.fly{transition:opacity .25s ease}
+.fly-bar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.fly-b{font:600 .82rem/1.2 var(--f-body,system-ui);color:var(--ink2);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 11px;min-height:36px;cursor:pointer;text-align:left}
+.fly-b:hover{border-color:var(--accent)}
+.fly-b.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent,#fff)}
+.fly-b.bad{color:var(--bad);border-color:var(--bad)}
+.fly-b.bad.on{background:var(--bad);color:#fff}
+.fly-b.play{min-width:40px;text-align:center}
+.fly-b:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.fly-c{margin:0;text-align:center;color:var(--ink2);min-height:1.5em;line-height:1.45}
+@media (prefers-reduced-motion:reduce){.fig g.fly{transition:none}}
+@media print{.fly-bar,.fly-c{display:none}}
+.fly-b .n{font-variant-numeric:lining-nums}
+@media (max-width:699px){.fly-b .lb{display:none}.fly-b{min-width:40px;text-align:center}}

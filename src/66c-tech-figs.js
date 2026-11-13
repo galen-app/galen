@@ -1,76 +1,182 @@
 "use strict";
 /* ================= TECHNIQUE FIGURES =================
- Schematics for the Technique clinic. Same 320×200 canvas and tokens as 58-figures. Orange = your hand, force or line of sight. */
+ Schematics for the Technique clinic. Same 320x200 canvas and tokens as 58-figures. Orange = your hand, force or line of sight;
+ red = a common mistake. Each figure has step layers (L) that the figure bar plays one at a time (see fig() in 58-figures). */
+const TF={
+ /* top view of a head: centre, radius, nose angle in degrees (0 = up/forwards) */
+ headTop:(x,y,r,ang=0,fill="var(--skin)")=>`<g transform="rotate(${ang} ${x} ${y})">${P.e(x-r*.98,y,r*.16,r*.3,fill,"var(--line)")}${P.e(x+r*.98,y,r*.16,r*.3,fill,"var(--line)")}${P.c(x,y,r,fill,"var(--line)")}${P.pa(`M${x-r*.22} ${y-r*.95} L${x} ${y-r*1.3} L${x+r*.22} ${y-r*.95}`,fill,"var(--line)",1.2)}</g>`,
+ /* gaze rays from both eyes of a top-view head to a point */
+ gaze:(x,y,r,ang,tx,ty,c="var(--accent)",d="")=>{const a=ang*Math.PI/180,ex=r*.42,ey=-r*.62;const E=[-1,1].map(s=>[x+(s*ex)*Math.cos(a)-ey*Math.sin(a),y+(s*ex)*Math.sin(a)+ey*Math.cos(a)]);
+   return E.map(([px,py])=>P.ln(px.toFixed(1),py.toFixed(1),tx,ty,c,1.2,d)+P.c(px.toFixed(1),py.toFixed(1),2.2,"var(--ink)","none")).join("");},
+ /* tuning fork, base at (x,y), rotated rot degrees, tines up */
+ fork:(x,y,rot=0,s=1)=>`<g transform="translate(${x} ${y}) rotate(${rot}) scale(${s})">${P.ln(0,0,0,-18,"var(--ink2)",3)}${P.pa("M-6 -46 L-6 -24 Q-6 -18 0 -18 Q6 -18 6 -24 L6 -46","none","var(--ink2)",3)}${P.c(0,1,2.6,"var(--ink2)","none")}</g>`,
+ /* almond-shaped eye seen from the front, iris offset dx */
+ eye:(x,y,w,dx=0,dy=0)=>`${P.pa(`M${x-w} ${y} Q${x} ${y-w*.62} ${x+w} ${y} Q${x} ${y+w*.62} ${x-w} ${y} Z`,"var(--surface)","var(--ink2)",1.3)}${P.c(x+dx,y+dy,w*.36,"var(--muscle)","var(--ink2)",1)}${P.c(x+dx,y+dy,w*.15,"var(--ink)","none")}`,
+ /* label with a short leader line */
+ tag:(x,y,tx,ty,s,a="start",cls="")=>`${P.ln(x,y,tx,ty,"var(--muted)",1,"2 2")}${P.t(a==="end"?tx-2:tx+2,ty+3.5,s,a,cls)}`,
+ /* panel heading */
+ H:(x,y,s,a="middle")=>P.T(x,y,s,a),
+ arc:(cx,cy,r,a0,a1,c="var(--accent)",w=1.4,d="")=>{const p=a=>[cx+r*Math.sin(a*Math.PI/180),cy-r*Math.cos(a*Math.PI/180)];const [x0,y0]=p(a0),[x1,y1]=p(a1);return `<path d="M${x0.toFixed(1)} ${y0.toFixed(1)} A${r} ${r} 0 ${Math.abs(a1-a0)>180?1:0} ${a1>a0?1:0} ${x1.toFixed(1)} ${y1.toFixed(1)}" fill="none" stroke="${c}" stroke-width="${w}" ${d?`stroke-dasharray="${d}"`:""}/>`;}
+};
 Object.assign(FIG,{
-"tech-otoscope":{t:"Otoscopy: straighten the canal, brace the hand",c:"The adult canal runs up, back and then forward: pull the pinna up and back to straighten it. In a child under about three the canal is short and straight-ish and points upward, so pull back and slightly down. Hold the otoscope like a pen with your little finger braced on the cheek, so a sudden head movement moves the scope with the head instead of into the drum.",
- s:()=>`${P.T(80,16,"Adult","middle")}${P.T(240,16,"Young child","middle")}
- ${P.pa("M40 150 Q30 90 60 60 Q88 36 112 60 Q126 80 112 110 Q100 128 104 160 Q90 176 64 170 Z","var(--skin)","var(--line)",1.3)}
- ${P.pa("M72 112 Q80 98 92 104 Q100 112 96 122","none","var(--ink2)",4)}${P.c(80,112,5,"var(--surface2)","var(--ink2)",1.2)}
- ${P.ar(96,78,120,44)}${P.t(124,48,"up + back","start","fa")}
- ${P.pa("M200 150 Q192 104 214 82 Q236 66 256 86 Q266 104 256 126 Q248 144 252 164 Q240 176 216 170 Z","var(--skin)","var(--line)",1.3)}
- ${P.c(226,120,5,"var(--surface2)","var(--ink2)",1.2)}
- ${P.ar(252,128,282,150)}${P.t(258,170,"back + down","start","fa")}
- ${P.ln(10,186,150,186,"var(--line)")}${P.t(14,198,"Canal: lateral third cartilage, medial two-thirds bone (touching bone hurts)")}`},
-"tech-ophthalmoscope":{t:"Direct ophthalmoscopy: same side, 15° temporal",c:"Your right eye and right hand for the patient's right eye. The patient fixes on a distant point over your shoulder, which relaxes accommodation and keeps the eye still. Come in along the horizontal about 15° from the temporal side: the optic disc lies about 15° nasal to the fovea, so this line lands on the disc and keeps your light off the macula until you choose to look there.",
- s:()=>`${P.c(110,110,46,"var(--skin)","var(--line)")}${P.t(110,170,"patient (seen from above)","middle")}
- ${P.c(90,72,12,"var(--surface)","var(--ink2)")}${P.c(130,72,12,"var(--surface)","var(--ink2)")}${P.t(90,52,"L","middle")}${P.t(130,52,"R","middle")}
- ${P.c(133,64,3,"var(--ink)","none")}
- ${P.ln(130,60,130,8,"var(--muted)",1,"3 3")}${P.t(136,14,"fixation: distant target")}
- ${P.ar(220,20,138,66)}${P.t(214,32,"your line of sight,")}${P.t(214,44,"~15° temporal")}
- ${P.pa("M196 66 A60 60 0 0 1 206 40","none","var(--accent)",1.2)}
- ${P.r(222,10,30,18,"var(--surface2)","var(--ink2)",4)}${P.t(258,24,"ophthalmoscope")}
- ${P.c(270,120,30,"var(--surface)","var(--line)")}${P.c(262,120,7,"var(--warn-soft)","var(--warn)")}${P.c(286,120,4,"var(--bad-soft)","var(--bad)")}
- ${P.t(262,162,"disc (nasal)","middle")}${P.t(292,108,"fovea","middle")}${P.t(270,182,"right fundus","middle")}`},
-"tech-rhinoscopy":{t:"Anterior rhinoscopy: lift the tip, look along the floor",c:"Push the nasal tip up with your thumb: the vestibule straightens and you can already see Little's area on the anterior septum. Keep the speculum blades in the hair-bearing vestibule and open them so the movement lifts the mobile ala, never pressing on the septum, which is tender and bleeds from Little's area. Textbooks differ on the exact blade orientation; the principle doesn't. Look along the floor to the inferior turbinate, then tilt the head back to see the middle turbinate and the meatus.",
- s:()=>`${P.pa("M40 40 Q60 30 80 52 L140 140 Q150 160 132 168 L60 168 Q46 150 52 128 Z","var(--skin)","var(--line)",1.3)}
- ${P.e(118,154,14,8,"var(--surface2)","var(--ink2)")}
- ${P.ar(150,186,140,166)}${P.t(154,192,"thumb lifts the tip")}
- ${P.pa("M196 30 L196 180 M196 30 Q300 40 300 120 Q300 170 260 180 L196 180","none","var(--line)",1.2)}
- ${P.t(248,24,"lateral wall (right side)","middle")}
- ${P.e(260,76,34,10,"var(--muscle)","var(--muscle-line)")}${P.t(260,80,"middle turbinate","middle")}
- ${P.e(250,126,40,14,"var(--muscle)","var(--muscle-line)")}${P.t(250,130,"inferior turbinate","middle")}
- ${P.ln(196,166,300,166,"var(--bone-line)",2)}${P.t(246,178,"floor","middle")}
- ${P.ar(170,150,222,150)}${P.t(150,112,"line of sight","start","fa")}
- ${P.c(206,150,7,"var(--bad-soft)","var(--bad)")}${P.t(168,96,"Little's area")}${P.ln(190,100,204,142,"var(--muted)",1,"2 3")}`},
-"tech-tinel":{t:"Tinel: tap the nerve, feel it in the territory",c:"A positive Tinel is tingling felt in the nerve's distribution, not soreness at the spot you tapped. Tap from distal to proximal over the nerve's course. In regeneration after an injury, the most distal point that still gives tingling moves down the limb at roughly 1 mm a day.",
- s:()=>`${P.skin("M30 190 L40 120 Q42 90 60 80 L72 30 Q76 22 82 30 L84 78 L92 22 Q97 14 102 22 L102 78 L110 28 Q115 20 120 28 L118 82 L126 44 Q131 38 135 46 L130 100 Q150 92 160 104 Q150 124 132 140 L120 190 Z")}
- ${P.pa("M60 80 L72 30 Q76 22 82 30 L84 78 L92 22 Q97 14 102 22 L102 78 L110 28 Q115 20 118 28 L114 84 L66 92 Z","var(--nerve)","none",1,"fill-opacity=\".35\"")}
- ${P.nv("M86 190 L88 140 L90 110")}${P.c(88,150,9,"none","var(--accent)",2)}
- ${P.ar(30,150,74,150)}${P.t(4,140,"tap")}
- ${P.t(170,40,"Median nerve at the wrist:")}${P.t(170,54,"tingling in thumb, index,")}${P.t(170,68,"middle, radial half of ring")}
- ${P.t(170,96,"Other sites:","start","fb")}${P.t(170,110,"ulnar: cubital tunnel")}${P.t(170,124,"common peroneal: fibular neck")}${P.t(170,138,"tibial: tarsal tunnel")}
- ${P.ar(170,170,290,170,"var(--accent)",1.8)}${P.t(170,186,"tap distal → proximal")}`},
-"tech-hallpike":{t:"Dix–Hallpike: 45° turn, then lie back past horizontal",c:"Turning the head 45° to the tested side lines the posterior canal up with the plane you are about to move in. Lying back with the head 20 to 30° below horizontal lets loose otoconia fall along the canal, which makes the cupula deflect. Expect a few seconds' latency, then torsional upbeating nystagmus that fades within a minute.",
- s:()=>`${P.r(20,110,40,60,"var(--surface2)","var(--line)",8)}${P.c(40,90,16,"var(--skin)","var(--line)")}${P.ar(40,72,58,66,"var(--accent)",1.8)}${P.t(40,186,"1 sit, head 45° to the side","middle")}
- ${P.ln(110,140,300,140,"var(--line)",3)}${P.r(160,118,120,20,"var(--surface2)","var(--line)",8)}
- ${P.c(132,152,15,"var(--skin)","var(--line)")}${P.ln(110,140,150,140,"var(--muted)",1,"3 3")}${P.ln(146,140,116,158,"var(--accent)",1.6)}
- ${P.t(98,178,"head 20–30° below the couch")}${P.t(210,108,"2 lie back briskly","middle")}
- ${P.ar(64,120,140,124,"var(--muted)",1.4)}
- ${P.t(200,30,"Watch the eyes ≥ 30 s:")}${P.t(200,44,"latency 1–5 s, torsional")}${P.t(200,58,"(upper pole beats toward the")}${P.t(200,72,"lower ear), up-beating, fatigues")}`},
-"tech-head-impulse":{t:"Head impulse: small, fast, unpredictable",c:"Hold the head, have the patient fix on your nose, then turn the head 10 to 20° quickly and without warning. A working vestibulo-ocular reflex keeps the eyes on your nose. If the eyes are dragged with the head and then flick back (a catch-up saccade), the vestibular reflex on the side you turned toward is weak. That points to a peripheral cause. In acute vestibular syndrome, a normal impulse is the worrying result.",
- s:()=>`${P.T(80,16,"Normal","middle")}${P.T(240,16,"Abnormal (peripheral)","middle")}
- ${P.c(80,100,40,"var(--skin)","var(--line)")}${P.c(66,86,8,"var(--surface)","var(--ink2)")}${P.c(94,86,8,"var(--surface)","var(--ink2)")}${P.c(66,82,3,"var(--ink)","none")}${P.c(94,82,3,"var(--ink)","none")}
- ${P.pa("M40 150 Q80 170 120 150","none","var(--accent)",2.2)}${P.ar(110,156,122,148)}${P.t(80,184,"head turns, eyes stay on target","middle")}
- ${P.c(240,100,40,"var(--skin)","var(--line)")}${P.c(226,86,8,"var(--surface)","var(--ink2)")}${P.c(254,86,8,"var(--surface)","var(--ink2)")}${P.c(230,86,3,"var(--ink)","none")}${P.c(258,86,3,"var(--ink)","none")}
- ${P.ar(262,66,236,66,"var(--bad)",2)}${P.t(240,58,"catch-up saccade","middle")}
- ${P.pa("M200 150 Q240 170 280 150","none","var(--accent)",2.2)}${P.ar(270,156,282,148)}${P.t(240,184,"eyes ride with the head, then flick back","middle")}`},
-"tech-reflex":{t:"Tendon reflexes: let the hammer fall",c:"Hold the hammer near the end and let it swing from the wrist, so the tap is quick and the same strength each time. Put your finger on the biceps tendon and strike your finger: you feel the contraction even when you can't see it. If the reflex seems absent, reinforce: ask the patient to clench their teeth or pull their hooked fingers apart, and tap just as they do.",
- s:()=>`${P.bone(40,150,140,120,14)}${P.bone(140,120,230,160,12)}${P.mus("M60 132 Q100 104 138 116 L136 124 Q100 116 64 144 Z")}
- ${P.hand(132,104,-20,.8)}${P.ln(170,40,138,96,"var(--ink2)",4)}${P.r(160,26,30,14,"var(--surface3)","var(--ink2)",4)}
- ${P.pa("M196 40 A40 40 0 0 1 176 78","none","var(--accent)",1.6)}${P.ar(182,70,176,80)}${P.t(200,52,"swing from the wrist")}
- ${P.t(60,176,"strike your own finger on the tendon")}
- ${P.T(250,110,"Reinforce","middle")}${P.pa("M232 130 q8 -10 16 0 M272 130 q-8 -10 -16 0","none","var(--accent)",3)}${P.ar(236,140,220,140,"var(--accent)",1.4)}${P.ar(268,140,284,140,"var(--accent)",1.4)}${P.t(250,160,"pull just before the tap","middle")}`},
-"tech-plantar":{t:"Plantar response: the path of the stroke",c:"Use something blunt: an orange stick, a key or the end of a closed pen, not a needle. Stroke slowly and firmly along the lateral border of the sole from the heel to the base of the little toe, then curve medially across the metatarsal heads, stopping before the ball of the big toe. Watch only the first movement of the hallux. Slow, upward extension of the big toe is extensor; a quick pull of the whole leg away is withdrawal.",
- s:()=>`${P.pa("M130 186 Q100 180 100 140 Q98 100 108 70 Q118 34 150 26 Q190 22 200 50 Q210 90 196 130 Q186 170 160 186 Z","var(--skin)","var(--line)",1.3)}
- ${P.c(142,24,9,"var(--skin)","var(--line)")}${P.c(162,22,7,"var(--skin)","var(--line)")}${P.c(178,26,6,"var(--skin)","var(--line)")}${P.c(190,34,5,"var(--skin)","var(--line)")}${P.c(198,44,5,"var(--skin)","var(--line)")}
- ${P.pa("M174 176 Q200 120 196 66 Q180 54 150 60","none","var(--accent)",3,"stroke-dasharray=\"0\"")}${P.ar(158,58,146,62)}
- ${P.t(212,150,"1 heel to the little toe,")}${P.t(212,164,"along the lateral border")}${P.t(212,60,"2 across the metatarsal")}${P.t(212,74,"heads, stop before the hallux")}
- ${P.t(10,40,"Watch the big toe's")}${P.t(10,54,"FIRST movement")}${P.ar(70,46,130,28,"var(--muted)",1.2)}`},
-"tech-tuning-fork":{t:"Rinne and Weber with a 512 Hz fork",c:"Strike the fork on your knee or elbow; a hard surface produces overtones. Rinne: the base on the mastoid, then the tines 1 to 2 cm from the ear canal, in line with it. Air conduction louder than bone is normal, or a sensorineural loss. Weber: the base on the midline (vertex, forehead or upper incisors). In a conductive loss the sound goes to the bad ear; in a sensorineural loss it goes to the good ear.",
- s:()=>`${P.T(90,16,"Rinne","middle")}${P.T(240,16,"Weber","middle")}
- ${P.c(90,104,44,"var(--skin)","var(--line)")}${P.e(134,104,8,14,"var(--skin)","var(--line)")}
- ${P.ln(122,140,122,170,"var(--ink2)",3)}${P.pa("M118 140 L118 118 M126 140 L126 118","none","var(--ink2)",3)}${P.t(98,188,"1 base on the mastoid")}
- ${P.pa("M150 98 L176 98 M150 110 L176 110","none","var(--ink2)",3)}${P.ln(176,104,196,104,"var(--ink2)",3)}${P.t(150,86,"2 tines at the canal")}
- ${P.c(240,110,44,"var(--skin)","var(--line)")}${P.ln(240,66,240,36,"var(--ink2)",3)}${P.pa("M236 36 L236 14 M244 36 L244 14","none","var(--ink2)",3)}
- ${P.ar(222,84,196,92,"var(--accent)",1.6)}${P.ar(258,84,284,92,"var(--accent)",1.6)}${P.t(240,172,"midline: where is it louder?","middle")}`}
+/* ---------------- otoscopy ---------------- */
+"tech-otoscope":{t:"Otoscopy: straighten the canal, brace the hand",mode:"solo",
+ c:"The adult canal runs up, back and then forward: pull the pinna up and back to straighten it. In a child under about 3 years the canal is short and points upward, so pull back and slightly down. Hold the otoscope like a pen with your little finger braced on the cheek, so a sudden head movement moves the scope with the head instead of into the drum. Keep the speculum in the outer, cartilaginous third: the bony canal is exquisitely tender.",
+ hint:"Faces look left: back is to the right. Tap a step.",
+ s:()=>`${TF.H(80,14,"Adult")}${TF.H(240,14,"Child under about 3")}
+ ${P.pa("M44 112 Q40 70 64 52 Q92 36 118 54 Q134 70 132 98 Q130 120 116 132 L110 146 L70 146 Q58 134 50 126 L36 120 Q32 112 44 112 Z","var(--skin)","var(--line)",1.3)}
+ ${P.e(102,92,7,12,"var(--skin)","var(--line)")}${P.c(101,94,2.6,"var(--ink2)","none")}
+ ${P.pa("M206 114 Q200 74 222 58 Q248 42 274 58 Q292 74 290 102 Q288 124 274 134 L268 146 L232 146 Q220 134 212 128 L198 122 Q196 114 206 114 Z","var(--skin)","var(--line)",1.3)}
+ ${P.e(258,106,6,10,"var(--skin)","var(--line)")}${P.c(257,108,2.4,"var(--ink2)","none")}
+ ${P.r(22,160,96,16,"var(--accent-soft)","var(--line)",3)}${P.r(118,160,176,16,"var(--bone)","var(--bone-line)",3)}${P.ln(296,156,296,180,"var(--ink2)",2.4)}
+ ${P.t(70,193,"outer third: cartilage","middle","sm")}${P.t(206,193,"inner two-thirds: bone, tender","middle","sm")}${P.t(296,152,"drum","middle","sm")}`,
+ L:[
+  {l:"Adult: up and back",c:"Pull the pinna up and back (superiorly and posteriorly) to straighten the S-shaped canal.",s:()=>`${P.ar(108,84,128,58,"var(--accent)",2.6)}${P.t(132,58,"up + back","start","fa")}${P.ar(264,96,284,74,"var(--muted)",1.4)}`},
+  {l:"Child: back and down",c:"Under about 3 years the canal is short and runs upward: pull back and slightly down.",s:()=>`${P.ar(264,112,288,126,"var(--accent)",2.6)}${P.t(286,142,"back + down","end","fa")}`},
+  {l:"Pen grip, hand braced",c:"Hold the scope like a pen near the speculum, handle down or forwards, with the little finger braced on the cheek.",s:()=>`${P.pa("M101 94 L84 100","none","var(--ink2)",5)}${P.r(66,92,20,14,"var(--surface3)","var(--ink2)",3)}${P.ln(76,106,70,140,"var(--ink2)",6)}${P.c(62,104,5,"var(--accent-soft)","var(--accent)",1.6)}${P.ln(58,108,34,126,"var(--accent)",1)}${P.t(4,136,"little finger","start","fa sm")}${P.t(4,147,"on the cheek","start","fa sm")}`},
+  {l:"Speculum in the outer third",c:"Advance under vision only into the cartilaginous outer third. Touching bone hurts and the patient jerks away.",s:()=>`${P.pa("M4 162 L60 165 L60 171 L4 174 Z","var(--surface3)","var(--accent)",1.6)}${P.t(32,156,"speculum","middle","fa sm")}`},
+  {l:"Pushing into the bony canal",bad:true,hide:true,c:"A speculum pushed into the bony two-thirds causes pain, bleeding and a jerk towards the drum.",s:()=>`${P.pa("M4 162 L150 165 L150 171 L4 174 Z","var(--bad-soft)","var(--bad)",1.6)}${P.x(150,168)}${P.t(150,154,"too deep: pain","middle","bad")}`}]},
+/* ---------------- direct ophthalmoscopy ---------------- */
+"tech-ophthalmoscope":{t:"Direct ophthalmoscopy: same side, 15° temporal",mode:"solo",
+ c:"Your right eye and right hand for the patient's right eye. The patient fixes on a distant point over your shoulder, which relaxes accommodation and keeps the eye still. Start at arm's length to see the red reflex, then come in along a line about 15° temporal to the line of fixation, in the horizontal plane, until you are 2 to 3 cm from the eye. The disc lies about 15° nasal to the fovea, so this line lands on the disc and keeps the light off the macula. Through the scope, the right eye's disc sits to your right with the fovea about 2.5 disc diameters to its left.",
+ hint:"Left: seen from above. Right: what you see through the scope.",
+ s:()=>{const ex=118,ey=146,a=15*Math.PI/180;const fx=ex+Math.sin(a)*130,fy=ey-Math.cos(a)*130;
+  return `${TF.H(90,13,"Seen from above")}${TF.H(250,13,"Right fundus, your view")}
+  ${TF.headTop(100,170,30,0)}${P.c(82,148,5,"var(--surface)","var(--ink2)")}${P.c(ex,ey+2,5,"var(--surface)","var(--ink2)")}${P.t(146,170,"patient's R eye","start","sm")}
+  ${P.ln(ex,ey-4,ex,22,"var(--muted)",1.2,"4 3")}${P.t(ex-4,30,"fixation:","end","sm")}${P.t(ex-4,41,"far target","end","sm")}
+  ${P.ln(ex,ey-4,fx.toFixed(1),fy.toFixed(1),"var(--accent)",1.2,"2 3")}${TF.arc(ex,ey-4,46,0,15,"var(--accent)",1.6)}${P.t(ex+6,ey-54,"15°","start","fa")}
+  ${P.c(250,108,62,"var(--warn-soft)","var(--line)")}
+  ${P.c(282,104,9,"#f3e0b0","var(--warn)",1.4)}${P.c(282,104,3.5,"#fff6dc","none")}${P.c(237,110,5,"var(--bad-soft)","none")}${P.c(237,110,1.6,"var(--bad)","none")}
+  ${P.art("M280 96 Q256 70 214 76 Q200 80 194 90",1.6)}${P.art("M280 112 Q256 140 214 136 Q200 132 194 122",1.6)}${P.vein("M284 95 Q262 64 220 66",2)}${P.vein("M284 113 Q262 146 220 146",2)}
+  ${P.art("M284 96 Q296 78 300 66",1.4)}${P.art("M284 112 Q296 130 300 142",1.4)}
+  ${P.t(282,128,"disc","middle","sm")}${P.t(237,124,"fovea","middle","sm")}${P.t(250,186,"nasal on the right, temporal left","middle","sm")}`;},
+ L:[
+  {l:"Red reflex from 50 cm",c:"From arm's length, on the 15° line, find the red reflex in the pupil before you move in.",s:()=>{const a=15*Math.PI/180,x=118+Math.sin(a)*118,y=142-Math.cos(a)*118;return `${P.r((x-9).toFixed(1),(y-8).toFixed(1),18,14,"var(--surface3)","var(--ink2)",3)}${P.t((x+12).toFixed(1),(y+4).toFixed(1),"50 cm","start","fa")}`;}},
+  {l:"Move in to 2 to 3 cm",c:"Keep the red reflex in view and travel down the 15° line until your scope nearly touches the lashes.",s:()=>{const a=15*Math.PI/180,p=d=>[118+Math.sin(a)*d,142-Math.cos(a)*d];const [x1,y1]=p(104),[x2,y2]=p(40),[x3,y3]=p(26);return `${P.ar(x1.toFixed(1),y1.toFixed(1),x2.toFixed(1),y2.toFixed(1),"var(--accent)",2.6)}${P.r((x3-8).toFixed(1),(y3-7).toFixed(1),16,12,"var(--surface3)","var(--ink2)",3)}${P.t((x3+11).toFixed(1),(y3+4).toFixed(1),"2 to 3 cm","start","fa")}`;}},
+  {l:"Lost? Follow a vessel back",c:"Every fork points back to the disc. Follow a vessel the way it gets wider, towards the stem of each Y.",s:()=>`${P.art("M226 76 Q216 66 204 70",1.4)}${P.ar(206,82,228,76,"var(--accent)",2)}${P.ar(236,74,258,76,"var(--accent)",2)}${P.t(214,46,"widen towards the disc","start","fa sm")}`},
+  {l:"Straight along the visual axis",bad:true,hide:true,c:"Coming in along the fixation line lands on the macula: glare, a constricting pupil and no disc.",s:()=>`${P.ar(118,30,118,128,"var(--bad)",2.4)}${P.t(124,80,"glare, miosis","start","bad")}`}]},
+/* ---------------- anterior rhinoscopy ---------------- */
+"tech-rhinoscopy":{t:"Anterior rhinoscopy: lift the tip, look along the floor",mode:"solo",
+ c:"Push the nasal tip up with your thumb: the vestibule straightens and you can already see Little's area on the anteroinferior septum, about 1 cm behind the columella. Keep the speculum blades in the hair-bearing vestibule and open them so the lateral blade lifts the ala, never pressing on the septum, which is tender and bleeds. Look along the floor to the inferior turbinate with the head upright, then tilt the head back about 30° to see the middle turbinate and meatus.",
+ hint:"Left: the septum from the side, nose to the left. Right: the nostrils from the front (the patient's right is on your left).",
+ s:()=>`${TF.H(80,13,"Septum, from the side")}${TF.H(248,13,"Nostrils, from the front")}
+ ${P.pa("M70 28 Q52 70 30 112 Q22 126 28 134 Q36 140 46 140 L150 146 L150 54 Q120 34 70 28 Z","var(--muscle)","var(--muscle-line)",1.2,'fill-opacity=".35"')}
+ ${P.pa("M70 28 Q52 70 30 112 Q22 126 28 134 Q36 140 46 140","none","var(--line)",1.6)}${P.ln(46,146,150,146,"var(--bone-line)",2.4)}${P.t(150,160,"floor","end","sm")}${P.t(110,50,"septum","middle","sm")}
+ ${P.c(50,130,6,"var(--bad-soft)","var(--bad)",1.6)}${TF.tag(56,126,78,102,"Little's area","start","fb")}${P.t(60,184,"1 cm behind the columella","start","sm")}
+ ${P.pa("M196 112 Q190 84 206 70 Q224 58 248 58 Q272 58 290 70 Q306 84 300 112 Q296 128 276 128 L220 128 Q200 128 196 112 Z","var(--skin)","var(--line)",1.3)}
+ ${P.pa("M244 118 Q226 120 218 108 Q214 92 232 86 Q244 84 244 98 Z","var(--ink2)","var(--line)",1.2)}${P.pa("M252 118 Q270 120 278 108 Q282 92 264 86 Q252 84 252 98 Z","var(--ink2)","var(--line)",1.2)}
+ ${P.t(248,146,"columella","middle","sm")}${P.t(224,160,"patient's R","middle","sm")}${P.t(272,160,"patient's L","middle","sm")}`,
+ L:[
+  {l:"Thumb lifts the tip",c:"Before any instrument, push the tip up and back: the vestibule straightens and Little's area comes into view.",s:()=>`${P.ar(18,176,26,146,"var(--accent)",2.6)}${P.t(4,196,"thumb lifts the tip","start","fa")}`},
+  {l:"Head upright: along the floor",c:"With the head upright you look parallel to the hard palate, along the floor to the inferior turbinate.",s:()=>`${P.ar(24,138,146,138,"var(--accent)",2)}${P.t(100,132,"line of sight","middle","fa sm")}`},
+  {l:"Head back 30°: look higher",c:"Tilting the head back about 30° brings the middle turbinate and middle meatus into the line of sight.",s:()=>`${P.ar(26,134,140,74,"var(--accent)",2)}${P.t(140,66,"middle meatus","end","fa sm")}`},
+  {l:"Open to lift the ala",c:"Blades about 1 cm in, in the vestibule. Open so the lateral blade lifts the ala outwards; the medial blade only rests near the septum.",s:()=>`${P.ln(240,112,240,92,"var(--ink2)",3)}${P.ln(224,112,216,92,"var(--accent)",3.4)}${P.ar(218,100,200,88,"var(--accent)",2.4)}${P.t(196,80,"lift the ala","start","fa")}`},
+  {l:"Opening against the septum",bad:true,hide:true,c:"Pressing the medial blade on the septum hurts and makes Little's area bleed.",s:()=>`${P.ln(226,112,226,92,"var(--ink2)",3)}${P.ln(242,112,250,92,"var(--bad)",3.4)}${P.ar(244,100,258,96,"var(--bad)",2.2)}${P.t(248,184,"pressing the septum: bleeds","middle","bad")}`}]},
+/* ---------------- Tinel ---------------- */
+"tech-tinel":{t:"Tinel: tap the nerve, feel it in the territory",mode:"solo",
+ c:"A positive Tinel is tingling felt in the nerve's territory, not soreness at the spot you tapped. For the median nerve at the wrist the tingling goes to the thumb, index, middle and the radial half of the ring finger on the palmar side. Use a light, constant tap and move from distal to proximal along the nerve. After an injury or repair, the most distal point that still tingles advances down the limb as the nerve regrows.",
+ hint:"The patient's right palm, facing you: thumb on your left.",
+ s:()=>`${P.skin("M60 196 L62 128 Q50 118 40 98 L26 76 Q22 66 30 64 Q38 64 44 74 L58 92 L62 44 Q64 34 72 34 Q80 34 80 44 L82 84 L86 30 Q88 20 96 20 Q104 20 104 30 L104 84 L110 34 Q112 26 120 26 Q128 28 126 38 L124 88 L134 52 Q138 44 144 48 Q150 52 146 62 L138 104 Q134 124 126 130 L124 196 Z")}
+ ${P.ln(62,138,124,138,"var(--line)",1,"3 3")}${P.t(180,22,"Median nerve at the wrist","start","fb")}`,
+ L:[
+  {l:"Median territory",c:"Thumb, index, middle and the radial half of the ring finger, palmar side.",s:()=>`${P.pa("M40 98 L26 76 Q22 66 30 64 Q38 64 44 74 L58 92 L62 44 Q64 34 72 34 Q80 34 80 44 L82 84 L86 30 Q88 20 96 20 Q104 20 104 30 L104 84 L110 34 Q112 26 117 26 L116 92 L60 118 Z","var(--nerve)","none",1,'fill-opacity=".45"')}${P.t(180,40,"tingling: thumb, index,","start")}${P.t(180,54,"middle, radial half of ring","start")}`},
+  {l:"Tap at the wrist",c:"Tap lightly just ulnar to the flexor carpi radialis at the distal wrist crease, over the carpal tunnel.",s:()=>`${P.nv("M92 196 L92 140 L94 120")}${P.c(93,138,7,"none","var(--accent)",2.4)}${P.ar(150,152,104,140,"var(--accent)",2.4)}${P.t(154,156,"light tap","start","fa")}${P.pa("M96 120 l4 -8 l-4 -6 l4 -8","none","var(--accent)",1.6)}${P.pa("M84 116 l-4 -8 l4 -6 l-4 -8","none","var(--accent)",1.6)}`},
+  {l:"Distal to proximal",c:"Start distally and move up the nerve in steps of about 1 cm until tingling first appears; in regeneration, record the most distal tingling point.",s:()=>`${[150,162,174,186].map(y=>P.c(93,y,3,"var(--accent)","none")).join("")}${P.ar(110,146,110,192,"var(--accent)",2)}${P.t(116,176,"step up the arm","start","fa")}${P.t(180,86,"Other sites:","start","fb")}${P.t(180,100,"ulnar: cubital tunnel")}${P.t(180,114,"peroneal: fibular neck")}${P.t(180,128,"tibial: tarsal tunnel")}`},
+  {l:"Ulnar territory, to compare",c:"The little finger and the ulnar half of the ring finger belong to the ulnar nerve: tingling there after a wrist tap is not a median Tinel.",hide:true,s:()=>`${P.pa("M117 26 Q128 28 126 38 L124 88 L134 52 Q138 44 144 48 Q150 52 146 62 L138 104 Q134 124 126 130 L116 92 Z","var(--vein)","none",1,'fill-opacity=".4"')}${P.t(180,40,"ulnar: little finger and","start")}${P.t(180,54,"ulnar half of ring","start")}`},
+  {l:"Calling local pain a Tinel",bad:true,hide:true,c:"Soreness at the tap site, especially after trauma, is not a positive sign. Only tingling referred into the territory counts.",s:()=>`${P.c(93,138,9,"var(--bad-soft)","var(--bad)",2)}${P.t(180,150,"'It hurts here' is","start","bad")}${P.t(180,164,"not a Tinel","start","bad")}`}]},
+/* ---------------- Dix-Hallpike ---------------- */
+"tech-hallpike":{t:"Dix-Hallpike: 45° turn, then lie back past horizontal",mode:"dim",
+ c:"Turning the head 45° to the tested side lines the posterior canal up with the plane you are about to move in. Lying back quickly with the head 20 to 30° below horizontal lets loose otoconia fall along the canal and deflect the cupula. Expect a latency of a few seconds, then torsional upbeating nystagmus with the upper pole beating towards the lower ear, fading within a minute.",
+ hint:"Three moments, left to right. Tap one to bring it forward.",
+ s:()=>`${P.ln(104,24,104,176,"var(--line)",1,"2 4")}${P.ln(212,24,212,176,"var(--line)",1,"2 4")}`,
+ L:[
+  {l:"Sit, turn 45°",c:"Seated so the head will clear the end of the couch. Turn the head 45° towards the ear you are testing (seen here from above).",s:()=>`${TF.headTop(52,72,26,45)}${P.ln(52,72,52,22,"var(--muted)",1,"3 3")}${TF.arc(52,72,40,0,45,"var(--accent)",1.8)}${P.t(84,40,"45°","start","fa")}${P.t(52,122,"from above","middle","sm")}${P.t(52,146,"1 Sit, turn 45°","middle","fb")}${P.t(52,160,"towards the","middle","sm")}${P.t(52,172,"tested ear","middle","sm")}`},
+  {l:"Lie back fast, head down",c:"Within 1 to 2 seconds lie the patient back so the head hangs 20 to 30° below the couch, still turned 45°.",s:()=>`${P.r(136,90,72,12,"var(--surface3)","var(--line)",3)}${P.r(140,72,66,18,"var(--muscle)","var(--muscle-line)",8)}${P.ln(136,84,108,84,"var(--muted)",1,"3 3")}${P.ln(136,84,112,98,"var(--accent)",1.6)}${P.c(120,100,13,"var(--skin)","var(--line)")}${TF.arc(136,84,30,270,240,"var(--accent)",1.4)}${P.t(110,64,"20-30°","start","fa")}${P.t(158,146,"2 Lie back fast","middle","fb")}${P.t(158,160,"head hangs","middle","sm")}${P.t(158,172,"below the couch","middle","sm")}`},
+  {l:"Watch the eyes at least 30 s",c:"After a few seconds' latency: torsional nystagmus with the upper pole beating towards the lower ear, plus upbeat. It fatigues within a minute and reverses on sitting up.",s:()=>`${TF.eye(266,62,32,0,0)}${P.pa("M250 47 Q266 35 282 47","none","var(--accent)",2.4)}${P.ar(277,43,284,49,"var(--accent)",2.2)}${P.ar(266,98,266,84,"var(--accent)",2.2)}${P.t(266,118,"torsional: upper pole","middle","sm")}${P.t(266,130,"to the lower ear","middle","sm")}${P.t(266,146,"3 Watch ≥ 30 s","middle","fb")}${P.t(266,160,"latency 1-5 s, upbeat","middle","sm")}${P.t(266,172,"fades within 1 min","middle","sm")}`}]},
+/* ---------------- head impulse ---------------- */
+"tech-head-impulse":{t:"Head impulse: small, fast, unpredictable",mode:"dim",
+ c:"Hold the head, have the patient fix on your nose, then turn the head 10 to 20° quickly and without warning. A working vestibulo-ocular reflex counter-rotates the eyes so they stay on your nose. If the eyes are dragged with the head and then flick back (a catch-up saccade), the vestibular reflex on the side you turned towards is weak: a peripheral pattern. In acute vestibular syndrome, a normal impulse is the worrying result. Do not thrust a neck that may be injured or a patient with new neck pain (possible dissection).",
+ hint:"Seen from above, your nose (the target) at the top. Top row normal, bottom row peripheral loss.",
+ s:()=>`${P.t(4,24,"Normal","start","fb")}${P.t(4,114,"Peripheral","start","fb")}${P.ln(4,100,316,100,"var(--line)",1,"2 4")}`,
+ L:[
+  {l:"Before",c:"Head centred, eyes on the target (your nose).",s:()=>`${[58,148].map(y=>`${P.c(80,y-44,3,"var(--accent)","none")}${TF.headTop(80,y,19,0)}${TF.gaze(80,y,19,0,80,y-44)}`).join("")}${P.t(80,96,"before","middle","sm")}${P.t(80,186,"before","middle","sm")}`},
+  {l:"Head stops",c:"Normal: the eyes counter-rotate and stay on target. Peripheral loss: the eyes are carried with the head and miss the target.",s:()=>`${P.c(170,14,3,"var(--accent)","none")}${TF.headTop(170,58,19,20)}${TF.gaze(170,58,19,20,170,14)}${P.c(170,104,3,"var(--accent)","none")}${TF.headTop(170,148,19,20)}${TF.gaze(170,148,19,20,200,108,"var(--bad)","3 2")}${TF.arc(170,58,30,0,20,"var(--accent)",1.4)}${P.t(170,96,"eyes stay on target","middle","sm good")}${P.t(170,186,"eyes dragged off","middle","sm bad")}`},
+  {l:"Just after",c:"Normal: nothing more happens. Peripheral loss: a catch-up saccade flicks the eyes back to the target.",s:()=>`${P.c(264,14,3,"var(--accent)","none")}${TF.headTop(264,58,19,20)}${TF.gaze(264,58,19,20,264,14)}${P.c(264,104,3,"var(--accent)","none")}${TF.headTop(264,148,19,20)}${TF.gaze(264,148,19,20,264,104)}${P.ar(294,112,272,106,"var(--bad)",2)}${P.t(264,96,"no saccade","middle","sm")}${P.t(264,186,"catch-up saccade","middle","sm bad")}`}]},
+/* ---------------- tendon reflexes ---------------- */
+"tech-reflex":{t:"Tendon reflexes: let the hammer fall",mode:"solo",
+ c:"Hold the hammer near the end of the handle and let the head swing in an arc from the wrist, so its weight delivers a quick, repeatable tap. Put your finger on the biceps tendon and strike your finger: you feel the contraction even when you can't see it. If a reflex seems absent, reinforce and tap within a second of the pull starting. Grade on a named scale: on the NINDS scale 2 and 3 are both normal.",
+ hint:"Tap a step. The scale at the bottom is the NINDS grading.",
+ s:()=>`${P.bone(24,138,112,112,13)}${P.bone(112,112,196,132,11)}${P.mus("M40 120 Q76 96 108 104 L108 112 Q76 108 44 130 Z")}
+ ${[["0","absent"],["1","less"],["2","low normal"],["3","high normal"],["4","more, clonus"]].map(([g,w],i)=>`${P.r(18+i*58,166,54,14,i===2||i===3?"var(--good-soft)":"var(--surface)","var(--line)",3)}${P.t(45+i*58,177,g,"middle","fb")}${P.t(45+i*58,193,w,"middle","sm")}`).join("")}`,
+ L:[
+  {l:"Grip the end, swing from the wrist",c:"Loose grip at the far end of the handle. The head travels in an arc around your wrist and falls under its own weight.",s:()=>`${P.c(206,30,8,"var(--accent-soft)","var(--accent)",1.6)}${P.ln(206,30,124,90,"var(--ink2)",3)}${P.pa("M116 82 L132 98 L126 102 L112 88 Z","var(--surface3)","var(--ink2)",1.4)}${TF.arc(206,30,100,-150,-122,"var(--accent)",1.8,"4 3")}${P.ar(132,52,122,74,"var(--accent)",2)}${P.t(218,34,"wrist pivot","start","fa")}${P.t(134,46,"head falls","end","fa sm")}`},
+  {l:"Strike your finger on the tendon",c:"Your finger on the biceps tendon spreads the tap and lets you feel a contraction too small to see.",s:()=>`${P.ln(206,30,124,90,"var(--ink2)",3)}${P.pa("M116 82 L132 98 L126 102 L112 88 Z","var(--surface3)","var(--ink2)",1.4)}${P.pa("M114 104 L136 98","none","var(--accent)",6)}${TF.tag(126,102,150,126,"your finger on the tendon","start","fa")}`},
+  {l:"Reinforce, then tap within 1 s",c:"Jendrassik: hooked fingers pulled apart (legs) or teeth clenched (arms). The boost is brief: tap as the pull starts.",s:()=>`${P.T(62,22,"Reinforce","middle")}${P.pa("M44 50 q8 -12 16 0 M80 50 q-8 -12 -16 0","none","var(--accent)",3)}${P.ar(46,60,26,60,"var(--accent)",1.6)}${P.ar(78,60,98,60,"var(--accent)",1.6)}${P.t(62,80,"pull, and tap","middle")}${P.t(62,93,"within a second","middle")}`},
+  {l:"Short grip, pushing the head",bad:true,hide:true,c:"Gripping near the head and pushing it onto the tendon gives a slow, weak and uneven stimulus: false 'absent' reflexes.",s:()=>`${P.ln(160,64,124,90,"var(--bad)",3)}${P.pa("M116 82 L132 98 L126 102 L112 88 Z","var(--bad-soft)","var(--bad)",1.4)}${P.c(156,66,8,"var(--bad-soft)","var(--bad)",1.6)}${P.t(172,60,"hand near the head","start","bad")}${P.t(172,74,"pushes, no swing","start","bad")}`}]},
+/* ---------------- plantar response ---------------- */
+"tech-plantar":{t:"Plantar response: the path of the stroke",mode:"build",
+ c:"Use something blunt: an orange stick, a key or the end of a closed pen, not a needle. Stroke slowly and firmly along the lateral border of the sole from the heel towards the little toe, then curve medially across the metatarsal heads, stopping short of the ball of the big toe, which provokes a grasp. Watch only the first movement of the big toe: slow extension is extensor; a quick pull of the whole leg is withdrawal.",
+ hint:"The sole of the right foot, as you see it from the end of the couch: big toe on your right.",
+ s:()=>`${P.pa("M98 188 Q72 184 70 150 Q66 112 72 84 Q78 52 104 40 Q140 28 170 34 Q190 42 192 70 Q194 104 178 130 Q168 152 162 172 Q156 190 128 190 Z","var(--skin)","var(--line)",1.3)}
+ ${P.c(176,30,12,"var(--skin)","var(--line)")}${P.c(150,22,8,"var(--skin)","var(--line)")}${P.c(130,22,7,"var(--skin)","var(--line)")}${P.c(110,28,6,"var(--skin)","var(--line)")}${P.c(92,38,5.5,"var(--skin)","var(--line)")}
+ ${[[96,60],[116,52],[136,50],[156,52]].map(([x,y])=>P.c(x,y,3,"var(--line)","none")).join("")}
+ ${P.e(172,56,13,10,"var(--bad-soft)","var(--bad)",1,0)}${TF.tag(184,58,212,74,"ball of the big toe:","start","bad")}${P.t(214,88,"avoid (grasp)","start","bad")}
+ ${P.t(60,104,"lateral","end","sm")}${P.t(60,116,"border","end","sm")}${P.t(200,128,"medial","start","sm")}`,
+ L:[
+  {l:"Heel, up the lateral border",c:"Start near the heel on the lateral sole and stroke slowly forwards along the outer edge.",s:()=>`${P.pa("M96 172 Q78 136 84 92 Q88 72 98 64","none","var(--accent)",3)}${P.ar(90,80,97,64,"var(--accent)",2.4)}${P.t(214,150,"1 heel to little toe,","start","fa")}${P.t(214,164,"lateral border","start","fa")}`},
+  {l:"Across the metatarsal heads",c:"Curve medially across the metatarsal heads and stop under the second or third, short of the ball of the big toe.",s:()=>`${P.pa("M98 64 Q116 58 140 60","none","var(--accent)",3)}${P.ar(132,61,146,60,"var(--accent)",2.4)}${P.t(214,176,"2 across, stop short","start","fa")}`},
+  {l:"Watch the first movement",c:"Only the first movement of the big toe at the MTP joint counts. Slow upward extension (often with fanning) is extensor.",s:()=>`${P.ar(176,20,190,2,"var(--accent)",2.2)}${P.t(214,20,"first move of","start","fb")}${P.t(214,34,"the big toe","start","fb")}`},
+  {l:"Stroking the ball of the big toe",bad:true,hide:true,c:"Stimulating the ball of the big toe triggers a plantar grasp: the toes flex and mask an extensor response.",s:()=>`${P.pa("M120 150 Q130 100 168 60","none","var(--bad)",3)}${P.ar(160,68,170,56,"var(--bad)",2.4)}${P.t(214,150,"mid-sole to hallux:","start","bad")}${P.t(214,164,"false flexor","start","bad")}`}]},
+/* ---------------- Rinne and Weber ---------------- */
+"tech-tuning-fork":{t:"Rinne and Weber with a 512 Hz fork",mode:"dim",
+ c:"Strike the fork on your knee or elbow, not on a hard surface. Rinne: the base on the mastoid behind the ear, then the tines 1 to 2 cm from the canal opening, held so the line joining the two tines points down the canal (one tine nearer the ear than the other). Air louder than bone is normal or a sensorineural loss. Weber: the base on the midline (forehead, vertex or upper incisors). In a conductive loss the sound goes to the bad ear; in a sensorineural loss, to the good ear.",
+ hint:"Rinne left (two views), Weber right.",
+ s:()=>`${P.ln(212,24,212,176,"var(--line)",1,"2 4")}`,
+ L:[
+  {l:"Bone: base on the mastoid",c:"Side view, face to the left: the fork's base presses on the mastoid bone just behind the ear.",s:()=>`${TF.H(52,14,"Rinne 1: bone")}${P.pa("M14 120 Q12 72 40 56 Q66 42 90 58 Q102 74 100 104 Q96 132 80 140 L36 140 Q22 134 14 120 Z","var(--skin)","var(--line)",1.3)}${P.e(62,96,6,11,"var(--skin)","var(--line)")}${P.c(80,98,4,"var(--bone)","var(--bone-line)")}${TF.fork(82,100,30,.75)}${P.t(56,160,"base on mastoid","middle","sm")}${P.t(56,172,"behind the ear","middle","sm")}`},
+  {l:"Air: 1 to 2 cm, tines in line",c:"Front view of the right ear: the tines stand 1 to 2 cm out from the canal, one behind the other along the canal's axis.",s:()=>`${TF.H(156,14,"Rinne 2: air")}${P.pa("M120 40 Q104 44 104 100 Q104 150 120 160","none","var(--line)",1.3)}${P.e(140,100,7,16,"var(--skin)","var(--line)")}${P.ln(110,100,146,100,"var(--ink2)",1.4,"3 2")}${TF.fork(170,128,0,.8)}${P.ln(148,100,192,100,"var(--accent)",1,"2 2")}${P.t(160,152,"1-2 cm out,","middle","sm")}${P.t(160,164,"tines in line","middle","sm")}${P.t(160,176,"with the canal","middle","sm")}`},
+  {l:"Weber: midline",c:"Base on the forehead, vertex or upper incisors. Ask 'Where do you hear it?', not 'Is it louder on the left?'.",s:()=>`${TF.H(266,14,"Weber")}${P.c(266,104,38,"var(--skin)","var(--line)")}${TF.fork(266,70,0,.75)}${P.ar(250,104,226,104,"var(--accent)",1.8)}${P.ar(282,104,306,104,"var(--accent)",1.8)}${P.t(266,160,"conductive: to bad ear","middle","sm")}${P.t(266,172,"sensorineural: to good","middle","sm")}`},
+  {l:"Tines at an angle to the canal",bad:true,hide:true,c:"Held at 45°, the two tines' sound cancels towards the ear: air conduction seems weaker and the Rinne may falsely look negative.",s:()=>`${P.pa("M120 40 Q104 44 104 100 Q104 150 120 160","none","var(--line)",1.3)}${P.e(140,100,7,16,"var(--skin)","var(--line)")}${TF.fork(166,124,-45,.8)}${P.t(160,176,"45°: quieter","middle","bad")}`}]},
+/* ---------------- Epley (new) ---------------- */
+"tech-epley":{t:"Epley manoeuvre for right posterior canal BPPV",mode:"dim",
+ c:"Four positions, each held 30 seconds or until the nystagmus stops. 1: a right Dix-Hallpike (head 45° to the right, hanging 20 to 30° below the couch). 2: keep the head down and turn it 90° to the left. 3: roll onto the left shoulder and turn the head a further 90°, nose pointing down at the floor. 4: sit up with the head still turned, chin slightly down. The ring shows the otoconia travelling round the posterior canal back into the utricle.",
+ hint:"Each frame: the body, the head direction and where the otoconia are in the canal.",
+ s:()=>`${[80,160,240].map(x=>P.ln(x,30,x,176,"var(--line)",1,"2 4")).join("")}`,
+ L:(()=>{const ring=(cx,ang)=>{const a=ang*Math.PI/180;return `${P.c(cx,50,17,"none","var(--vein)",3.4)}${P.r(cx-7,28,14,9,"var(--surface2)","none",2)}${P.t(cx,24,"utricle","middle","sm")}${P.c((cx+17*Math.sin(a)).toFixed(1),(50-17*Math.cos(a)).toFixed(1),4,"var(--accent)","none")}`;};
+   const couch=x=>P.r(x-22,124,58,9,"var(--surface3)","var(--line)",3);
+   const lie=(x,dir)=>`${P.r(x-18,108,48,16,"var(--muscle)","var(--muscle-line)",8)}${P.c(x-30,122,12,"var(--skin)","var(--line)")}${P.t(x-30,104,dir,"middle","fa sm")}`;
+   const side=(x)=>`${P.r(x-18,104,48,20,"var(--muscle)","var(--muscle-line)",9)}${P.c(x-30,118,12,"var(--skin)","var(--line)")}${P.ar(x-30,124,x-36,138,"var(--accent)",1.6)}${P.t(x-30,100,"nose down","middle","fa sm")}`;
+   const lab=(x,a,b,c)=>`${P.t(x,152,a,"middle","fb")}${P.t(x,165,b,"middle","sm")}${c?P.t(x,177,c,"middle","sm"):""}`;
+   return [
+   {l:"Right Hallpike",c:"Head turned 45° to the right and lying back, hanging 20 to 30° below the couch. Hold 30 s or until the nystagmus stops.",s:()=>`${couch(44)}${lie(44,"45° R")}${ring(40,215)}${lab(40,"1 Hallpike R","head hanging")}${P.t(40,192,"30 s","middle","fa")}`},
+   {l:"Turn the head 90° left",c:"Keep the neck extended and turn the head through 90° until it faces 45° to the left. Hold 30 s.",s:()=>`${couch(124)}${lie(124,"45° L")}${ring(120,260)}${lab(120,"2 Turn 90°","still hanging")}${P.t(120,192,"30 s","middle","fa")}`},
+   {l:"Roll on, nose to the floor",c:"Roll onto the left shoulder and turn the head another 90°, nose pointing down at about 45°. Same-direction nystagmus here is a good sign. Hold 30 s.",s:()=>`${couch(204)}${side(204)}${ring(200,320)}${lab(200,"3 Roll left","onto the shoulder")}${P.t(200,192,"30 s","middle","fa")}`},
+   {l:"Sit up, chin down",c:"Sit up over the side of the couch with the head still turned, chin slightly down. Steady them for a minute.",s:()=>`${P.r(258,124,48,9,"var(--surface3)","var(--line)",3)}${P.r(270,92,22,34,"var(--muscle)","var(--muscle-line)",7)}${P.c(281,80,12,"var(--skin)","var(--line)")}${ring(280,352)}${lab(280,"4 Sit up","chin down")}`}];})()},
+/* ---------------- whispered voice (new) ---------------- */
+"tech-whisper":{t:"Whispered voice test: behind, arm's length, mask the other ear",mode:"build",
+ c:"Stand about 60 cm behind the patient on the side you are testing, so they cannot lip-read. Mask the other ear by pressing and rubbing its tragus. Breathe out fully, then whisper three numbers and letters (for example 5-K-2). The ear passes with all three right, or at least 3 of 6 over two triplets.",
+ hint:"Seen from above: the patient faces up the page.",
+ s:()=>`${TF.headTop(120,92,26,0)}${P.t(120,140,"patient","middle","sm")}${P.ln(20,184,300,184,"var(--line)",1,"2 4")}`,
+ L:[
+  {l:"Behind, arm's length",c:"About 60 cm behind, on the side of the test ear, out of the patient's sight.",s:()=>`${TF.headTop(212,164,16,-30,"var(--accent-soft)")}${P.ln(146,96,206,152,"var(--muted)",1,"3 3")}${P.t(196,118,"about 60 cm","start","fa")}${P.t(238,190,"you","middle","fa sm")}`},
+  {l:"Rub the other tragus",c:"A finger on the tragus of the non-test ear, pressed in and rubbed in small circles throughout.",s:()=>`${P.c(92,92,6,"var(--accent-soft)","var(--accent)",2)}${P.pa("M78 82 q-6 10 0 20","none","var(--accent)",1.6)}${P.t(70,70,"rub the","end","fa")}${P.t(70,84,"other tragus","end","fa")}`},
+  {l:"Exhale, whisper three",c:"Breathe out fully first so the whisper is soft and consistent, then whisper a number-letter-number triplet.",s:()=>`${P.pa("M190 140 q-8 -10 -4 -22","none","var(--accent)",1.6)}${P.pa("M180 146 q-12 -14 -6 -32","none","var(--accent)",1.4)}${P.pa("M170 152 q-16 -18 -8 -42","none","var(--accent)",1.2)}${P.T(250,40,"5 - K - 2","middle")}${P.t(250,58,"pass: 3 of 3,","middle","sm")}${P.t(250,70,"or at least 3 of 6","middle","sm")}`},
+  {l:"Standing in front",bad:true,hide:true,c:"Facing the patient lets them lip-read, so a deaf ear passes.",s:()=>`${TF.headTop(120,24,14,180,"var(--bad-soft)")}${P.t(146,26,"lip-reading:","start","bad")}${P.t(146,40,"a deaf ear passes","start","bad")}`}]},
+/* ---------------- visual acuity (new) ---------------- */
+"tech-acuity":{t:"Visual acuity: 6 m, each eye, then a pinhole",mode:"solo",
+ c:"Test each eye at the chart's distance (usually 6 m) with distance glasses on, the other eye covered with an occluder or palm. Record the smallest line as a fraction, for example 6/9 -1. If it is worse than 6/6, look through a pinhole: if acuity improves the cause is refractive; if not, look for disease of the lens, macula or optic nerve.",
+ hint:"Left: the chart and the distance. Right: why a pinhole sharpens a refractive blur.",
+ s:()=>`${P.r(10,24,82,140,"var(--surface)","var(--line)",3)}${[["E",60,20],["F P",36,15],["T O Z",24,12],["L P E D",18,10],["P E C F D",12,8.5],["E D F C Z P",9,7.5],["F E L O P Z D",6,6.5]].map(([s,n,sz],i)=>`<text x="42" y="${44+i*18.5}" text-anchor="middle" class="fl fb" style="font-size:${sz}px">${s}</text><text x="88" y="${44+i*18.5}" text-anchor="end" class="fl" style="font-size:8px">${n}</text>`).join("")}
+ ${P.e(262,64,26,20,"var(--surface)","var(--ink2)")}${P.ln(276,46,276,82,"var(--ink2)",1.4)}${P.c(296,64,3,"var(--bad)","none")}${P.T(262,30,"The eye","middle")}`,
+ L:[
+  {l:"6 m, one eye, glasses on",c:"At the chart's distance, with the patient's distance glasses, the other eye properly covered.",s:()=>`${P.ar(84,180,190,180,"var(--accent)",1.6)}${P.ar(190,180,84,180,"var(--accent)",1.6)}${P.t(137,194,"6 m","middle","fa")}${TF.headTop(204,160,13,-90)}${P.r(196,146,6,12,"var(--accent)","none",2)}${P.t(220,150,"occluder","start","fa sm")}`},
+  {l:"Record 6/x",c:"Testing distance over the smallest line read, with letters missed: 6/9 -1. Encourage guessing on the last line.",s:()=>`${P.r(12,107,78,16,"none","var(--accent)",3)}${P.t(98,112,"read to here:","start","fa")}${P.t(98,125,"6/12","start","fa")}${P.t(98,138,"(6/12 -2 if 2 missed)","start","sm")}`},
+  {l:"Blur: rays miss the retina",hide:true,c:"In a refractive error the light from a point focuses in front of or behind the retina, so it spreads into a blur.",s:()=>`${[50,64,78].map(y=>P.ln(214,y,276,64+(y-64)*.1,"var(--muted)",1)+P.ln(276,64+(y-64)*.1,300,64-(y-64)*.5,"var(--muted)",1)).join("")}${P.t(262,104,"blur","middle","sm")}`},
+  {l:"Pinhole: central rays only",c:"A pinhole lets through only the central rays, which need no focusing, so a refractive blur sharpens. No improvement suggests disease.",s:()=>`${P.r(222,40,6,18,"var(--ink)","none",1)}${P.r(222,70,6,18,"var(--ink)","none",1)}${P.ln(206,64,296,64,"var(--accent)",1.6)}${P.t(262,120,"sharpens: refractive","middle","fa sm")}${P.t(262,134,"no change: disease","middle","sm")}`}]}
 });
+/* The sign pages share the corrected, layered technique drawings (same ids, so SIGNS[].fig keeps working). */
+[["hints","tech-head-impulse","Head impulse test","Turn the head 10 to 20° quickly while the patient fixes on your nose. A working vestibulo-ocular reflex counter-rotates the eyes so they stay on target. A peripheral lesion needs a catch-up saccade (reassuring in acute vestibular syndrome); a normal impulse with acute continuous vertigo is the worrying one. Avoid head thrusts with neck pain or possible neck injury."],
+ ["dixhallpike","tech-hallpike","Dix-Hallpike and the posterior canal",null],
+ ["rinne","tech-tuning-fork","Rinne and Weber",null],
+ ["babinski","tech-plantar","Plantar response","Stroke the lateral sole from the heel, then curve across the metatarsal heads, stopping short of the ball of the big toe. Normal: the big toe flexes. Upper motor neurone lesion: the first movement is slow extension of the big toe, often with fanning of the other toes."]
+].forEach(([k,src,t,c])=>{if(FIG[src])FIG[k]=Object.assign({},FIG[src],{t,c:c||FIG[src].c});});

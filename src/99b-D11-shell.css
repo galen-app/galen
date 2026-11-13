@@ -1,0 +1,12 @@
+/* D11: notices (update ready, sync paused) stacked above the tab bar; never wider than the screen, always dismissable */
+#shellbars{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--nav-h, 64px) + 12px + env(safe-area-inset-bottom,0px));z-index:60;display:flex;flex-direction:column;gap:8px;width:max-content;max-width:min(560px,calc(100vw - 32px));pointer-events:none}
+#shellbars:empty{display:none}
+#shellbars .shellbar{position:static;transform:none;left:auto;bottom:auto;pointer-events:auto;display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:10px 8px 10px 14px;max-width:100%;box-sizing:border-box;line-height:1.35;font-size:.9rem}
+#shellbars .sb-t{flex:1 1 180px;min-width:0;overflow-wrap:anywhere}
+#shellbars .sb-t b{font-weight:700}
+#shellbars .sb-b{display:flex;flex-wrap:wrap;gap:6px}
+#shellbars .sb-b .btn.ghost{color:inherit;border-color:currentColor}
+#shellbars .sb-x{background:none;border:0;color:inherit;font:inherit;font-size:1.2rem;line-height:1;min-width:36px;min-height:36px;border-radius:10px;cursor:pointer;opacity:.75}
+#shellbars .sb-x:hover,#shellbars .sb-x:focus-visible{opacity:1;outline:2px solid currentColor;outline-offset:-4px}
+@media(min-width:980px){#shellbars{bottom:20px}}
+@media print{#shellbars{display:none}}

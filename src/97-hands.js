@@ -11,7 +11,9 @@ const Hands=(()=>{
     [".ring",()=>["Mastery","Share of this area's cards held for a week or more (partial credit for 2–6 days)."]],
     [".week i",el=>["This week",el.title||"Days you studied. Any card, case or plate counts."]],
     ["#nav [data-tab]",el=>({today:["Today","Your daily round, streak and what Citrus planned."],learn:["Learn","Modules, dermatology, neurology, maps, history and memory."],signs:["Signs","Every sign with its evidence, illustration and photographs."],practice:["Practice","Sessions, drills, cases, localiser, plates and photographs."],tools:["Tools","Scores, labs, settings, Google and your data."]})[el.dataset.tab]],
-    [".grades button",el=>({g0:["Again","Forgot it: it comes back in this session and the interval resets. Swipe ←."],g1:["Hard","Recalled with effort: a shorter interval. Swipe ↓."],g2:["Good","Recalled: the interval grows. Swipe →."],g3:["Easy","Instant: a much longer interval. Swipe ↑."]})[el.className]],
+    [".grades button",el=>({g0:["Again","Forgot it: it comes back in this session and the interval resets. Swipe ←."],g1:["Hard","Recalled with effort: a shorter interval. Key 2."],g2:["Good","Recalled: the interval grows. Swipe →."],g3:["Easy","Instant: a much longer interval. Key 4."]})[[...el.classList].find(c=>/^g\d$/.test(c))]||null],
+    [".hud",()=>["Left in this session","New cards · relearning · reviews, and about how many minutes remain."]],
+    [".mood",()=>["Today I am","Tired: reviews only, short, gentle hints. Focused: reviews first, then new cards. Exam: no hints, strict timing, trouble spots pulled forward."]],
     [".pill.acc",el=>["New","A card you have not seen before."]],
     [".dot",el=>["Progress dot",el.classList.contains("on")?"Done or mastered.":"Not done yet."]],
     [".tag",el=>el.textContent.length<32?["Tag",el.textContent]:null]
@@ -38,12 +40,22 @@ const Hands=(()=>{
       const link=`${Hub.URL_PAGES}#${go}`;items.push({label:"Copy link",icon:"search",run:()=>{try{navigator.clipboard.writeText(link).then(()=>toast("Link copied","good"),()=>toast("Couldn't copy"));}catch(e){toast("Couldn't copy");}}});
       const m=go.match(/^signs\/sign\/(.+)$/);if(m&&SIGNS[m[1]]){const id=m[1];items.push({label:"Try in the LR calculator",icon:"scale",run:()=>open("signs","calc",id)});
         const allDone=["t:","v:","m:","ss:"].every(p=>{const r=Store.s.srs[p+id];return !r||r.iv>=30;});
-        items.push({label:allDone?"Reset this sign's cards":"Mark as mastered (3 months)",icon:"check",sub:"Its cards move far ahead",run:()=>{["t:","v:","m:","ss:"].forEach(p=>{const cid=p+id;if(!CARDS.some(c=>c.id===cid))return;if(allDone)delete Store.s.srs[cid];else Store.s.srs[cid]={iv:90,ef:2.5,n:5,l:0,due:dayNum()+90,first:dayNum(),last:Date.now()};});Store.save();toast(allDone?"Cards reset":"Marked as mastered","good");render(false,true);}});}
+        items.push({label:allDone?"Reset this sign's cards":"Mark as mastered (3 months)",icon:"check",sub:"Its cards move far ahead",run:()=>{["t:","v:","m:","ss:"].forEach(p=>{const cid=p+id;if(!CARDS.some(c=>c.id===cid))return;if(allDone)delete Store.s.srs[cid];else Store.s.srs[cid]={iv:90,ef:2.5,n:5,l:0,due:dayNum()+90,first:dayNum(),mk:1,last:Date.now()};});Store.save();toast(allDone?"Cards reset":"Marked as mastered","good");render(false,true);}});}
       const d=go.match(/^learn\/dcond\/(.+)$/);if(d)items.push({label:"Spot diagnosis",icon:"eye",run:()=>open("practice","spot")});
       return {title:label,items};}
-    const fc=el.closest(".fc");if(fc&&typeof SES!=="undefined"&&SES&&SES.queue[SES.i]){const c=SES.queue[SES.i];return {title:c.label,items:[{label:"Open the source page",icon:"chev",run:()=>{const [t,v,a,b]=cardHome(c).split("/");open(t,v,a,b);}},{label:"Bury for today",icon:"calendar",sub:"Comes back tomorrow",run:()=>{const r=Store.s.srs[c.id]||{iv:0,ef:2.5,n:0,l:0,due:dayNum(),first:dayNum()};r.due=dayNum()+1;r.last=Date.now();Store.s.srs[c.id]=r;Store.save();SES.queue.splice(SES.i,1);drawSession(V);toast("Buried");}},{label:"Mark as mastered (3 months)",icon:"check",run:()=>{Store.s.srs[c.id]={iv:90,ef:2.5,n:5,l:0,due:dayNum()+90,first:dayNum(),last:Date.now()};Store.save();SES.queue.splice(SES.i,1);drawSession(V);toast("Mastered","good");}}]};}
+    const fc=el.closest(".fc");if(fc&&typeof SES!=="undefined"&&SES&&SES.queue[SES.i])return cardMenu(SES.queue[SES.i]);
     return null;
   }
+  /* the hold menu on a card in a session: none of these use up today's new-card allowance, and every copy leaves the queue */
+  function dropFromQueue(id){const S=SES;for(let j=S.queue.length-1;j>=S.i;j--)if(S.queue[j].id===id){S.queue.splice(j,1);S.kinds&&S.kinds.splice(j,1);}drawSession(V);}
+  function cardMenu(c){const t=dayNum(),r=Store.s.srs[c.id];
+    const flag=why=>{Store.s.notes["flag:"+c.id]={t:Date.now(),why,label:c.label};Store.save();toast("Flagged. It is listed under Practice, Your cards","good");};
+    return {title:c.label,items:[
+      {label:"Open the source page",icon:"chev",run:()=>{const [a,b,x,y]=cardHome(c).split("/");open(a,b,x,y);}},
+      {label:"Bury for today",icon:"calendar",sub:"Comes back tomorrow",run:()=>{if(r){r.due=Math.max(r.due,t+1);r.last=Date.now();}else Store.s.notes["bury:"+c.id]={t:Date.now(),d:t};Store.save();dropFromQueue(c.id);toast("Buried until tomorrow");}},
+      {label:r&&r.sus?"Bring it back":"Suspend this card",icon:"close",sub:r&&r.sus?"":"Out of every session until you bring it back",run:()=>{const x=r||{iv:0,ef:2.5,n:0,l:0,due:t,first:t,mk:1};if(x.sus)delete x.sus;else x.sus=1;x.last=Date.now();Store.s.srs[c.id]=x;Store.save();if(x.sus)dropFromQueue(c.id);toast(x.sus?"Suspended":"Back in your sessions");}},
+      {label:"Flag this card",icon:"log",sub:"Wrong, ambiguous or gives the answer away",run:()=>setTimeout(()=>openSheet("What is wrong with it?",[["Wrong","Something on it is not correct"],["Ambiguous","More than one answer fits"],["Gives it away","The question gives away the answer"],["Too long","Too much to read or recall"]].map(([w,sub])=>({label:w,sub,run:()=>flag(w)}))),30)},
+      {label:"Mark as mastered (3 months)",icon:"check",run:()=>{Store.s.srs[c.id]=Object.assign({},r||{first:t,mk:1},{iv:90,ef:2.5,n:Math.max(5,(r&&r.n)||0),l:(r&&r.l)||0,due:t+90,last:Date.now()});if(!r)Store.s.srs[c.id].mk=1;Store.save();dropFromQueue(c.id);toast("Mastered","good");}}]};}
   /* ---- gesture engine ---- */
   function onDown(e){
     if(e.pointerType==="mouse"&&e.button!==0)return;
@@ -59,18 +71,20 @@ const Hands=(()=>{
   document.addEventListener("scroll",()=>{clearTimeout(timer);hideBubble();},{passive:true,capture:true});
   /* ---- swipe to grade on flashcards ---- */
   let sw=null;
-  document.addEventListener("touchstart",e=>{const fc=e.target.closest(".fc");if(!fc||e.touches.length!==1)return;if(e.target.closest("button,.opt,canvas,.sp"))return;const t=e.touches[0];sw={fc,x:t.clientX,y:t.clientY,dx:0,dy:0,label:null};},{passive:true});
+  document.addEventListener("touchstart",e=>{const fc=e.target.closest(".fc");if(!fc||e.touches.length!==1)return;if(e.target.closest("button,.opt,canvas,.sp"))return;const t=e.touches[0];sw={fc,x:t.clientX,y:t.clientY,dx:0,dy:0,label:null,t:Date.now(),sy:window.scrollY};},{passive:true});
   /* Only a deliberate sideways swipe grades: Again (left) or Good (right). The moment a drag is mostly vertical it becomes a scroll and is ignored,
      so scrolling down to the grade buttons can never grade a card. Hard and Easy stay on the buttons. */
   document.addEventListener("touchmove",e=>{if(!sw)return;const t=e.touches[0];sw.dx=t.clientX-sw.x;sw.dy=t.clientY-sw.y;const ax=Math.abs(sw.dx),ay=Math.abs(sw.dy);
     if(!sw.dir){if(ax<12&&ay<12)return;sw.dir=ay>=ax*.8?"v":"h";}
+    if(Math.abs(window.scrollY-sw.sy)>4)sw.dir="v";
     if(sw.dir==="v"){if(sw.label){sw.label.remove();sw.label=null;sw.fc.classList.remove("swiping");sw.fc.style.transform="";}return;}
     if(!sw.label){sw.label=document.createElement("div");sw.label.className="swipe-l";sw.fc.append(sw.label);sw.fc.classList.add("swiping");}
     const shown=typeof SES!=="undefined"&&SES&&SES.shown,auto=SES&&SES.queue[SES.i]&&AUTO[SES.queue[SES.i].type];
     let txt="";if(!shown&&!auto)txt="Show answer";else if(shown)txt=sw.dx>0?"Good →":"← Again";
     sw.label.textContent=txt;sw.fc.style.transform=`translateX(${sw.dx*.6}px) rotate(${sw.dx/40}deg)`;},{passive:true});
   document.addEventListener("touchend",()=>{if(!sw)return;const {fc,dx,dy,dir}=sw;const ax=Math.abs(dx),ay=Math.abs(dy);fc.style.transform="";fc.classList.remove("swiping");if(sw.label)sw.label.remove();
-    const big=dir==="h"&&ax>90&&ax>ay*2;const S=typeof SES!=="undefined"?SES:null;
+    const dt=Math.max(1,Date.now()-sw.t),far=ax>Math.max(90,Math.min(160,innerWidth*.25)),flick=ax>60&&ax/dt>.6;
+    const big=dir==="h"&&(far||flick)&&ax>ay*2&&Math.abs(window.scrollY-sw.sy)<=4&&!(getSelection&&String(getSelection()).length);const S=typeof SES!=="undefined"?SES:null;
     if(big&&S&&S.queue[S.i]){const auto=AUTO[S.queue[S.i].type];if(!S.shown&&!auto){const r=$("#reveal");if(r)r.click();}else if(S.shown){const g=dx>0?2:0;fc.style.transition="transform .22s";fc.style.transform=`translateX(${dx*4}px)`;setTimeout(()=>{fc.style.transition="";gradeCard(g);},180);
       const n=(+localStorage.getItem("galen.swipes")||0)+1;try{localStorage.setItem("galen.swipes",n);}catch(e){}}}
     sw=null;},{passive:true});
@@ -81,15 +95,23 @@ const Hands=(()=>{
   document.addEventListener("touchmove",e=>{if(!pull)return;pull.d=e.touches[0].clientY-pull.y;if(pull.d<10){if(pull.el){pull.el.remove();pull.el=null;}return;}if(!pull.el){pull.el=document.createElement("div");pull.el.className="pull";document.body.append(pull.el);}pull.el.style.height=Math.min(PULL,pull.d*.5)+"px";pull.el.textContent=pull.d*.5>=PULL?"Release to sync":"Pull to sync";},{passive:true});
   document.addEventListener("touchend",()=>{if(!pull)return;const go=pull.d*.5>=PULL;if(pull.el)pull.el.remove();pull=null;if(go){toast("Syncing…");Hub.daily("force").then(()=>{toast(Store.status,Store.status==="Synced"?"good":"");if(cur().v==="home")render(false,true);});}},{passive:true});
   /* ---- undo snackbar ---- */
-  function undo(msg,fn){document.querySelectorAll(".snack").forEach(b=>b.remove());const bar=document.createElement("div");bar.className="snack";bar.innerHTML=`<span>${esc(msg)}</span><button>Undo</button>`;document.body.append(bar);const t=setTimeout(()=>bar.remove(),4500);$("button",bar).addEventListener("click",()=>{clearTimeout(t);bar.remove();fn();});}
-  return {openSheet,closeSheet,undo,hintFor};
+  let last=null;
+  function undo(msg,fn){document.querySelectorAll(".snack").forEach(b=>b.remove());const bar=document.createElement("div");bar.className="snack";bar.setAttribute("role","status");bar.innerHTML=`<span>${esc(msg)}</span><button aria-keyshortcuts="u">↶ Undo</button>`;document.body.append(bar);
+    const done=()=>{clearTimeout(t);bar.remove();if(last&&last.fn===fn)last=null;};const t=setTimeout(()=>{bar.remove();},4500);last={fn,bar};$("button",bar).addEventListener("click",()=>{done();fn();});}
+  /* U, Ctrl+Z and LB undo the last grade while you are still in the session, even after the bar has faded */
+  function undoNow(){if(!last)return false;const {fn,bar}=last;last=null;bar.remove();fn();return true;}
+  function dropUndo(){last=null;document.querySelectorAll(".snack").forEach(b=>b.remove());}
+  return {openSheet,closeSheet,undo,undoNow,dropUndo,hintFor};
 })();
 /* grade with undo: wrap gradeCard. Undo restores the card, the session position, XP and the day's count, so it can't be used to farm XP. */
 (()=>{const orig=gradeCard;window.gradeCard=function(g){const S=SES,c=S&&S.queue[S.i];if(!c)return orig(g);
   const prev=Store.s.srs[c.id]?JSON.parse(JSON.stringify(Store.s.srs[c.id])):null,i=S.i,res=S.res.slice(),q=S.queue.slice(),rl=Object.assign({},S.relearn),shown=S.shown;
-  const xp0=Store.s.xp||0,days0=JSON.parse(JSON.stringify(Store.s.days||{}));
-  orig(g);if(g!==0)Store.s.xp=(Store.s.xp||0)+(g>=2?2:1);
+  const xp0=Store.s.xp||0,days0=JSON.parse(JSON.stringify(Store.s.days||{})),kinds=(S.kinds||[]).slice(),log=S.log?S.log.slice():null,right=S.right,gained=(S.gained||[]).slice();
+  const notes0={};Object.keys(Store.s.notes).forEach(k=>{if(/^(round:|rv:|mst:)/.test(k))notes0[k]=JSON.stringify(Store.s.notes[k]);});
+  orig(g);
   const n=+localStorage.getItem("galen.swipes")||0;if(n<5&&!document.querySelector(".swipe-tip")&&document.querySelector("#reveal")){const tip=document.createElement("p");tip.className="tiny muted swipe-tip";tip.style.textAlign="center";tip.textContent="Tip: swipe the card sideways: ← Again · Good →";const fc=document.querySelector(".fc");if(fc)fc.after(tip);}
-  Hands.undo(["Again","Hard","Good","Easy"][g]+" recorded",()=>{if(cur().v!=="session")return;if(prev)Store.s.srs[c.id]=prev;else delete Store.s.srs[c.id];Store.s.xp=xp0;Store.s.days=days0;S.i=i;S.res=res;S.queue=q;S.relearn=rl;S.shown=shown;Store.save();drawSession(V);});};})();
+  Hands.undo(["Again","Hard","Good","Easy"][g]+" recorded",()=>{if(cur().v!=="session")return;if(prev)Store.s.srs[c.id]=prev;else delete Store.s.srs[c.id];Store.s.xp=xp0;Store.s.days=days0;
+    Object.keys(Store.s.notes).forEach(k=>{if(/^(round:|rv:|mst:)/.test(k)){if(k in notes0)Store.s.notes[k]=JSON.parse(notes0[k]);else delete Store.s.notes[k];}});
+    S.i=i;S.res=res;S.queue=q;S.kinds=kinds;if(log)S.log=log;S.right=right;S.gained=gained;S.relearn=rl;S.shown=shown;S.finished=false;S.stale=false;S.checkDone=false;Store.save();drawSession(V);chrome();toast("Undone");});};})();
 /* an undo bar belongs to the session it came from */
-{const _c=chrome;chrome=function(){_c.apply(this,arguments);if(cur().v!=="session")document.querySelectorAll(".snack").forEach(b=>b.remove());};}
+{const _c=chrome;chrome=function(){_c.apply(this,arguments);if(cur().v!=="session"){Hands.dropUndo();document.documentElement.classList.remove("in-ses");}};}

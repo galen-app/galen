@@ -1,0 +1,31 @@
+/* D17: controller legend, button glyphs, focus that clears the sticky bars, area flash, help overlay table, help button. */
+:is(button,a[href],[tabindex],input,select,textarea,summary){scroll-margin-top:calc(var(--rp-top,64px) + 14px);scroll-margin-bottom:24px}
+@media (max-width:979px){:is(button,a[href],[tabindex],input,select,textarea,summary){scroll-margin-bottom:96px}}
+html.pad g:focus{outline:none!important}
+html.pad g[data-egg]:focus>*{stroke:var(--accent)!important;stroke-width:1.6!important;opacity:1}
+html.pad .railbrand:focus{outline-offset:-2px}
+.zone-flash{animation:zoneflash .7s ease-out}
+@keyframes zoneflash{0%{box-shadow:inset 0 0 0 3px var(--accent)}100%{box-shadow:inset 0 0 0 3px transparent}}
+@media (prefers-reduced-motion:reduce){.zone-flash{animation:none}}
+#helpbtn .qmark{font-family:var(--f-display);font-weight:700;font-size:1.3rem;line-height:1}
+@media (max-width:599px){#helpbtn{display:none}html.pad #helpbtn{display:inline-grid}}
+/* glyphs */
+.pg{display:inline-grid;place-items:center;min-width:1.7em;height:1.7em;padding:0 .35em;border-radius:99px;font:700 .74rem/1 var(--f-body);background:var(--ink);color:var(--surface);letter-spacing:0;vertical-align:middle;box-sizing:border-box}
+.pg-l1,.pg-r1,.pg-l2,.pg-r2,.pg-menu,.pg-view,.pg-rs,.pg-,.pg-x2263{border-radius:6px}
+.pg-a{background:var(--good);color:var(--surface)}.pg-b{background:var(--bad);color:var(--surface)}.pg-x{background:var(--insp);color:var(--surface)}.pg-y{background:var(--warn);color:var(--surface)}
+/* legend */
+#padlegend{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:70;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px 14px;max-width:calc(100vw - 24px);
+  padding:7px 14px;border-radius:12px;background:var(--surface);background-image:var(--paper);border:1px solid var(--line);box-shadow:var(--shadow);color:var(--ink2);font:500 .86rem/1.2 var(--f-body);pointer-events:none;box-sizing:border-box}
+#padlegend .pl{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+#padlegend .pl .pg+.pg{margin-left:-2px}
+#padlegend .pz{font-family:var(--f-sc);letter-spacing:.08em;text-transform:lowercase;color:var(--accent-ink);padding-right:12px;border-right:1px solid var(--line)}
+@media (min-width:1100px){#padlegend{left:calc((100vw - var(--rp-w,360px)) / 2)}html.rp-shut #padlegend{left:calc((100vw - 46px) / 2)}}
+@media (min-width:1500px){#padlegend{left:calc((100vw - var(--rp-w,420px)) / 2)}}
+@media (max-width:979px){#padlegend{bottom:calc(76px + env(safe-area-inset-bottom,0px))}}
+html.pad .shell{padding-bottom:56px}
+/* help overlay */
+.helpov .help-card table{margin-top:4px}
+.helpov caption{text-align:left;font-family:var(--f-display);font-weight:700;font-size:1.15rem;padding:6px 0 2px;color:var(--ink)}
+.helpov tbody th{font-family:var(--f-body);font-weight:600;letter-spacing:0;text-transform:none;color:var(--ink);width:38%}
+.helpov td .pg{margin:1px 0}
+@media (max-width:520px){.helpov tbody th{width:auto}.helpov td,.helpov th{padding:5px 4px;font-size:.84rem}}

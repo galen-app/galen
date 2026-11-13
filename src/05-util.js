@@ -5,12 +5,19 @@ const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;"
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 function shuf(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 const pick=a=>a[Math.floor(Math.random()*a.length)];
-let _toastT;
+let _toastT;window._toastAt=0;
+/* toast(msg, kind): a short status line, announced politely. Longer messages stay longer. It clears itself on the next
+   navigation (80-app onNav) unless it was raised by the action that navigated. Text only: msg is never parsed as HTML. */
 function toast(msg,kind){
-  let t=$("#toast");if(!t){t=document.createElement("div");t.id="toast";t.setAttribute("role","status");document.body.append(t);}
-  t.className="toast"+(kind?" "+kind:"");t.textContent=msg;t.hidden=false;
-  clearTimeout(_toastT);_toastT=setTimeout(()=>{t.hidden=true;},2400);
+  let t=$("#toast");if(!t){t=document.createElement("div");t.id="toast";t.setAttribute("role","status");t.setAttribute("aria-live","polite");document.body.append(t);}
+  msg=String(msg==null?"":msg);
+  t.className="toast"+(kind?" "+kind:"");t.textContent=msg;t.hidden=false;window._toastAt=Date.now();
+  clearTimeout(_toastT);_toastT=setTimeout(()=>{t.hidden=true;},clamp(1800+msg.length*45,2400,6000));
 }
+/* escape for attribute values that also go into selectors: esc() for HTML, cssId() for querySelector */
+const cssId=s=>{try{return CSS.escape(String(s));}catch(e){return String(s).replace(/[^\w-]/g,c=>"\\"+c);}};
+/* a number for display from data that may be synced or restored: never NaN, never markup */
+const num=(x,d=0)=>{const n=+x;return isFinite(n)?n:d;};
 const IC={
   eye:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   bone:'<path d="M7 4a2.5 2.5 0 0 0-2.4 3.2A2.5 2.5 0 0 0 6 11.9l6.1 6.1a2.5 2.5 0 0 0 4.7 1.4 2.5 2.5 0 0 0 3.2-2.4 2.5 2.5 0 0 0-1.9-2.4L12 8.4A2.5 2.5 0 0 0 7 4z"/>',

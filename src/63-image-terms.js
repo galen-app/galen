@@ -79,4 +79,42 @@ const IMG_SUBJECTS={
  "cord-diagram":["Spinal cord tracts",["spinal cord cross section tracts","spinal cord tracts diagram"],"neuro"],
  "circle-of-willis":["Circle of Willis",["circle of Willis diagram"],"neuro"]
 };
+/* One-line captions and related signs for photo subjects that have no sign page of their own (shown on signs/imgsub/<id>,
+ including offline, so the page is never empty). signs: SIGNS ids; derm: DCOND ids may be added by the derm owner. */
+const IMG_INFO={
+ wasting:{cap:"Look for asymmetry and the pattern: thenar (median), first dorsal interosseous and hypothenar (ulnar), or proximal (myopathy). Fasciculation with wasting suggests a lower motor neurone lesion.",signs:["froment","reflexes","cts-hypalgesia"]},
+ "foot-drop":{cap:"Weak ankle dorsiflexion and a high-stepping gait. Common peroneal palsy spares inversion; an L5 root lesion weakens inversion and hip abduction too.",signs:["lumbar-roots","slr","trendelenburg"]},
+ "wrist-drop":{cap:"Weak wrist and finger extension from radial nerve palsy, classically at the spiral groove after sleeping on the arm; triceps is spared in spiral groove lesions.",signs:["reflexes"]},
+ erb:{cap:"Upper brachial plexus (C5–C6) injury: the arm hangs adducted and internally rotated with the forearm pronated (the 'waiter's tip').",signs:["reflexes"]},
+ gout:{cap:"A hot, red, swollen first MTP or other joint, often overnight. Aspirate if the joint could be septic; tophi suggest long-standing disease.",signs:["gals"]},
+ dactylitis:{cap:"A whole 'sausage' digit, typical of psoriatic arthritis and other spondyloarthritides; also sickle cell disease and tuberculosis.",signs:["gals"]},
+ "psoriatic-nails":{cap:"Pitting, onycholysis, oil-drop discolouration and subungual hyperkeratosis; nail disease is common in people with psoriatic arthritis.",signs:["gals"]},
+ scoliosis:{cap:"Lateral curvature with rotation: the rib hump is seen best on forward bending (Adams test).",signs:["schober","gals"]},
+ venous:{cap:"Varicose veins, haemosiderin staining, lipodermatosclerosis and venous ulcers above the medial malleolus. Check the ABI before compression.",signs:["oedema","abi","pedal-pulses"]},
+ "cellulitis-vs":{cap:"Spreading warmth, erythema and tenderness, usually one-sided. Bilateral 'cellulitis' is usually venous eczema or lipodermatosclerosis.",signs:["wells-dvt","temp"]},
+ "necfasc-sign":{cap:"Pain out of proportion, rapid spread, tense oedema, dusky skin, bullae or crepitus. A surgical emergency: do not wait for imaging.",signs:["compartment","shock-index","qsofa"]},
+ pressure:{cap:"Non-blanching erythema over bony points (sacrum, heels, hips) is a category 1 pressure injury; look under devices and splints.",signs:[]},
+ burns:{cap:"Superficial (red, blanching, painful), partial thickness (blisters, moist), full thickness (white or leathery, painless). Estimate area with the palm (about 1%) or a Lund and Browder chart.",signs:[]},
+ koilonychia:{cap:"Nail clues: koilonychia (iron deficiency), clubbing, splinter haemorrhages, leukonychia (low albumin), Beau's lines (past illness).",signs:["clubbing","endocarditis-stigmata"]},
+ oral:{cap:"Look at the tongue, gums and mucosa: candida, ulcers, pigmentation, petechiae, gum hypertrophy, angular stomatitis.",signs:["cyanosis","jaundice"]},
+ cushing:{cap:"Central obesity, wide purple striae, proximal myopathy, thin skin and easy bruising, a dorsocervical fat pad.",signs:["bmi-waist","acanthosis"]},
+ acromegaly:{cap:"Coarse features, prognathism, large hands and feet, macroglossia; ask about ring and shoe size and look for a bitemporal field defect.",signs:["visual-fields"]},
+ xanthelasma:{cap:"Yellow plaques on the eyelids; about half have abnormal lipids. Tendon xanthomata suggest familial hypercholesterolaemia.",signs:["bmi-waist"]},
+ kayser:{cap:"A golden-brown ring at the edge of the cornea from copper deposition in Wilson disease, often only visible on slit lamp.",signs:["asterixis","jaundice"]},
+ ascites:{cap:"Distension with bulging flanks and an everted umbilicus; confirm with shifting dullness or ultrasound and tap new ascites.",signs:["shifting-dullness","fluid-wave","cirrhosis-signs"]},
+ parotid:{cap:"Swelling in front of and below the ear that lifts the ear lobe; check facial nerve function and the duct opening opposite the upper second molar.",signs:["facial-palsy","lymph-nodes"]},
+ angioedema:{cap:"Non-pitting swelling of lips, tongue, face or gut. With urticaria think histamine (adrenaline); without it think bradykinin (ACE inhibitor, hereditary).",signs:["stridor-sign"]},
+ kawasaki:{cap:"Fever for 5 days or more with four of: conjunctival injection, red cracked lips or strawberry tongue, rash, swollen or peeling hands and feet, a cervical node. Think of it early in a febrile child.",signs:["lymph-nodes","temp"]},
+ measles:{cap:"Fever, cough, coryza and conjunctivitis, then a maculopapular rash spreading from the hairline; Koplik spots precede the rash.",signs:["temp"]},
+ scarlet:{cap:"A sandpaper rash, flushed cheeks with circumoral pallor, and a strawberry tongue after streptococcal pharyngitis.",signs:["centor"]},
+ hfmd:{cap:"Small vesicles on the palms, soles and mouth in young children; usually coxsackievirus, self-limiting.",signs:["temp"]},
+ "dermatome-chart":{cap:"Key dermatomes: C6 thumb, C7 middle finger, C8 little finger, T4 nipple, T10 umbilicus, L4 medial shin, L5 dorsum of foot, S1 lateral foot.",signs:["lumbar-roots","cauda","spurling"]},
+ "brachial-plexus":{cap:"Roots C5–T1 form trunks, divisions, cords and branches; localise by which muscles and sensory areas are spared.",signs:["reflexes","froment"]},
+ "heart-anatomy":{cap:"Auscultation areas: aortic (right 2nd space), pulmonary (left 2nd), tricuspid (left lower sternal edge), mitral (apex).",signs:["apex-displaced","s3","ar-murmur","mr-murmur"]},
+ "lung-anatomy":{cap:"The oblique fissure runs from T3 behind to the 6th costal cartilage in front; the lower lobes are heard mainly from the back.",signs:["percussion-dull","egophony","bronchial-breathing"]},
+ "abdomen-regions":{cap:"Nine regions or four quadrants: name where the pain started and where it is now.",signs:["rlq-tender","murphy","carnett"]},
+ "cord-diagram":{cap:"Dorsal columns carry vibration and joint position on the same side; spinothalamic tracts carry pain and temperature from the opposite side; corticospinal tracts carry motor output.",signs:["romberg","babinski","reflexes"]},
+ "circle-of-willis":{cap:"The anterior and posterior circulations join at the circle; the posterior communicating artery runs beside the third nerve.",signs:["cn3-pupil","befast","hints"]}
+};
+(function(){Object.entries(IMG_INFO).forEach(([k,v])=>{if(!IMG_SUBJECTS[k])console.warn("IMG_INFO unknown subject",k);v.signs=v.signs.filter(x=>{if(typeof SIGNS!=="undefined"&&!SIGNS[x]){console.warn("IMG_INFO unknown sign",k,x);return false;}return true;});});})();
 const imgTermsFor=id=>{const s=IMG_SUBJECTS[id];if(s)return s[1];const c=typeof DCOND!=="undefined"&&DCOND.find(x=>x.id===id);if(c)return c.terms||[c.n.replace(/\s*\(.*\)/,""),(c.slug||"").replace(/-/g," ")].filter(Boolean);return null;};

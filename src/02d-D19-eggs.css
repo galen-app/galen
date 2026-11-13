@@ -1,0 +1,60 @@
+/* D19: Galen's voice (quips, ribbon), egg dialogs and notes, engraving traces, and the candlelit theatre (Konami). */
+.galen-sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- quips ---- */
+.top-title.quipping #toptitle{display:none}
+.quip-bar{font-family:var(--f-display);font-style:italic;font-weight:600;font-size:1.06rem;color:var(--accent-ink);white-space:nowrap;overflow:hidden;min-width:0;flex:1;animation:quipIn .28s ease-out}
+.quip-ribbon{position:absolute;left:50%;top:calc(100% + 6px);transform:translateX(-50%);width:max-content;max-width:min(560px,calc(100% - 24px));box-sizing:border-box;
+  padding:7px 14px 8px;border-radius:4px;background:var(--surface);color:var(--ink);border:1px solid color-mix(in srgb,var(--accent) 45%,var(--line));
+  box-shadow:0 6px 18px -8px rgb(40 20 5 / .45),inset 0 0 0 2px var(--surface2);font-family:var(--f-display);font-style:italic;font-size:1.02rem;line-height:1.3;text-align:center;
+  pointer-events:none;z-index:25;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;animation:ribbonIn .32s ease-out}
+.quip-ribbon .latin{font-size:1em;color:var(--accent-ink)}
+.quip-ribbon .qr-k{display:block;font-family:var(--f-sc);font-style:normal;font-size:.72rem;letter-spacing:.12em;text-transform:lowercase;color:var(--accent-ink);margin-bottom:1px}
+.quip-ribbon.ms{border-color:var(--accent);box-shadow:0 8px 22px -8px color-mix(in srgb,var(--accent) 60%,transparent),inset 0 0 0 2px var(--surface2)}
+@keyframes quipIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+@keyframes ribbonIn{from{opacity:0;transform:translate(-50%,-6px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (prefers-reduced-motion:reduce){.quip-bar,.quip-ribbon{animation:none}}
+
+/* ---- egg dialog and the gentle search note ---- */
+.egg-ov .egg-card{max-width:560px;border-color:color-mix(in srgb,var(--accent) 35%,var(--line))}
+.egg-ov .egg-x{font-size:1.06rem;line-height:1.5}
+.egg-note{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line);background:color-mix(in srgb,var(--accent-soft) 55%,var(--surface));animation:quipIn .3s ease-out}
+.egg-note.float{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--nav-h,64px) + 18px + env(safe-area-inset-bottom,0px));z-index:55;border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
+.egg-note .en-mark{font-size:1.3rem;color:var(--accent-ink);line-height:1}
+.egg-note .en-t{flex:1;min-width:0;display:flex;flex-direction:column;font-size:.92rem}
+.egg-note .en-t b{font-family:var(--f-sc);font-size:.78rem;letter-spacing:.1em;text-transform:lowercase;color:var(--accent-ink)}
+.egg-note .en-t span{font-family:var(--f-display);font-style:italic;font-size:1.05rem}
+@media (prefers-reduced-motion:reduce){.egg-note{animation:none}}
+
+/* ---- the engraving: hit areas, focus, traces ---- */
+.theatre .egg .egg-hit{fill:transparent;pointer-events:all;stroke:none}
+.theatre .egg:focus{outline:none}
+.theatre .egg:focus-visible .egg-hit,html.pad .theatre .egg:focus .egg-hit{stroke:var(--accent);stroke-width:1.6;stroke-dasharray:3 2.5;fill:color-mix(in srgb,var(--accent) 10%,transparent)}
+.theatre .egg[data-egg=ape].found{opacity:.85}
+.theatre .egg .egg-laurel{fill:color-mix(in srgb,var(--accent) 55%,var(--gilt,#c99a3e));opacity:.9;pointer-events:none}
+.theatre .egg-traces{pointer-events:none}
+.theatre .egg-traces .tr-on{fill:var(--accent);opacity:.85}
+.theatre .egg-traces .tr-off{fill:var(--ink-engr);opacity:.22}
+.theatre .egg-traces .tr-star{fill:var(--gilt,#c99a3e);stroke:var(--accent-ink);stroke-width:.5}
+.theatre .egg-candle rect{fill:var(--surface);stroke:var(--ink-engr);stroke-width:.5}
+.theatre .egg-candle .fl{display:none}
+.theatre .egg-candle .halo{fill:var(--accent);opacity:.16}
+
+/* ---- the candlelit theatre (the Konami reward): the room darkens, the engraving turns to night, every tier is lit ---- */
+.candlelight{display:none}
+html.candles .candlelight{display:block;position:fixed;inset:0;pointer-events:none;z-index:15}
+.candlelight i{position:absolute;inset:0}
+.candlelight i:nth-child(1){background:radial-gradient(ellipse 85% 75% at 50% 52%,transparent 38%,rgb(28 13 3 / .30) 72%,rgb(18 8 2 / .55) 100%);mix-blend-mode:multiply}
+.candlelight i:nth-child(2){background:radial-gradient(60% 45% at 50% 100%,rgb(255 150 60 / .16),transparent 70%),radial-gradient(40% 30% at 0% 50%,rgb(255 140 50 / .08),transparent 70%),radial-gradient(40% 30% at 100% 50%,rgb(255 140 50 / .08),transparent 70%);animation:candleBreath 4.7s ease-in-out infinite}
+.candlelight i:nth-child(3){background:radial-gradient(120% 90% at 50% 0%,rgb(255 170 80 / .07),transparent 60%);animation:candleBreath 6.3s ease-in-out -2s infinite}
+@keyframes candleBreath{0%,100%{opacity:.75}22%{opacity:1}41%{opacity:.82}63%{opacity:.97}80%{opacity:.7}}
+html.candles .stage .glow{animation:flicker 5s infinite;opacity:1}
+html.candles section.theatre,html.candles .theatre:has(svg.th){
+  --ink-engr:#e8c995;--surface:#2b1a0c;--surface2:#1d1207;--surface3:#26170a;--accent-ink:#ffbf86;
+  background:radial-gradient(ellipse at 50% 56%,rgb(255 150 60 / .30),rgb(80 40 12 / .55) 38%,#140b04 82%);border-color:#5a3a18;
+  box-shadow:0 10px 40px -12px rgb(255 120 30 / .45),inset 0 0 60px rgb(0 0 0 / .65)}
+html.candles .theatre .flame{filter:drop-shadow(0 0 3px #ffb054) drop-shadow(0 0 9px rgb(255 130 40 / .75))}
+html.candles .theatre .egg-candle .fl{display:inline}
+html.candles .theatre .egg-candle .halo{opacity:.28}
+html.candles .theatre text{fill:#f6d9a8}
+@media (prefers-reduced-motion:reduce){.candlelight i{animation:none!important}html.candles .stage .glow{animation:none}}

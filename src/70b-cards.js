@@ -1,51 +1,325 @@
 "use strict";
-/* Card generation: buildCards, card type labels, auto-graded types. */
-/* ================= CARDS (spaced retrieval) =================
- Every learnable item becomes a card. Types:
-  think  – a finding or sign → what to think (recall, self-graded)
-  verdict– how good is this test (auto-graded)
-  mech   – mechanism → which sign (auto-graded)
-  anat   – landmark → where and why (recall)
-  hlr    – history feature → how much it shifts probability (auto-graded)
-  red    – presentation → red flags (recall)
-  sound  – listen → name (auto-graded) */
+/* Card generation (D09, Galen 7.1): buildCards, card type labels, auto-graded types, and the card faces.
+ ================= CARDS (spaced retrieval) =================
+ Every learnable item becomes a card. Each card carries:
+   id    stable for ever (users' progress is keyed by it; see CARD_LEGACY below)
+   type  the card type (CARD_TYPE_LABEL), sys (system), ref (what it points at), label
+   reg   MSK region where it has one, sib (sibling group: cards on the same item), topic (a finer key for chapter mapping)
+   hall / chap / home  on the codex and outline cards (where the card lives and where "open" goes)
+ Types: think, verdict, mech, snsp, teach (signs) · twhy, terr (techniques) · finding, anat, area, zone · hlr, red (histories)
+   sound · derm, myo, reflex, rootnerve, cranial (neuro) · dterm, dplate (skin) · lore, lsign (codex) · trap, pearl (outline).
+ The faces of most types are drawn here (cardFace, wrapping the older cardBody in 84-practice.js); twhy/terr are drawn in 89c-tech.js. */
 let CARDS=null;
+
+/* ---------- stable ids ----------
+ Older ids were positional (f:resp:3, dv:24, rf:8, h:chest:2, tw:otoscopy:4, te:otoscopy:0, rn:2). If an author inserts an item, every later
+ index would shift and users would see the wrong history on the wrong card. CARD_LEGACY freezes, per group, a fingerprint of the item that
+ each positional id meant at 7.0.1. An item keeps the old id of its fingerprint; an edited item keeps its own position's id if that is free;
+ a genuinely new item gets a content id (prefix:group:~fingerprint). Never edit CARD_LEGACY. */
+const CARD_LEGACY={"f":{"gen":["tachypnoeawithnormalspo","feverabsentinanunwellelderly","bradycardiawithhypotension","posturalpulserise30","clubbing","flappingtremor","nonblanchingrash"],"cvs":["raisedjvpwithclearlungs","s3inabreathlessadultover40","ejectionsystolicmurmursyncop","newdiastolicmurmur","newmurmurfever","hypotensionraisedjvpquiethea","irregularlyirregularpulsestr","pulsedeficitorinterarmbpdiff","absentfootpulseswithacoldpai"],"resp":["dullbasereducedbreathsoundsr","dullareabronchialbreathingin","hyperresonantabsentbreathsou","bilateralfinelateinspiratory","wheezewithaprolongedexpirati","monophonicfixedwheeze","stridor","normalexaminationbuttachypno","clubbingwitharespiratoryhist"],"abd":["rlqtendernessmigrationrigidi","ruqpainfevermurphyssign","epigastricpaintothebackraise","llqpainfeverolderpatient","colickypaindistensionvomitin","painoutofproportionaflactate","pulsatilemasswithbackpainand","boardlikerigiditysilentabdom","shiftingdullnesswithspiderna","palpablespleenwithlymphnodes"],"neuro":["suddenunilateralweaknesswith","thunderclapheadache","headachefeveralteredmentalst","bilaterallegweaknesswithasen","ascendingflaccidweaknessaref","fatigableweaknessptosisdiplo","restingtremorbradykinesiarig","acutevertigowithnormalheadim","wristdrop","footdrop"],"msk":["twistinginjurypopswellingwit","hotswollensinglejoint","painbetween60and120ofabducti","bilateralsciaticasaddlenumbn","backpainfeverivdruguseorrece","backpaininapatientover50with","morningstiffness30minsymmetr","snuffboxtendernessnormalxray","cannotbearweightmalleolartip","lateralhippainwithtrochanter"],"hn":["diffusegoitretremorlidlagbru","singlethyroidnodulehardwithh","painlesshardnecknodeinasmoke","suddenunilateralhearinglossn","redeyewithreducedacuityandph","headachejawclaudicationscalp","sorethroatwithtrismusanduvul","unilateralfacialweaknesswith"],"derm":["annularscalyedgecentralclear","annularwithoutscaledermalpap","whealsthatcomeandgowithin24h","fixedtargetsonhandsafteracol","feverandanonblanchingrash","palpablepurpuraonbothlegs","painfulskinduskymaculesmucos","tenseblistersonanelderlyitch","painoutofproportionwithsprea","unilateralpainfulvesiclesina","pearlypapulewithtelangiectas","changingasymmetricalmulticol","itchatnightfamilyaffectedfin","comedonespresent","symmetricaldepigmentedpatche","bilateralcellulitis"]},"h":{"chest":["radiationtobotharmsorshoulde","radiationtotherightarm","similartopreviousmiorworseth","exertional","sweating","nauseaorvomiting","pleuritic","positional","reproducedbypalpation","sharporstabbing","tearingorrippingpain","suddenonsetmaximalatonce",0],"dysp":["historyofheartfailure","paroxysmalnocturnaldyspnoea","orthopnoea","historyofmi","nodyspnoeaonexertion","smoking40packyears",0,0,0],"head":[0,"age50withnewheadacheandjawcl",0,"abnormalneurologicalexaminat","nauseaphotophobiaunilaterald"],"abdo":["painmigratingfromperiumbilic","painbeforevomiting","anorexia","vomitingbeforepain",0,0,0,0],"back":["historyofcancer","unexplainedweightloss","age50","failuretoimproveafter1month",0,"urinaryretention","morningstiffness30minimprove"],"sync":[0,0,0,"lateraltonguebiting",0,0,0],"dizz":[0,0,0,0,0],"fever":["shakingchillsrigors",0,0,0,0],"palp":["regularrapidpoundinginthenec","visibleneckpulsations","palpitationsaffectingsleep","palpitationsatwork","knowncardiacdisease","durationunder5minutes","knownpanicdisorder"],"cough":["posttussivevomiting","inspiratorywhoop","absenceofparoxysmalcough","subjectivefever","allvitalsignsnormalhrrrtempe","smokingover40packyears"],"legswell":["activemalignancy","previousdvt","recentimmobilisation","recentsurgery","calfdiameterdifference","wellsscorehighprobability","wellsscorelowprobability","peripheraloedemabilateralina"],"joint":["jointsurgerywithinthepast3mo","hiporkneeprosthesiswithoverl","diabetes","rheumatoidarthritis","skininfection","ageover80","synovialfluidwbcover50000l","inflammatorybackpain2of4crit"],"rash":[0,0,0,0],"weak":["anyoneoffacialparesisarmdrif","noneoffacialparesisarmdrifto","speechbecomesunintelligibled","urinaryretention","classicorprobablehandsymptom","icetestpositiveptosisimprove"],"dysuria":["dysuria","frequency","haematuria","backpain","vaginaldischargehistory","vaginalirritationhistory","dysuriaandfrequencywithnodis","selfdiagnosisinrecurrentuti"],"womabdo":["cervicalmotiontenderness","peritonealsigns","adnexalmass","anysinglesymptompainbleeding","bedsidetransvaginalultrasoun","painmigratingtotherightlower"],"redeye":["photophobiaondirectlight","photophobiaonindirectconsens","photophobiaonfingertonosecon","anisocoriaover1mmsmallerpupi","absenceofmorninggluing",0],"throat":["tonsillarexudate","pharyngealexudate","knownstreptococcalexposurein","centorscore4","centorscore0","centorscore1"],"trauma":["skullfracturesignsopendepres","gcs13versus14to15","vomitingtwoormoreepisodes","pedestrianstruckbyamotorvehi","posttraumaticseizure","age65orover","anydeclineingcs"],"febchild":["parentalconcernthatthisillne","clinicianinstinctthatsomethi","petechialrash","cyanosis","poorperipheralperfusion","rapidbreathing","noshortnessofbreathandnopare"],"occ":[0,0,0,"smokingover40packyears",0],"mse":["bothwhooleyquestionsnegative","eitherwhooleyquestionpositiv",0,0,0,0]},"tw":{"anterior-rhinoscopy":["beforeanyinstrumentinspectth","holdthethudichumspeculuminyo","inserttheclosedbladesabout1c","withtheheaduprightlookalongt","tiltthepatientsheadbackabout","assesstheseptumsystematicall","ifthereisaswellingtestittouc","pressaseptalswellinggentlywi","repeatontheothersidethenchec"],"otoscopy":["holdtheotoscopelikeapenbetwe","usethehandonthesamesideasthe","inaninfantoryoungchildpullth","choosethelargestspeculumthat","inspectthecanalonthewayinwax","findthehandleofthemalleusfir","describethedruminfourtermspo","testmobilitywithpneumaticoto","withdrawthespeculumslowlyund"],"direct-ophthalmoscopy":["holdtheophthalmoscopevertica","fromarmslengthabout50cmwitht","keeptheredreflexinviewandmov","focusbyturningthedialtowards","ifyoulandonretinabutnotthedi","assessthediscsystematicallyc","followeachofthefourmainvascu","examinethemaculalastmoveabou","repeatfortheothereyeusingthe"],"red-reflex":["setthedialto0oryourownrefrac","forthesingleeyeredreflexstan","forthebrcknertestmovebacktoa","whiledoingthebrcknerlookatth","ifyouseeanopacityaskthepatie","recordthereflexaspresentands"],"swinging-torch":["checkthedirectandconsensualr","shinethelightintotherighteye","swingthelightbrisklyacrossth","watchonlytheinitialmovemento","repeattheswingseveraltimes3t","ifonepupilisunreactiveorcann","gradetherapdclinicallyorwith"],"confrontation-fields":["screenwithbilateralsimultane","testeacheyeseparatelywithsta","dokinetictestingfortheperiph","compareredcoloursaturationac","testthecentralfieldwiththere","dothehandcomparisontestholdb","repeatfortheothereyeandrecor"],"tuning-fork":["weberstriketheforkandplaceth","askwheredoyouhearthesoundint","rinnestriketheforkandplaceth","whenthepatientsaystheycannot","askisitlouderbehindtheearori","repeatrinneontheotherear","ifrinneisnegativeinanearwith"],"tinel":["medianatthewristpalpatethedi","settheforceenoughtobefeltasa","ulnarattheelbowflextheelbowt","commonperonealatthefibularne","posteriortibialatthetarsaltu","foranysuspectedsitestarttapp","regenerationmappingafternerv","repeatontheoppositesideatthe"],"phalen-durkan":["phalensaskthepatienttoplacet","startthetimerandholdfor60sec","recordpositiveonlyifparaesth","reversephalensprayerposition","durkancarpalcompressiontestw","recordpositiveifmedianterrit","completetheassessmenttestpin"],"froment":["fromentsaskthepatienttogripa","graspthefarendofthepaperandp","watchthethumbmetacarpophalan","cardtestaskthepatienttoholda","crossedfingertestaskthepatie","testfirstdorsalinterosseousd","testamedianinnervatedthenarm"],"mrc-power":["demonstratethemovementandask","stabilisetheproximalsegmentw","applyresistanceclosetothedis","gradefromthetopdownifthemusc","compareeachmuscleimmediately","assesseffortandthequalityofa","usefunctionaltestsforverystr","mapthepatternuppermotorneuro"],"vibration-proprioception":["strikethetuningforkprongsaga","placethebaseoftheforkfirmlya","timedmethodaskthepatienttosa","doashamoccasionallyplaceanon","ifabnormalatthehalluxmovepro","jointpositionholdthepatients","do5to10trialsinarandomsequen","comparebothsidesandboththefe"],"pinprick-sensory-level":["useafreshneurotipapplyingjus","screeninapatterntestonepoint","whenyoufindanabnormalareamap","gloveandstockingstartattheto","sensorylevelwiththepatientsu","testthesaddleregions3tos5per","lighttouchdabdonotstrokeacot","mappainandtemperatureseparat"],"monofilament":["inspecttheplantarsurfacesand","applythemonofilamentperpendi","iwgdfmethodtestthreesitesone","askaftereachapplicationorsha","scoreprotectivesensationispr","combinewitha128hztuningforka","cleanthemonofilamentandstore"],"two-point":["static2pdstartwiththepointsa","randomlyalternatesinglepoint","reducethedistancein1mmstepsu","testtheradialandulnarsidesof","moving2pddellonmovetheinstru","recordthethresholdinmillimet"],"tendon-reflexes":["holdthehammerlooselynearthee","bicepsc5c6withtheelbowflexed","supinatorbrachioradialisc5c6","tricepsc7withc6supineliftthe","kneel3l4supineslideyourleftf","ankles1s2supineflexthehipand","ifareflexseemsabsentrepeatwi","gradeeachreflex0to4theeveryd"],"plantar-response":["startatthelateralborderofthe","atthemetatarsalheadscurvemed","watchthehalluxspecificallyit","ifthetoeextendslookatthedors","distinguishwithdrawalarapidb","ifequivocalorthepatientwithd","comparebothsidesandrecordeac"],"hoffmann":["supportthepatientshandwithyo","withyourrightthumbpressdowno","watchthethumbandindexfingero","repeatthreetofivetimesoneach","ifnegativebutmyelopathyissus"],"clonus-tone":["upperlimbshakehandswiththepa","feelspecificallyforasupinato","lowerlimbkneerollwithlegsstr","kneeliftplaceyourhandunderth","ankleclonusflexthehipandknee","countthebeatssustainedclonus","ifyoususpectrigiditytestatsl"],"pronator-drift":["askthepatienttoholdbotharmss","askthemtoclosetheireyesandho","watchbothhandsfromthefrontan","optionallytapeacharmbrisklyd","noteanyotherdriftpatternupwa"],"romberg":["askthepatienttostandwithfeet","askthemtoclosetheireyesandho","recordpositiveifthepatientlo","ifnormalandyoususpectsubtlei","ifthepatientcannotstandstead"],"cerebellar-tests":["fingernoseholdyourindexfinge","moveyourfingertoanewposition","watchforintentiontremoroscil","dysdiadochokinesiaaskthepati","heelshinpatientsupineaskthem","reboundwiththepatientsarmsou","comparesidesandconsiderrepea"],"tandem-gait":["observenormalwalkingforatlea","askthepatienttowalkheeltotoe","askthepatienttowalkontheheel","observethepatientstandingupf","identifythenamedgaitbyitsfea"],"eye-movements":["observetheeyesinprimaryposit","pursuitaskthepatienttofollow","stopabout30degreesfromprimar","askateachpositionisthereanyd","inthepositionofmaximaldiplop","saccadesholdtwotargetsyourfi","nystagmusholdthetargetinprim","removefixationifavailableuse","covertestaskthepatienttofixo"],"dix-hallpike":["standbesideorbehindthepatien","holdingtheheadinyourhandsrap","holdthepositionforatleast30s","lookfortheposteriorcanalbppv","sitthepatientupslowlyandwatc","repeatontheothersideifbothar","iffindingsareatypicaltreatas"],"hints":["headimpulsetestholdthepatien","lookforacorrectivesaccadebac","nystagmusobservetheeyesinpri","testofskewaskthepatienttoloo","interpretusinginfarctimpulse","addhintspluscheckhearingatth","assessgaitandsittingbalance"],"meningism":["neckstiffnessplaceyourhandsu","thengentlyrotatetheheadsidet","brudzinskinecksignduringpass","kernigsignflexthehipto90degr","joltaccentuationaskthepatien","interpretsignsincontextofthe"],"hoover":["placeyourhandundertheheeloft","keepingyourhandundertheweakh","comparevoluntaryhipextension","hipabductorsignplaceyourhand","presenttheresultrespectfully"]},"te":{"anterior-rhinoscopy":["afterapunchtothenoseadoctors","adoctorseesapinkfirmswelling","adoctorinsertsthethudichumsp"],"otoscopy":["adoctorexaminesa9montholdpul","acrying3yearoldwithfeverhasr","adoctorperformspneumaticotos"],"direct-ophthalmoscopy":["adoctorexaminesapatientsrigh","adoctorfindsabranchingvessel","adoctorseessharpdiscmarginsb"],"red-reflex":["adoctorchecksababysredreflex","atthe6weekcheckbothredreflex","a2yearoldsparentsshowaphotow"],"swinging-torch":["duringtheswingingtestthedoct","apatienthasadenserightcatara","adoctorperformstheswingingto"],"confrontation-fields":["adoctorsits30cmfromthepatien","apatienthasnormalfingercount","adoctorusesonlyfingercountin"],"tuning-fork":["adoctorstrikesa512hzforkonth","apatientwithsuddenrightdeafn","adoctorholdstheforktinesperp"],"tinel":["agptapsfirmlyoverthevolarwri","sixweeksafteramediannerverep","apatientwithfootdrophastingl"],"phalen-durkan":["adoctorasksapatienttopressth","whichbedsidefindingmostincre","apatientwithastiffpostfractu"],"froment":["adoctortestsfromentsbyasking","apatienthasapositivefroments","duringthecardtestadoctornote"],"mrc-power":["adoctortestselbowflexionwith","apatientcanliftthelegofftheb","ayoungmanwithbackpainhasquad"],"vibration-proprioception":["adoctorholdsapatientsgreatto","adoctorstrikesa512hztuningfo","apatienthasabsentjointpositi"],"pinprick-sensory-level":["adoctorfindsreducedpinpricki","apatienthasasensorylevelatt6","apatientwithat8sensorylevelh"],"monofilament":["anursepressesthemonofilament","adoctorteststhemonofilamento","usingtheiwgdfmethodapatientg"],"two-point":["afteralacerationovertheradia","adoctorpressesthetwopointdis","apatientwithclearcarpaltunne"],"tendon-reflexes":["acolleaguecannotelicittheank","tappingapatientsbrachioradia","adoctorteststhekneejerkwitha"],"plantar-response":["ajuniordoctorstrokesthemiddl","withafirmscratchusinganeedle","apatientwithanl5radiculopath"],"hoffmann":["adoctortestshoffmannssignbyh","a25yearoldanxiousmedicalstud","whatdoesapositivehoffmannssi"],"clonus-tone":["adoctortestsankleclonuswitht","onmovingapatientswristtheres","ananxiouspatienthas3beatsofu"],"pronator-drift":["adoctorasksapatientwithsuspe","inapatientholdingthearmsouto","witheyesclosedapatientsfinge"],"romberg":["apatientswayswitheyesopenand","aveganpatientwithtinglingfee","whatisthebestwaytoincreaseth"],"cerebellar-tests":["adoctorholdshisfinger20cmfro","apatientwithchronicalcoholus","apatientsfingernoseaccuracyi"],"tandem-gait":["apatientwalkswithshortshuffl","apatienthasahighsteppinggait","adoctorexaminesgaitbywatchin"],"eye-movements":["adoctortestseyemovementswith","apatientreportshorizontaldip","adoctorseesafewbeatsofnystag"],"dix-hallpike":["adoctorperformsdixhallpikewi","afteradixhallpiketotheleftth","insupinerolltestinghorizonta"],"hints":["apatientwithbriefpositionalv","inavstheheadimpulseshowsacor","howshouldtheheadimpulsebeper"],"meningism":["afebrilepatientwithheadacheh","apatienthasrestrictedneckfle","howisthejoltaccentuationtest"],"hoover":["adoctorfindsweakvoluntaryhip","whatisthebestwaytopresentapo","inthehipabductorsignwhatsugg"]},"dv":["macule","patch","papule","nodule","plaque","vesicle","bulla","pustule","wheal","cyst","comedo","burrow","telangiectasia","petechiae","purpura","ecchymosis","scale","crust","erosion","ulcer","excoriation","lichenification","fissure","atrophy","scar","induration","necrosiseschar"],"rf":["biceps","brachioradialissupinator","triceps","fingerjerkhoffmann","abdominal","cremasteric","kneepatellar","ankleachilles","plantar","analwinkbulbocavernosus"],"rn":["footdrop","wristdrop","weakwastedhandwithnumblittle","numbthumbandindexfinger","weakkneeextensionlostkneejer","burninglateralthigh","shoulderweaknessafterdisloca"]};
+/* signs that had a rule-in/out or teach-back card at 7.0.1: they keep it even if the data later loses Sn/Sp or the angle */
+const CARD_LEGACY_SIGN={ss:new Set(["postural", "cap-refill", "dry-axilla", "conj-pallor", "jvp", "ajr", "s3", "carotid-upstroke", "irregular-pulse", "bp-arms", "oedema", "homans", "carotid-bruit", "egophony", "bronchial-breathing", "chest-expansion", "percussion-dull", "fremitus", "hoover", "fet", "wheeze", "crackles", "rlq-tender", "rebound", "rovsing", "psoas", "murphy", "fluid-wave", "shifting-dullness", "spleen-palp", "abd-bruit", "pronator-drift", "babinski", "hints", "dix-hallpike", "kernig", "visual-fields", "slr", "ottawa-ankle", "thompson", "lachman", "mcmurray", "scaphoid", "hyperthyroid-signs", "trousseau", "painful-arc", "drop-arm", "er-lag", "empty-can", "lift-off", "hawkins", "neer", "apprehension", "cross-body", "speed", "elbow-ext", "phalen", "tinel-wrist", "flick", "cts-hypalgesia", "spurling", "ultt", "c-spine-rule", "crossed-slr", "si-cluster", "fadir", "hip-oa", "patellar-pubic", "ant-drawer-knee", "pivot-shift", "post-drawer", "thessaly", "joint-line", "ottawa-knee", "ankle-drawer", "squeeze", "windlass", "mulder", "abi", "valsalva-murmur", "handgrip", "plr", "laryngeal-height", "wells-pe", "obturator", "alvarado", "water-swallow", "ice-pack", "hoover-functional", "neck-stiffness", "whisper-test", "ct-head-rule", "qsofa", "chvostek"]),tb:new Set(["resp-rate", "postural", "cap-refill", "dry-axilla", "skin-turgor", "shock-index", "pulsus-paradoxus", "conj-pallor", "jvp", "ajr", "apex-displaced", "s3", "carotid-upstroke", "irregular-pulse", "bp-arms", "ar-murmur", "mr-murmur", "oedema", "pedal-pulses", "tamponade-signs", "egophony", "bronchial-breathing", "percussion-dull", "wheeze", "crackles", "stridor-sign", "peak-flow", "rlq-tender", "rebound", "cough-test", "rovsing", "psoas", "murphy", "shifting-dullness", "spleen-palp", "aaa-palp", "bowel-sounds", "dre", "hernia-cough", "pronator-drift", "babinski", "romberg", "finger-nose", "hints", "dix-hallpike", "kernig", "rapd", "visual-fields", "facial-palsy", "gcs", "slr", "cauda", "ottawa-ankle", "thompson", "lachman", "mcmurray", "knee-effusion", "finkelstein", "scaphoid", "otoscopy", "trousseau", "centor", "red-eye", "fundoscopy", "painful-arc", "drop-arm", "empty-can", "hawkins", "frozen", "elbow-ext", "froment", "phalen", "tinel-wrist", "spurling", "c-spine-rule", "crossed-slr", "lumbar-roots", "log-roll", "patellar-pubic", "ant-drawer-knee", "valgus-stress", "thessaly", "joint-line", "ottawa-knee", "squeeze", "monofilament", "valsalva-murmur", "plr", "wells-dvt", "passive-leg-mottling", "wells-pe", "curb65", "cva", "asterixis", "alvarado", "cremasteric", "cmt", "clonus", "reflexes", "water-swallow", "hoover-functional", "neck-stiffness", "befast", "epley", "horner", "battle", "ct-head-rule", "qsofa", "purpura-glass", "nikolsky"])};
+const cardFp=s=>String(s==null?"":s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"").slice(0,28);
+function cardStableIds(base,items,fpOf,legacy){
+  legacy=legacy||[];const ids=new Array(items.length).fill(null),used=new Set(),fps=items.map(fpOf);
+  fps.forEach((f,i)=>{if(!f)return;const j=legacy.indexOf(f);if(j>=0&&!used.has(j)){ids[i]=j;used.add(j);}});
+  fps.forEach((f,i)=>{if(!f||ids[i]!=null)return;if(i<legacy.length&&!used.has(i)&&!legacy.includes(f)){ids[i]=i;used.add(i);}});
+  return ids.map((j,i)=>fps[i]?(j!=null?base+j:base+"~"+fps[i].slice(0,18)):null);
+}
+/* duplicates removed from the deck: old id → the card that now carries the same content. Store/scheduler can copy srs[old] to srs[new]
+   when srs[new] is missing (handoff to D08/D10). */
+const CARD_ALIAS={};
+
+/* ---------- authored supplements (content checked against the sources listed in dev-D09.md) ---------- */
+/* thin "what next" answers on finding cards: [start of the current answer, next step]. Shown under the answer while that answer still starts
+   the same way and is still short (under 160 characters); once the data answer is rewritten in full, the supplement retires itself. */
+const CARD_FINDING_PLUS={
+ "f:derm:0":["Tinea","Skin scraping for microscopy and culture before treating; topical azole or terbinafine for limited disease. A steroid cream makes it spread and blurs the edge (tinea incognito)."],
+ "f:derm:1":["Granuloma annulare","No scale, which separates it from tinea (scrape if unsure). Usually settles without treatment over months to years; explain, and treat only if symptomatic or widespread."],
+ "f:derm:2":["Urticaria","A non-sedating H1 antihistamine (may be increased up to four times the standard dose on specialist advice). Intramuscular adrenaline if airway, breathing or circulation are involved. Wheals lasting over 24 h or leaving bruising: think urticarial vasculitis and biopsy."],
+ "f:derm:3":["Erythema multiforme","Typical targets with three zones on the hands and limbs, mild or no mucosal involvement and no widespread skin pain or detachment, which separates it from SJS/TEN. Treat the HSV; recurrent HSV-associated EM is an indication for antiviral prophylaxis."],
+ "f:derm:5":["Small-vessel vasculitis","Look for the cause: IgA vasculitis in children (abdominal pain, arthritis, haematuria), drugs and infection in adults. A skin biopsy of a fresh lesion (ideally under 48 h) with immunofluorescence confirms it."],
+ "f:derm:6":["SJS/TEN","Stop every suspect drug, admit (burns unit or intensive care when extensive), calculate SCORTEN, and get same-day ophthalmology for the eyes."],
+ "f:derm:7":["Bullous pemphigoid","Tense blisters on urticarial plaques, mostly over 70. Skin biopsy with direct immunofluorescence and BP180/BP230 antibodies; a potent topical steroid is first line; refer to dermatology."],
+ "f:derm:9":["Herpes zoster","Oral antiviral within 72 h of rash onset (aciclovir or valaciclovir). V1 rash with Hutchinson's sign or any eye symptom: same-day ophthalmology."],
+ "f:derm:10":["Basal cell carcinoma","Slow-growing and very rarely metastasises: routine (not urgent) referral for excision; sooner if large, on the central face or near the eye."],
+ "f:derm:11":["Melanoma","Refer on the suspected cancer pathway, using dermoscopy and the 7-point checklist; do not shave or partially remove it in primary care."],
+ "f:derm:12":["Scabies","Permethrin 5% cream to the whole body from the neck down (including the scalp and face in infants and the elderly), repeated after 7 days; wash bedding and clothes at 60 °C. The itch can last 4–6 weeks after cure."],
+ "f:derm:13":["Acne","Comedones define acne; rosacea has central facial flushing, papules, pustules and telangiectasia without comedones. First line: a topical retinoid with benzoyl peroxide; add an oral tetracycline for moderate to severe disease."],
+ "f:derm:14":["Vitiligo","Check TSH (autoimmune thyroid disease is common). Sun protection; a potent topical steroid or topical calcineurin inhibitor for limited disease; refer if extensive or on the face."],
+ "f:derm:15":["Usually venous","True cellulitis is almost always one-sided, with fever and spreading warmth. Treat venous eczema with emollients and a topical steroid, and compression once arterial disease is excluded (ABPI)."],
+ "f:hn:6":["Quinsy","Peritonsillar abscess: same-day ENT for needle aspiration or incision and drainage, intravenous antibiotics and analgesia; watch the airway."],
+ "f:hn:7":["Ramsay Hunt","Start an oral antiviral and prednisolone within 72 h, protect the eye if it does not close (lubricants, taping at night), check the hearing and refer to ENT."],
+ "f:msk:3":["Cauda equina","Same-day emergency MRI and spinal surgical referral; check perianal sensation and a post-void bladder scan, but never wait for retention, which is a late sign."],
+ "f:derm:8":["Necrotising fasciitis","Do not wait for imaging: resuscitate, start broad-spectrum intravenous antibiotics (with clindamycin to suppress toxin) and get emergency surgical debridement. A low LRINEC score does not exclude it."],
+ "f:msk:8":["X-ray by Ottawa","X-ray if there is malleolar pain with bone tenderness at the posterior edge or tip of either malleolus (distal 6 cm), or inability to bear weight for four steps both immediately and in the department. Otherwise treat as a sprain with early mobilisation."]
+};
+/* outline chapters: the why of each trap, and a question whose answer is the pearl. Keyed by hall and chapter title; tf/pf fingerprint the
+   trap and pearl text so a reworded chapter falls back to a plain prompt instead of a mismatched one. */
+const CARD_OUTLINE_PLUS={
+ "table:the-end-of-the-bed":["Saturation stays normal while the patient compensates by breathing faster; the rate rises first. Count it for 30 seconds and treat tachypnoea as a warning.","Which vital sign is most often guessed, and why does that matter?"],
+ "table:vital-signs-read-together":["Young patients compensate with tachycardia and vasoconstriction, and systolic pressure falls late. Read the heart rate, shock index, perfusion and mechanism instead.","Tachycardia without fever or pain: which four causes must you assume until shown otherwise?"],
+ "table:the-hands-the-face-the-eyes":["Yellow light hides and mimics yellow skin. Look at the sclerae in daylight or neutral white light.","New clubbing in an adult: which causes come to mind?"],
+ "table:volume-status":["Skin loses elasticity with age, so turgor is poor in many well-hydrated older adults. Combine postural vitals, mucous membranes, axilla, JVP and urine output instead.","What do a dry axilla and a moist axilla each tell you about hypovolaemia?"],
+ "table:the-rash-that-cannot-wait":["The rash may come late or never. Act on a febrile child or adult who looks unwell, with cold peripheries, leg pain or abnormal colour: give antibiotics without waiting.","In children with meningococcal disease, which features come before the rash?"],
+ "table:the-history-as-a-hypothesis":["Early closed questions narrow the story before it is told, and an unfocused examination collects noise. Start open, build a differential, then examine to test it.","In occupational medicine, which three questions about the job often give the diagnosis?"],
+ "table:screening-the-joints":["Gait is the fastest joint screen, and many problems show there first. Watch the patient walk, turn and walk back before anything else.","What is the first part of the GALS screen?"],
+ "heart:the-pulse":["The radial pulse is distorted by the arterial tree. Judge rate and rhythm at the radial; judge character and volume at the carotid or brachial.","What does a regular pulse tell you about atrial fibrillation, and what does an irregular one need?"],
+ "heart:the-jugular-venous-pressure":["The carotid is palpable, has one outward wave and does not fall on inspiration. The JVP is impalpable, has two waves, falls on inspiration and rises with abdominal pressure.","A raised JVP with clear lungs and hypotension: which three diagnoses?"],
+ "heart:inspection-and-palpation":["Rotation to the left moves the apex outwards without any enlargement. Lie the patient straight at 45 degrees before you call the apex displaced.","Which praecordial sign predicts a reduced ejection fraction better than most others?"],
+ "heart:heart-sounds":["Third and fourth sounds are low-pitched: the diaphragm filters them out, and a bell pressed hard becomes a diaphragm. Use the bell lightly at the apex with the patient turned to the left.","In aortic stenosis, what does a soft or absent A2 tell you?"],
+ "heart:murmurs":["Sites overlap: an aortic stenosis murmur can be loudest at the apex. Timing, radiation, character and manoeuvres (respiration, Valsalva, squatting, handgrip) name the lesion.","A murmur louder with Valsalva and softer with squatting: which two diagnoses?"],
+ "heart:emergencies-at-the-bedside":["The full triad (hypotension, raised JVP, quiet heart sounds) is present in a minority of tamponade. Look for tachycardia, pulsus paradoxus and an effusion on bedside ultrasound.","Fever plus a new murmur: what is the working diagnosis, and what must you take first?"],
+ "vessels:blood-pressure-done-properly":["A bladder too small for the arm overestimates the pressure. Choose a cuff whose bladder covers about 80% of the arm's circumference.","Chest pain with an inter-arm blood pressure difference: what must you think of?"],
+ "vessels:the-arteries":["Calcified, incompressible arteries in diabetes or renal disease give a falsely high ABI. Use a toe–brachial index or arterial Doppler waveforms instead.","Abdominal or back pain, hypotension and a pulsatile mass: what is it until proven otherwise?"],
+ "vessels:the-swollen-leg":["Bilateral swelling is usually systemic, and DVT is usually one-sided. Look for heart, liver or kidney disease, low albumin, venous insufficiency or drugs (calcium-channel blockers).","Bilateral leg oedema: which group of causes comes first?"],
+ "vessels:fluid-responsiveness":["Many hypotensive patients do not raise their cardiac output with fluid, and excess fluid harms. Test responsiveness first, for example with a passive leg raise and a real-time output measure.","Why is the passive leg raise a useful fluid challenge?"],
+ "lungs:inspect-and-count":["Exhaustion, falling effort, drowsiness and a silent chest are life-threatening asthma, not improvement. Get a blood gas, call senior help and prepare for ventilation.","What does a silent chest mean in acute asthma?"],
+ "lungs:the-trachea-and-expansion":["Firm pressure on the trachea is unpleasant and makes the patient cough or gag. Use one finger gently in the suprasternal notch and compare the gaps on either side.","A white-out on one side: what does the trachea moving away from it, or towards it, suggest?"],
+ "lungs:percussion":["Apices and bases differ normally (heart, liver), so top-to-bottom comparison misleads. Compare the same point on the left and right at each level.","Stony dullness at one lung base: what is it until shown otherwise?"],
+ "lungs:breath-sounds-and-added-sounds":["Upper-airway noise is transmitted to the whole chest. Listen over the neck and mouth: if it is loudest there, it is not a wheeze from the lungs.","Fine late inspiratory crackles that do not clear with coughing: which two diagnoses?"],
+ "lungs:the-voice-through-the-chest":["Fluid separates the lung from the chest wall and damps sound, so vocal resonance and fremitus fall over an effusion. They rise over consolidation.","Which voice sign has one of the highest positive likelihood ratios of any chest sign for pneumonia?"],
+ "lungs:synthesis-and-severity":["Tension pneumothorax is a clinical diagnosis, and the patient can arrest while you wait for the film. Decompress on clinical signs, then image.","Hypotension, raised JVP, absent breath sounds and hyperresonance on one side: what do you do?"],
+ "belly:inspect-and-look-for-liver-disease":["A patient sitting up or tense guards and hides signs. Lie them flat on one pillow, arms by the sides, exposed from the nipples to the groin with dignity.","Asterixis: apart from liver failure, which two causes must you consider?"],
+ "belly:palpation-that-the-patient-allows":["Rebound hurts and adds little to percussion or cough tenderness for peritonitis. Percuss gently or ask the patient to cough.","What is Carnett's sign, and what does a positive one suggest?"],
+ "belly:organs-and-masses":["An organ edge that reaches the pelvis is missed if you start under the ribs. Start in the right iliac fossa and move up with each breath.","Name four features that tell you a left upper quadrant mass is the spleen."],
+ "belly:ascites":["Flank fullness is common in obesity. Look for flank dullness, confirm with shifting dullness or a fluid wave, and use ultrasound when in doubt.","What does absent flank dullness tell you about ascites?"],
+ "belly:the-acute-abdomen":["Torsion and incarcerated hernias present as abdominal pain, especially in boys and the elderly. Examine the hernial orifices and genitals in every acute abdomen, with a chaperone.","Abdominal pain out of proportion to the examination: which diagnosis must you exclude?"],
+ "belly:the-intimate-examinations":["An intimate examination that cannot change management adds discomfort and no benefit. Ask what result would change the plan; when it is needed, get consent, offer a chaperone and record both.","Which finding on the glove settles an upper GI bleed in seconds?"],
+ "neck:the-thyroid":["Without a sip of water you cannot show that a mass rises on swallowing. Give water and watch it rise and fall, then ask the patient to put the tongue out.","How do you tell a thyroglossal cyst from a thyroid nodule at the bedside?"],
+ "neck:thyroid-status":["Thyrotoxicosis causes tachycardia, tremor, weight loss and anxiety. Look for lid lag, a goitre and AF, and check TSH and free T4 before you call it anxiety.","Which eye sign means Graves' disease specifically, and which occurs in any thyrotoxicosis?"],
+ "neck:lymph-nodes":["Malignant nodes are often painless, hard and fixed; tender nodes are more often reactive. A hard or fixed node needs urgent assessment with ultrasound and a specialist.","A left supraclavicular node: where does it point?"],
+ "neck:calcium":["Chvostek's sign is often absent in true hypocalcaemia and present in some healthy people. Measure the calcium (corrected or ionised).","Tingling around the mouth after neck surgery: what is it until measured?"],
+ "senses:the-ear":["The pars flaccida, above the short process of the malleus, is where attic cholesteatoma starts. Always look there: crust or a retraction pocket needs ENT review.","What is the most useful otoscopic sign of acute otitis media?"],
+ "senses:hearing":["Low forks such as 128 Hz are felt as vibration and give false results. Use a 512 Hz fork, struck gently, and confirm with audiometry.","Sudden sensorineural hearing loss: how urgent is it, and what treatment is time-critical?"],
+ "senses:the-nose-and-sinuses":["A swollen inferior turbinate is pink and sensitive and shrinks with decongestant; a polyp is grey, insensate and mobile. Touch gently with a probe before you call it a polyp.","How do you tell a nasal polyp from a swollen turbinate?"],
+ "senses:the-eye":["A small pupil gives a keyhole view, and one look misleads either way. Get a proper view (dark room, dilated fundoscopy if safe, or ophthalmology with OCT) and compare both discs.","Red eye with which features is not conjunctivitis?"],
+ "senses:the-throat":["Examining the throat in epiglottitis can trigger complete obstruction, and the swelling is out of view anyway. Keep the patient upright and calm, no spatula, and call anaesthesia and ENT.","What must you never do in a child with drooling and stridor?"],
+ "cranial:the-pupils":["Swinging too fast, too slowly or in a bright room hides a relative afferent defect. Dim the room, hold the light 2–3 seconds on each eye and swing briskly between them.","New Horner's syndrome with neck pain: what is it until imaged?"],
+ "cranial:the-fields":["With both eyes open, one eye fills the other's gap and hides monocular defects. Cover one eye at a time.","Where is the lesion with a homonymous field defect, and with a bitemporal one?"],
+ "cranial:eye-movements":["A third nerve palsy with a dilated pupil suggests compression, classically a posterior communicating artery aneurysm. Check the pupil in every third nerve palsy and image urgently (CT or MR angiography).","A painful third nerve palsy with a dilated pupil: how urgent is it?"],
+ "cranial:the-face-and-the-swallow":["The gag reflex is absent in many healthy people and present in many who aspirate. Use a formal bedside swallow screen and refer to speech and language therapy.","What does the gag reflex tell you about the risk of aspiration?"],
+ "cranial:the-dizzy-patient":["HINTS is validated in acute continuous vertigo with nystagmus; without nystagmus the head impulse cannot be interpreted. Use the rest of the examination and imaging.","In acute continuous vertigo, what does a normal head impulse test suggest?"],
+ "mind:the-conscious-level":["A total hides which component is affected, and the same total describes different patients. Report E, V and M separately (for example E2 V2 M4).","Which component of the GCS carries most of the prognosis?"],
+ "mind:tone-power-and-drift":["Without support above the joint the patient recruits other muscles and you misgrade power. Stabilise the proximal joint and compare sides.","Which simple sign is one of the most sensitive for a mild upper motor neuron lesion?"],
+ "mind:reflexes":["Many normal reflexes appear only with reinforcement. Ask the patient to clench the teeth or pull the hooked hands apart just before you strike.","Reflexes: which matters more, briskness or asymmetry?"],
+ "mind:sensation":["Moving from normal to abnormal, the change is reported late and the boundary shifts. Go from the abnormal area towards normal and mark where it changes.","When testing sensation, in which direction do you move to find a boundary?"],
+ "mind:coordination-and-gait":["Romberg's test removes vision to test proprioception. A cerebellar patient is unsteady with the eyes open too, so a positive Romberg points to sensory ataxia.","What does Romberg's test examine, and how does a cerebellar patient stand with the eyes open?"],
+ "mind:meninges-and-functional-signs":["Kernig's and Brudzinski's signs have very low sensitivity (about 5% in a modern series), so a negative result excludes nothing. Act on fever, headache, altered mental state or a rash.","You suspect meningitis: which comes first, treatment or investigation?"],
+ "mind:stroke-and-localisation":["Posterior circulation strokes often present with vertigo and imbalance, which a quick limb screen misses. Test the gait, look for nystagmus and use HINTS in acute continuous vertigo.","Facial signs on one side and limb signs on the other: where is the lesion?"],
+ "spine:the-back-in-the-room":["Most acute low back pain is non-specific, and imaging does not improve outcomes. Image for red flags or when the result will change management.","In back pain, which red flags make you image?"],
+ "spine:the-trapped-root":["Common peroneal palsy at the fibular head also causes foot drop. Test inversion and hip abduction: both weak suggests L5; both normal suggests the peroneal nerve.","Which reflex finding separates an L5 from an S1 radiculopathy?"],
+ "spine:cauda-equina":["Painless retention is a late stage that often does not recover. Arrange emergency MRI on suspicion: bilateral sciatica, saddle numbness, new bladder, bowel or sexual dysfunction.","Bilateral sciatica: what is it until proved otherwise?"],
+ "spine:the-neck":["Moving an unstable neck can injure the cord. Keep it immobilised until the Canadian C-spine rule or imaging clears it.","After neck trauma, which three high-risk features mean you image?"],
+ "spine:interpreting-distress":["Waddell signs reflect distress and illness behaviour; they do not detect malingering. Record them neutrally and address pain, distress and function.","In an occupational assessment of back pain, what matters more than the signs?"],
+ "arm:the-shoulder":["Both cause pain and stiffness, but frozen shoulder loses passive external rotation while a cuff tear keeps passive range and loses active strength. Test passive external rotation with the elbow at the side.","Which three findings together strongly suggest a full-thickness rotator cuff tear?"],
+ "arm:the-elbow":["Most injured elbows do not need an X-ray. Use the elbow extension test: full extension makes a significant fracture unlikely (with follow-up if it does not settle).","After elbow trauma, what does full extension tell you?"],
+ "arm:the-wrist-and-the-scaphoid":["Many scaphoid fractures do not show on the first X-ray. With snuffbox tenderness, immobilise and arrange MRI (or CT), or repeat X-ray at 10–14 days if neither is available.","Snuffbox tenderness after a fall with a normal X-ray: what do you do?"],
+ "arm:the-nerves-of-the-hand":["Tinel's sign alone has modest accuracy. Combine it with hypalgesia in the median territory, thenar weakness and the history; nerve conduction studies settle doubt.","In suspected carpal tunnel syndrome, which findings are more useful than Tinel or Phalen?"],
+ "arm:the-tendons":["A finger can still flex with a partly divided tendon, which may rupture later. Test FDS and FDP separately against resistance; pain or weakness after a cut needs exploration.","After a cut, pain on resisted finger flexion means what until explored?"],
+ "leg:the-hip":["An impacted femoral neck fracture can allow walking. In an older patient with hip or groin pain after a fall, check rotation and length and X-ray; MRI if the film is normal and pain persists.","What is the earliest examination sign of hip osteoarthritis?"],
+ "leg:the-knee-after-injury":["Hamstring guarding stops the tibia moving forward in the anterior drawer. Use the Lachman test at 20–30 degrees of flexion and re-examine when the pain settles.","Which ACL test is most accurate, and which is most specific?"],
+ "leg:the-meniscus-and-patella":["Joint-line tenderness occurs in many knee problems and is weak alone. Combine it with McMurray, Thessaly and the history (locking, twisting injury).","How should you use meniscal tests?"],
+ "leg:the-ankle-and-foot":["The long toe flexors, tibialis posterior and peronei can still plantarflex the ankle. Do Thompson's test (calf squeeze, prone) and feel for a gap.","What does Thompson's test show in an Achilles rupture?"],
+ "leg:the-hot-joint":["Gout and septic arthritis look alike and can coexist, and urate may be normal during an attack. Aspirate for Gram stain, culture and crystals before antibiotics when you can.","How quickly can a septic joint destroy cartilage?"],
+ "skin:describing-a-lesion":["'Erythematous rash' says nothing that narrows the diagnosis. Describe the primary lesion, size, colour, surface, shape, arrangement and distribution.","What should you do before you try to name a rash?"],
+ "skin:signs-that-help-name-it":["Hard rubbing can shear normal skin and fake a positive Nikolsky sign. Use gentle sideways pressure with a finger next to an active blister.","A positive Nikolsky sign with mucosal involvement: which diagnoses?"],
+ "skin:pigmented-lesions":["Small melanomas exist, and change is the strongest warning. Any changing lesion needs dermoscopy and referral on the suspected cancer pathway.","In a pigmented lesion, what is the single most important feature?"],
+ "skin:skin-that-can-kill":["Pain out of proportion to the skin is the early sign of necrotising fasciitis. Look for rapid spread, systemic toxicity, crepitus or numbness, and call the surgeons.","Severe pain, rapid spread and systemic illness with a red leg: what is it, and who do you call?"]
+};
+const cardChapSlug=t=>String(t).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,48);
+
 function buildCards(){
-  const C=[];const add=c=>C.push(c);
-  Object.entries(SIGNS).forEach(([k,s])=>{
-    if(s.hide)return;const reg=s.reg||null;
-    add({id:"t:"+k,type:"think",sys:s.sys,reg,ref:k,label:s.name});
-    add({id:"v:"+k,type:"verdict",sys:s.sys,reg,ref:k,label:s.name});
-    add({id:"m:"+k,type:"mech",sys:s.sys,reg,ref:k,label:s.name});
-    if(s.sens!=null&&s.spec!=null)add({id:"ss:"+k,type:"snsp",sys:s.sys,reg,ref:k,label:s.name});
-    if(typeof ANGLES!=="undefined"&&ANGLES[k]&&ANGLES[k].teachback)add({id:"tb:"+k,type:"teach",sys:s.sys,reg,ref:k,label:s.name});
+  const C=[];const seen=new Set();const add=c=>{if(!c||!c.id||seen.has(c.id))return;seen.add(c.id);if(!c.sib)c.sib=c.id;C.push(c);};
+  const visible=Object.entries(SIGNS).filter(([,s])=>!s.hide);
+  visible.forEach(([k,s])=>{
+    const reg=s.reg||null,b={sys:s.sys,reg,ref:k,label:s.name,sib:"sign:"+k,topic:"sign:"+k};
+    add({id:"t:"+k,type:"think",...b});
+    add({id:"v:"+k,type:"verdict",...b});
+    add({id:"m:"+k,type:"mech",...b});
+    if(s.sens!=null&&s.spec!=null||CARD_LEGACY_SIGN.ss.has(k)&&(s.p!=null||s.n!=null))add({id:"ss:"+k,type:"snsp",...b});
+    else if(CARD_LEGACY_SIGN.ss.has(k))CARD_ALIAS["ss:"+k]="v:"+k;/* no accuracy data left: its history moves to the verdict card */
+    if(typeof ANGLES!=="undefined"&&ANGLES[k]&&ANGLES[k].teachback)add({id:"tb:"+k,type:"teach",...b});
   });
-  if(typeof TECH!=="undefined")TECH.forEach(t=>{const sys=t.group==="Ear, nose and eye"?"hn":"neuro";
-    t.steps.forEach((st,i)=>add({id:`tw:${t.id}:${i}`,type:"twhy",sys,ref:[t.id,i],label:t.name}));
-    (t.mcq||[]).forEach((q,i)=>add({id:`te:${t.id}:${i}`,type:"terr",sys,ref:[t.id,i],label:t.name}));});
-  SYSTEMS.forEach(m=>m.think.forEach(([f,t],i)=>add({id:`f:${m.id}:${i}`,type:"finding",sys:m.id,ref:[m.id,i],label:f})));
+  if(typeof TECH!=="undefined")TECH.forEach(t=>{const sys=t.group==="Ear, nose and eye"?"hn":"neuro",sib="tech:"+t.id;
+    const tw=cardStableIds(`tw:${t.id}:`,t.steps,s=>cardFp(s.do),CARD_LEGACY.tw[t.id]);
+    /* pure record-keeping steps get no card (D07: techStepNoCard); their 7.0.1 history moves to the technique's first step card */
+    const skip=i=>typeof techStepNoCard==="function"&&techStepNoCard(t.id,i),first=tw.find((x,i)=>!skip(i));
+    t.steps.forEach((st,i)=>{if(skip(i)){if(first&&tw[i]!==first)CARD_ALIAS[tw[i]]=first;return;}add({id:tw[i],type:"twhy",sys,ref:[t.id,i],label:t.name,sib,topic:sib});});
+    const te=cardStableIds(`te:${t.id}:`,t.mcq||[],q=>cardFp(q.q),CARD_LEGACY.te[t.id]);
+    (t.mcq||[]).forEach((q,i)=>add({id:te[i],type:"terr",sys,ref:[t.id,i],label:t.name,sib,topic:sib}));});
+  SYSTEMS.forEach(m=>{const ids=cardStableIds(`f:${m.id}:`,m.think,([f])=>cardFp(f),CARD_LEGACY.f[m.id]);
+    m.think.forEach(([f],i)=>add({id:ids[i],type:"finding",sys:m.id,ref:[m.id,i],label:f,topic:"finding:"+m.id}));});
   const anatSys={chest:"cvs",abdomen:"abd",neck:"hn",back:"msk"};
-  Object.entries(ANAT).forEach(([key,a])=>a.pts.forEach(p=>add({id:`a:${key}:${p.k}`,type:"anat",sys:anatSys[key],ref:[key,p.k],label:p.n})));
-  Object.entries(AREAS).forEach(([k,a])=>add({id:"ar:"+k,type:"area",sys:"cvs",ref:k,label:a.name}));
-  Object.entries(LZONES).forEach(([k,a])=>add({id:"lz:"+k,type:"zone",sys:"resp",ref:k,label:a.name}));
-  const presSys=new Proxy({},{get:(o,k)=>(HIST.pres.find(p=>p.id===k)||{}).sys});
-  HIST.pres.forEach(p=>{
-    p.lr.forEach(([f,t,l],i)=>{if(l!=null)add({id:`h:${p.id}:${i}`,type:"hlr",sys:presSys[p.id]||"gen",ref:[p.id,i],label:f});});
-    add({id:"r:"+p.id,type:"red",sys:presSys[p.id]||"gen",ref:p.id,label:p.name});
+  Object.entries(ANAT).forEach(([key,a])=>a.pts.forEach(p=>add({id:`a:${key}:${p.k}`,type:"anat",sys:anatSys[key]||"gen",ref:[key,p.k],label:p.n,topic:"anat:"+key})));
+  Object.entries(AREAS).forEach(([k,a])=>add({id:"ar:"+k,type:"area",sys:"cvs",ref:k,label:a.name,topic:"area:"+k}));
+  Object.entries(LZONES).forEach(([k,a])=>add({id:"lz:"+k,type:"zone",sys:"resp",ref:k,label:a.name,topic:"zone:"+k}));
+  HIST.pres.forEach(p=>{const sys=p.sys||"gen",sib="pres:"+p.id;
+    const ids=cardStableIds(`h:${p.id}:`,p.lr,([f,,l])=>l==null?null:cardFp(f),CARD_LEGACY.h[p.id]);
+    p.lr.forEach(([f,t,l],i)=>{if(l!=null&&ids[i])add({id:ids[i],type:"hlr",sys,ref:[p.id,i],label:f,sib,topic:sib});});
+    add({id:"r:"+p.id,type:"red",sys,ref:p.id,label:p.name,sib,topic:sib});
   });
-  Object.entries(SOUNDS).forEach(([k,s])=>add({id:"s:"+k,type:"sound",sys:s.kind==="heart"?"cvs":"resp",ref:k,label:s.name}));
+  Object.entries(SOUNDS).forEach(([k,s])=>add({id:"s:"+k,type:"sound",sys:s.kind==="heart"?"cvs":"resp",ref:k,label:s.name,topic:"sound:"+k}));
   /* neuro toolkit */
-  DERM_ORDER.forEach(k=>{if(DERM_INFO[k]&&DERM_INFO[k].k)add({id:"dm:"+k,type:"derm",sys:"neuro",ref:k,label:k+" key point"});});
-  MYO.forEach((m,i)=>add({id:"my:"+m[0],type:"myo",sys:"neuro",ref:i,label:m[1]}));
-  REFLEX.forEach((r,i)=>add({id:"rf:"+i,type:"reflex",sys:"neuro",ref:i,label:r[0]}));
-  ROOTNERVE.forEach((r,i)=>add({id:"rn:"+i,type:"rootnerve",sys:"neuro",ref:i,label:r.q}));
-  CRANIAL.forEach((c,i)=>add({id:"cn:"+c[0],type:"cranial",sys:"neuro",ref:i,label:"CN "+c[0]}));
+  DERM_ORDER.forEach(k=>{if(DERM_INFO[k]&&DERM_INFO[k].k)add({id:"dm:"+k,type:"derm",sys:"neuro",ref:k,label:"Dermatome "+k,topic:"root:"+k});});
+  MYO.forEach((m,i)=>add({id:"my:"+m[0],type:"myo",sys:"neuro",ref:i,label:m[1],topic:"root:"+m[0]}));
+  {const ids=cardStableIds("rf:",REFLEX,r=>cardFp(r[0]),CARD_LEGACY.rf);REFLEX.forEach((r,i)=>add({id:ids[i],type:"reflex",sys:"neuro",ref:i,label:cardReflexName(r[0])+" reflex",topic:"reflex:"+r[1]}));}
+  {const ids=cardStableIds("rn:",ROOTNERVE,r=>cardFp(r.q),CARD_LEGACY.rn);ROOTNERVE.forEach((r,i)=>add({id:ids[i],type:"rootnerve",sys:"neuro",ref:i,label:r.q,topic:"rootnerve:"+(/hand|wrist|finger|thumb|arm|elbow|shoulder|claw|carpal/i.test(r.q+" "+r.a+" "+r.b)?"arm":"leg")}));}
+  CRANIAL.forEach((c,i)=>add({id:"cn:"+c[0],type:"cranial",sys:"neuro",ref:i,label:"CN "+c[0]+" ("+c[1]+")",topic:"cn:"+c[0]}));
   /* dermatology */
-  DVOCAB.forEach((v,i)=>add({id:"dv:"+i,type:"dterm",sys:"derm",ref:i,label:v[0]}));
-  DCOND.forEach(c=>{if(c.p&&c.d)add({id:"dc:"+c.id,type:"dplate",sys:"derm",ref:c.id,label:c.n});});
+  {const ids=cardStableIds("dv:",DVOCAB,v=>cardFp(v[0]),CARD_LEGACY.dv);DVOCAB.forEach((v,i)=>add({id:ids[i],type:"dterm",sys:"derm",ref:i,label:v[0],topic:"dterm:"+v[1]}));}
+  DCOND.forEach(c=>{if(c.p&&c.d)add({id:"dc:"+c.id,type:"dplate",sys:"derm",ref:c.id,label:c.n,topic:"dplate:"+c.g});});
+  /* the codex: one recall card per story, and a story-to-sign card when the story stands behind a sign */
+  if(typeof LORE!=="undefined")LORE.forEach(l=>{const sys=cardHallSys(l.hall),sib="lore:"+l.id,home=`learn/lore/${l.id}`,sg=(l.signs||[]).filter(k=>SIGNS[k]&&!SIGNS[k].hide);
+    /* chapter: the first chapter of the story's hall that teaches one of its signs (D12's c.chap format "<hall>/<title regex>") */
+    const ch=typeof OUTLINE!=="undefined"&&(OUTLINE[l.hall]||[]).find(x=>(x.signs||[]).some(k=>sg.includes(k)));const chap=ch?cardChapRef(l.hall,ch.t):undefined;
+    add({id:"lo:"+l.id,type:"lore",sys,ref:l.id,label:l.t,hall:l.hall,chap,home,sib,topic:sib,signs:sg});
+    if(sg.length)add({id:"ls:"+l.id,type:"lsign",sys,ref:l.id,label:l.t,hall:l.hall,chap,home,sib,topic:sib,signs:sg});});
+  /* the outline: a trap card and a pearl card per chapter (ids by hall and chapter title, so reordering chapters keeps them) */
+  if(typeof OUTLINE!=="undefined")Object.entries(OUTLINE).forEach(([h,chs])=>(chs||[]).forEach((ch,i)=>{const slug=cardChapSlug(ch.t),sys=cardHallSys(h),b={sys,ref:[h,slug],label:ch.t,hall:h,chap:cardChapRef(h,ch.t),home:`learn/hall/${h}`,sib:"chap:"+h+":"+slug,topic:"chap:"+h+":"+slug};
+    if(ch.trap)add({id:`ot:${h}:${slug}`,type:"trap",...b});
+    if(ch.pearl)add({id:`op:${h}:${slug}`,type:"pearl",...b});}));
   /* region membership for MSK sessions also comes from each region's test list */
-  REGIONS.forEach(r=>r.tests.forEach(k=>C.forEach(c=>{if(c.ref===k&&!c.reg)c.reg=r.id;})));
+  const regOf={};REGIONS.forEach(r=>r.tests.forEach(k=>{if(!regOf[k])regOf[k]=r.id;}));
+  C.forEach(c=>{if(!c.reg&&typeof c.ref==="string"&&regOf[c.ref]&&c.sib==="sign:"+c.ref)c.reg=regOf[c.ref];});
   CARDS=C;return C;
 }
-const CARD_TYPE_LABEL={think:"What to think",verdict:"Test value",mech:"Mechanism",finding:"Finding",anat:"Surface anatomy",area:"Listening area",zone:"Lung zone",hlr:"History clue",red:"Red flags",sound:"Listen",snsp:"Rule in or out",derm:"Dermatome",myo:"Myotome",reflex:"Reflex root",rootnerve:"Root or nerve?",cranial:"Cranial nerve",dterm:"Skin term",dplate:"Name the rash",teach:"Teach it back"};
-const AUTO={verdict:1,mech:1,hlr:1,sound:1,snsp:1,myo:1,reflex:1,dplate:1};
+/* systems for the codex and outline cards (only the SYS_SHORT pill uses it); halls themselves are carried in c.hall */
+const CARD_HALL_SYS={table:"gen",heart:"cvs",vessels:"cvs",lungs:"resp",belly:"abd",neck:"hn",senses:"hn",cranial:"neuro",mind:"neuro",spine:"msk",arm:"msk",leg:"msk",skin:"derm"};
+function cardHallSys(h){const x=typeof HALLS!=="undefined"&&HALLS.find(y=>y.id===h);return (x&&x.sys&&typeof SYS_SHORT!=="undefined"&&SYS_SHORT[x.sys]?x.sys:null)||CARD_HALL_SYS[h]||"gen";}
+/* D12's chapter reference: "<hall>/<regex matching the chapter title>" */
+const cardChapRef=(h,t)=>h+"/^"+String(t).replace(/[.*+?^${}()|[\]\\/]/g,"\\$&")+"$";
+/* card id lookup by content position, for code that used to build ids by index (e.g. the technique walk-through) */
+function cardIdFor(type,a,b){if(!CARDS)buildCards();const c=CARDS.find(x=>x.type===type&&(Array.isArray(x.ref)?x.ref[0]===a&&(b==null||x.ref[1]===b):x.ref===a));return c?c.id:null;}
+function cardReflexName(n){return /hoffmann/i.test(n)?"Finger (flexor) jerk":String(n);}
+
+const CARD_TYPE_LABEL={think:"What to think",verdict:"Test value",mech:"Mechanism",finding:"Finding",anat:"Surface anatomy",area:"Listening area",zone:"Lung zone",hlr:"History clue",red:"Red flags",sound:"Listen",snsp:"Rule in or out",derm:"Dermatome",myo:"Myotome",reflex:"Reflex root",rootnerve:"Root or nerve?",cranial:"Cranial nerve",dterm:"Skin term",dplate:"Name the rash",teach:"Teach it back",lore:"From the codex",lsign:"Story and sign",trap:"The trap",pearl:"The pearl",twhy:"Why this step",terr:"Technique error"};
+const AUTO={verdict:1,mech:1,hlr:1,sound:1,snsp:1,myo:1,reflex:1,dplate:1,lsign:1,terr:1};
+
+/* ================= rule in / rule out from likelihood ratios =================
+ Jaeschke, Guyatt, Sackett, JAMA 1994;271:703 (Users' guides III B): LR+ > 10 or LR− < 0.1 large; 5–10 and 0.1–0.2 moderate;
+ 2–5 and 0.2–0.5 small; nearer 1 rarely important. A test "helps rule in" at LR+ ≥ 5 and "helps rule out" at LR− ≤ 0.2.
+ The LRs are the sign's own p and n (D04 is the single source of truth); Sn/Sp only explain them. */
+const CARD_LR_IN=5,CARD_LR_OUT=0.2;
+/* when D04 leaves an LR empty, it is derived from Sn/Sp; with specificity 100% LR+ cannot be calculated (no false positives were seen)
+   and a positive result is treated as ruling in, with a warning that small studies overstate this. */
+function cardSignLRs(s){let p=s.p,n=s.n,derived=false,inf=false;
+  if((p==null||n==null)&&s.sens!=null&&s.spec!=null){const se=s.sens/100,sp=s.spec/100;
+    if(p==null){if(sp<1){p=+(se/(1-sp)).toFixed(1);derived=true;}else if(se>0)inf=true;}
+    if(n==null&&sp>0){n=+((1-se)/sp).toFixed(2);derived=true;}}
+  return {p,n,derived,inf};}
+function cardSnspKey(s){const {p,n,inf}=cardSignLRs(s),i=inf||p!=null&&p>=CARD_LR_IN,o=n!=null&&n<=CARD_LR_OUT;return i&&o?"both":i?"in":o?"out":"neither";}
+const cardLrWordP=p=>p==null?"not known":p>=10?"a large rise":p>=5?"a moderate rise":p>=2?"a small rise":"little change";
+const cardLrWordN=n=>n==null?"not known":n<=0.1?"a large fall":n<=0.2?"a moderate fall":n<=0.5?"a small fall":"little change";
+
+/* ================= evidence duel pairs: only signs with the same target condition ================= */
+function duelPairs(){const by={};Object.entries(SIGNS).forEach(([k,s])=>{if(s.hide||s.type==="treatment"||s.p==null)return;const t=String(s.target||"").trim().toLowerCase();if(t)(by[t]=by[t]||[]).push(k);});
+  const P=[];Object.entries(by).forEach(([t,ks])=>{for(let i=0;i<ks.length;i++)for(let j=i+1;j<ks.length;j++){const a=SIGNS[ks[i]],b=SIGNS[ks[j]];if(Math.abs(a.p-b.p)<0.5||Math.max(a.p,b.p)/Math.min(a.p,b.p)<1.25)continue;P.push([ks[i],ks[j],SIGNS[ks[i]].target]);}});return P;}
+
+/* ================= card faces ================= */
+const CF_STOP=new Set("sign signs test tests testing manoeuvre manoeuvres rule rules score scores criteria checklist cluster positive negative with from that this into over under than their when both only about which finding findings response phenomenon index check examination assessment patient lesion acute severe the and for".split(" "));
+const cfWords=s=>[...new Set((String(s).replace(/['’]s\b/gi,"").match(/[A-Za-zÀ-ÿ0-9]+/g)||[]).filter(w=>w.length>=4&&!/^\d+$/.test(w)&&!CF_STOP.has(w.toLowerCase())).map(w=>w.toLowerCase()))];
+const cfRe=w=>{const n=w,L=n.length,root=L>=8?n.slice(0,L-2):L>=6?n.slice(0,L-1):n;return new RegExp(`(^|${L>=8?"":"[^A-Za-zÀ-ÿ]"})(${root.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}[A-Za-zÀ-ÿ]*)`,"gi");};
+const cfPlain=s=>String(s).normalize("NFD").replace(/[̀-ͯ]/g,"");
+const cfHas=(text,w)=>{const r=cfRe(w);r.lastIndex=0;return r.test(String(text));};
+/* replace the answer's own distinctive words in a stem with a blank */
+function cfMask(text,words){let t=String(text);words.forEach(w=>{t=t.replace(cfRe(w),(m,a)=>a+"…");});return t.replace(/(…[\s'’-]*){2,}/g,"… ");}
+const cfLenOk=(a,b)=>{const r=b.length/Math.max(1,a.length);return r>=0.5&&r<=1.9;};
+const cfJac=(a,b)=>{const A=new Set(cfWords(a).filter(w=>w.length>=5)),B=new Set(cfWords(b).filter(w=>w.length>=5));if(!A.size||!B.size)return 0;let i=0;A.forEach(w=>{if(B.has(w))i++;});return i/(A.size+B.size-i);};
+/* choose n distractors: plausible (pool order = preference), outside the key's target, not saying the same thing, in the key's length band */
+function cfPick(key,pool,n,okFn){const ok=pool.filter(okFn),band=ok.filter(x=>cfLenOk(key,x.l)),rest=ok.filter(x=>!cfLenOk(key,x.l));return [...band,...rest].slice(0,n);}
+const cardLc1=s=>{s=String(s);const w=s.split(/\s/)[0];if(/^[A-Z][a-z]/.test(w)&&!/[A-Z]/.test(w.slice(1))&&!/^(Ménière|Meniere|Crohn|Parkinson|Alzheimer|Bell|Lyme|Wernicke|Guillain|Horner|Graves|Addison|Cushing)/.test(w))return s[0].toLowerCase()+s.slice(1);return s;};
+const CARD_SIGN_VERB={sign:"You find",test:"The test is positive",rule:"You apply",vital:"You measure",treatment:"You perform"};
+const CARD_VERDICT_WHY={core:"Do it every time the question arises: strong evidence, or cheap and decision-changing.",useful:"Worth doing when the question is open: moderate accuracy.",low:"Weak evidence or poor reproducibility: know its limits.",archaic:"Historical: replaced by a better test or by imaging."};
+/* segment arithmetic for reflex and myotome options */
+const CARD_SEG=[..."12345678"].map(n=>"C"+n).concat([..."123456789"].map(n=>"T"+n),["T10","T11","T12"],[..."12345"].map(n=>"L"+n),[..."12345"].map(n=>"S"+n));
+function cardSegSpan(lab){const m=String(lab).replace(/\s*\(.*?\)\s*/g,"").match(/^([CTLS])(\d+)(?:\s*[–-]\s*([CTLS])?(\d+))?/);if(!m)return null;const a=CARD_SEG.indexOf(m[1]+m[2]),b=m[4]?CARD_SEG.indexOf((m[3]||m[1])+m[4]):a;return a<0||b<0?null:[a,b];}
+function cardSegLabel(a,b){const A=CARD_SEG[a],B=CARD_SEG[b];if(a===b)return A;return A[0]===B[0]?`${A}–${B.slice(1)}`:`${A}–${B}`;}
+function cardSegDistractors(key,extra){const k=cardSegSpan(key);if(!k)return [];const w=k[1]-k[0],cand=new Map();
+  (extra||[]).forEach(l=>{const s=cardSegSpan(l);if(s)cand.set(cardSegLabel(s[0],s[1]),s);});
+  for(let d=1;d<=6;d++)[k[0]-d*(w+1),k[0]+d*(w+1),k[0]-d,k[0]+d].forEach(a=>{const b=a+w;if(a>=0&&b<CARD_SEG.length)cand.set(cardSegLabel(a,b),[a,b]);});
+  const ok=[...cand.entries()].filter(([,s])=>s[1]<k[0]||s[0]>k[1]).map(([l,s])=>({l,d:Math.min(Math.abs(s[0]-k[1]),Math.abs(k[0]-s[1]))}));
+  /* stay in the same limb or trunk band as the key */
+  const zone=i=>i<=8?"arm":i<=19?"trunk":"leg",kz=zone(k[0]);
+  return ok.filter(x=>zone(cardSegSpan(x.l)[0])===kz||zone(cardSegSpan(x.l)[1])===kz).sort((a,b)=>a.d-b.d).map(x=>x.l);}
+
+function cardFace(c){
+  const open=(go,t)=>`<button class="link small" data-go="${go}" style="align-self:flex-start">${t}</button>`;
+  switch(c.type){
+   case "think":{const s=SIGNS[c.ref];const verb=CARD_SIGN_VERB[s.type]||"You find";
+     return {q:`${verb}: ${esc(s.name)}<small>Target: ${esc(s.target)}. What should you think, and how much does it weigh?</small>`,
+       a:`${s.fig&&typeof FIG!=="undefined"&&FIG[s.fig]?fig(s.fig,{small:true,nocap:true}):""}<p>${esc(s.think)}</p><div class="lrrow">${lrChips(s)}</div>${open(`signs/sign/${c.ref}`,"Open the sign")}`};}
+   case "verdict":{const s=SIGNS[c.ref];
+     return {q:`How much is this test worth?<small>${esc(s.name)} for ${esc(s.target)}</small>`,
+       extra:`<dl class="kv small muted" style="margin:6px 0 0">${VERDICT_ORDER.map(v=>`<dt>${VERDICT[v]}</dt><dd>${esc(CARD_VERDICT_WHY[v])}</dd>`).join("")}</dl>`,
+       opts:VERDICT_ORDER.map(v=>({l:VERDICT[v],ok:v===s.v})),
+       explain:`<div class="lrrow"><span class="v v-${s.v}">${VERDICT[s.v]}</span>${lrChips(s)}</div><p class="small">${esc(CARD_VERDICT_WHY[s.v])} The verdict weighs accuracy, reproducibility and whether it changes what you do, not the LR alone.</p>${open(`signs/sign/${c.ref}`,"Open the sign")}`};}
+   case "mech":return cardMechFace(c);
+   case "snsp":{const s=SIGNS[c.ref],{p,n,derived,inf}=cardSignLRs(s),ans=cardSnspKey(s);
+     const L=[["in","A positive helps rule it in"],["out","A negative helps rule it out"],["both","Both: it rules in and out"],["neither","Neither on its own"]];
+     const warn=s.sens==null||s.spec==null?"":inf?" Specificity was 100% in the source study, so LR+ cannot be calculated: a positive result is strong evidence, but small studies overstate it.":s.spec>=90&&!(p>=CARD_LR_IN)?` A high specificity alone is not enough: with a sensitivity of ${s.sens}%, LR+ is only ${p}.`:s.sens>=90&&!(n<=CARD_LR_OUT)?` A high sensitivity alone is not enough: with a specificity of ${s.spec}%, LR− is only ${n}.`:"";
+     return {q:`${esc(s.name)}<small>For ${esc(s.target)}: what can this test do for you on its own?</small>`,opts:L.map(([k,l])=>({l,ok:k===ans})),
+       explain:`<p class="small">${inf?`LR+ <b class="mono">not calculable</b> (no false positives).`:`LR+ <b class="mono">${p}</b>: a positive gives ${cardLrWordP(p)} in probability.`} ${n!=null?`LR− <b class="mono">${n}</b>: a negative gives ${cardLrWordN(n)}.`:""}${derived?" (Likelihood ratios worked out from the sensitivity and specificity.)":""} ${s.sens!=null&&s.spec!=null?`(Sensitivity ${s.sens}%, specificity ${s.spec}%.)`:""}${warn}</p><p class="small muted">Rule of thumb: LR+ 5 or more helps rule in, LR− 0.2 or less helps rule out (Jaeschke, JAMA 1994).</p>${s.note?`<p class="small muted">${esc(s.note)}</p>`:""}`};}
+   case "myo":{const m=MYO[c.ref],up=r=>/^(C|T1$)/.test(r),same=MYO.map(x=>x[0]).filter(r=>r!==m[0]&&up(r)===up(m[0]));
+     const ks=cardSegSpan(m[0]),dist=same.map(r=>({r,d:Math.abs((cardSegSpan(r)||[0])[0]-(ks||[0])[0])})).sort((a,b)=>a.d-b.d).slice(0,3).map(x=>x.r),opts=shuf([m[0],...dist]);
+     const refl=m[3]&&!/^[—–-]$/.test(String(m[3]).trim())?` Reflex: ${esc(m[3])}.`:" No reflex tests this root.";
+     return {q:`${esc(m[1])}<small>Which root does this key muscle test (ISNCSCI)?</small>`,opts:opts.map(r=>({l:r,ok:r===m[0]})),explain:`<p class="small"><b>${m[0]}.</b> ${esc(m[2])}.${refl}</p>${open("learn/neuromap/derm","Open the map")}`};}
+   case "reflex":{const r=REFLEX[c.ref],key=String(r[1]).replace(/\s*\(.*?\)\s*/g,"").trim(),nm=cardReflexName(r[0]),plantar=/plantar/i.test(r[0]);
+     const opts=shuf([key,...cardSegDistractors(key,REFLEX.map(x=>x[1])).slice(0,3)]);
+     const hoff=/hoffmann/i.test(r[0])?` Hoffmann's sign (flicking the distal phalanx of the middle finger, watching the thumb flex) is not a segmental reflex: it is an upper motor neuron sign, and is present in some healthy people.`:"";
+     return {q:`${esc(nm)}${/reflex|jerk|wink/i.test(nm)?"":" reflex"}<small>${plantar?"Which segments carry the reflex arc?":"Which segments does it test?"}</small>`,opts:opts.map(x=>({l:x,ok:x===key})),
+       explain:`<p class="small"><b>${esc(key)}.</b> ${esc(r[2])}. ${esc(r[3])}.${plantar?" It is used to test the corticospinal tract: an extensor response means an upper motor neuron lesion.":""}${hoff}</p>`};}
+   case "dterm":{const v=DVOCAB[c.ref],size=/\d\s*(cm|mm)\b|pinpoint/i.test(v[2]);
+     return {q:`${esc(v[0])}<small>${size?"Define it, including the size cut-off, and give an example.":"Define it and give an example."}</small>`,
+       a:`${v[4]?`<div class="dplate">${plateHTML("v:"+c.ref,dTone(),{small:true})}</div>`:""}<p>${esc(v[2])}</p><p class="small muted">${esc(v[3])}</p>`};}
+   case "dplate":{const x=DCOND.find(y=>y.id===c.ref);if(!x)break;const P=DCOND.filter(y=>y.p&&y.id!==x.id),same=shuf(P.filter(y=>y.g===x.g)),oth=shuf(P.filter(y=>y.g!==x.g));
+     const opts=shuf([x,...same.concat(oth).slice(0,3)]),t=Math.floor(Math.random()*6);
+     return {q:`Name the rash<small>Skin type ${TONE_NAME[t]}. Look at the primary lesion, colour, surface and arrangement.</small>`,extra:`<div class="dplate">${plateHTML("c:"+x.id,t)}</div>`,mount:()=>renderPlates(V),
+       opts:opts.map(y=>({l:y.n,ok:y.id===x.id})),explain:`<p class="small">${esc(x.m)}</p>${open(`learn/dcond/${x.id}`,"Open the condition")}`};}
+   case "finding":{const m=SYSTEMS.find(x=>x.id===c.ref[0]);if(!m||!m.think[c.ref[1]])break;const [f,t]=m.think[c.ref[1]],plus=CARD_FINDING_PLUS[c.id];
+     const extra=plus&&String(t).length<160&&cardFp(t).startsWith(cardFp(plus[0]).slice(0,8))?`<p class="small"><b>Next:</b> ${esc(plus[1])}</p>`:"";
+     return {q:`${esc(f)}<small>${esc(m.name)}. What do you think, and what do you do next?</small>`,a:`<p>${esc(t)}</p>${extra}${open(`learn/module/${m.id}`,"Open the module")}`};}
+   case "hlr":{const p=HIST.pres.find(x=>x.id===c.ref[0]);if(!p||!p.lr[c.ref[1]])break;const [f,t,l]=p.lr[c.ref[1]];
+     return {q:`“${esc(f)}”<small>${esc(p.name)}: what does this clue do to the probability of ${esc(cardLc1(t))}?</small>`,
+       opts:LRBAND.map(([lab,fn])=>({l:lab,ok:fn(l)})),explain:`<p class="small">LR ≈ <b class="mono">${l}</b> for ${esc(cardLc1(t))}. <button class="link" data-go="learn/pres/${p.id}">See all ${esc(p.name.toLowerCase())} clues</button></p>`};}
+   case "lore":{const l=LORE.find(x=>x.id===c.ref);if(!l)break;const out=typeof LORE_OUT!=="undefined"&&LORE_OUT[l.id];
+     return {q:`${esc(l.sum)}<small>From the codex. Who was it, roughly when, and what does the story teach at the bedside?</small>`,
+       a:`<dl class="kv"><dt>Who</dt><dd>${esc(l.who)}</dd><dt>When</dt><dd>${esc(l.yr)}</dd><dt>Story</dt><dd>${esc(l.t)}</dd></dl><p><b>The lesson:</b> ${esc(l.fact)}</p>${out&&out.length?`<ul class="small">${out.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}${l.src?`<p class="tiny muted">Source: ${esc(l.src)}</p>`:""}${open(`learn/lore/${l.id}`,"Read the story")}`};}
+   case "lsign":{const l=LORE.find(x=>x.id===c.ref);if(!l)break;const sg=(c.signs||[]).filter(k=>SIGNS[k]);if(!sg.length)break;const key=sg[0],K=SIGNS[key];
+     const kw=sg.flatMap(k=>cfWords(SIGNS[k].name));const stem=cfMask(`${l.who}, ${l.yr}. ${l.sum}`,kw);
+     const pool=shuf(Object.keys(SIGNS).filter(k=>!SIGNS[k].hide&&!sg.includes(k)&&SIGNS[k].target!==K.target)).sort((a,b)=>(cardSignHall(b)===l.hall)-(cardSignHall(a)===l.hall)).map(k=>({k,l:SIGNS[k].name}));
+     const ds=cfPick(K.name,pool,3,x=>!cfWords(x.l).some(w=>cfHas(stem,w)));const opts=shuf([{k:key,l:K.name},...ds]);
+     return {q:`Which bedside sign does this story stand behind?<small>${esc(stem)}</small>`,opts:opts.map(o=>({l:o.l,ok:o.k===key})),
+       explain:`<p class="small"><b>${esc(K.name)}</b> (${esc(l.t)}). ${esc(l.fact)}</p>${open(`learn/lore/${l.id}`,"Read the story")}`};}
+   case "trap":case "pearl":{const ch=(OUTLINE[c.hall]||[]).find(x=>cardChapSlug(x.t)===c.ref[1]);if(!ch)break;const plus=CARD_OUTLINE_PLUS[c.hall+":"+c.ref[1]];
+     const links=(ch.signs||[]).slice(0,4).map(k=>SIGNS[k]?`<button class="chip" data-go="signs/sign/${k}">${esc(SIGNS[k].name)}</button>`:"").join("");
+     const foot=`<p class="tiny muted">${esc(cardHallName(c.hall))} · ${esc(ch.t)}</p>${links?`<div class="chips">${links}</div>`:""}${open(c.home,"Open the chapter")}`;
+     if(c.type==="trap")return {q:`“${esc(ch.trap)}”<small>The trap in “${esc(ch.t)}”. Why does it catch people, and what do you do instead?</small>`,
+       a:`${plus?`<p>${esc(plus[0])}</p>`:`<p>${esc(ch.aim||"")}</p>`}${ch.master&&ch.master.length?`<p class="small"><b>Do instead:</b> ${esc(ch.master[0])}.</p>`:""}${foot}`};
+     return {q:plus?`${esc(plus[1])}<small>The pearl of “${esc(ch.t)}”.</small>`:`${esc(ch.t)}<small>State the chapter's pearl: the one fact worth carrying to the bedside.</small>`,a:`<p>${esc(ch.pearl)}</p>${foot}`};}
+  }
+  return null;
+}
+function cardHallName(h){const x=typeof HALLS!=="undefined"&&HALLS.find(y=>y.id===h);return x?(x.n||x.short||h):h;}
+function cardSignHall(k){try{return typeof signHall==="function"?signHall(k):null;}catch(e){return null;}}
+
+/* mechanism cards: mask the answer's own words, choose distractors that cannot also fit; scores and rules ask what they are built from */
+function cardMechFace(c){
+  const s=SIGNS[c.ref],isRule=s.type==="rule",isTx=s.type==="treatment";
+  const raw=isRule||isTx?s.how:s.mech,kw=cfWords(s.name);
+  const pool0=Object.keys(SIGNS).filter(x=>x!==c.ref&&!SIGNS[x].hide&&String(SIGNS[x].target).toLowerCase()!==String(s.target).toLowerCase());
+  const pref=isRule?pool0.filter(x=>SIGNS[x].type==="rule"):pool0.filter(x=>SIGNS[x].sys===s.sys&&SIGNS[x].type!=="rule"&&SIGNS[x].type!=="treatment");
+  const near=s.reg?pref.filter(x=>SIGNS[x].reg===s.reg):[];
+  const ordered=[...shuf(near),...shuf(pref),...shuf(pool0.filter(x=>SIGNS[x].type!=="rule"&&SIGNS[x].type!=="treatment"))].filter((x,i,a)=>a.indexOf(x)===i).map(k=>({k,l:SIGNS[k].name}));
+  /* mask only words that no candidate shares; then refuse candidates whose own words appear in the stem (it would describe them too) */
+  const stem=cfMask(raw,kw);
+  const ds=cfPick(s.name,ordered,3,x=>!cfWords(x.l).some(w=>cfHas(stem,w))&&cfJac(SIGNS[x.k].mech,s.mech)<0.34&&cfJac(SIGNS[x.k].how,s.how)<0.34);
+  const opts=shuf([{k:c.ref,l:s.name},...ds]);
+  const q=isRule?`Which rule or score is built from these items?<small>${esc(stem)}</small>`:isTx?`Which manoeuvre is this?<small>${esc(stem)}</small>`:`Which sign works like this?<small>${esc(stem)}</small>`;
+  return {q,opts:opts.map(o=>({l:o.l,ok:o.k===c.ref})),
+    explain:`${s.fig&&typeof FIG!=="undefined"&&FIG[s.fig]?fig(s.fig,{small:true}):""}<p class="small"><b>${esc(s.name)}.</b> ${esc(isRule||isTx?s.mech:s.how)}</p><button class="link small" data-go="signs/sign/${c.ref}" style="align-self:flex-start">Open the sign</button>`};
+}
+
+/* install: wrap the older renderer in 84-practice.js (the whole bundle is one script, so cardBody is already declared here);
+   89c-tech.js wraps this again for twhy/terr. */
+if(typeof cardBody==="function"){const _cb=cardBody;window.cardBody=function(c){let r=null;try{r=cardFace(c);}catch(e){r=null;}return r||_cb(c);};}
