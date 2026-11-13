@@ -87,7 +87,9 @@ route("tools:data","Backup and export",(root)=>{
   $("#yz").addEventListener("click",()=>{const t=JSON.stringify(pack(),null,1);try{navigator.clipboard.writeText(t).then(()=>toast("Copied: paste into Yuzu's import","good"),()=>toast("Couldn't copy"));}catch(x){toast("Couldn't copy");}});
   $("#yzd").addEventListener("click",()=>{if(window.GALEN_PLATFORM==="artifact"){navigator.clipboard.writeText(JSON.stringify(pack(),null,1)).then(()=>toast("Yuzu pack copied","good"),()=>toast("Copy failed"));return;}const blob=new Blob([JSON.stringify(pack(),null,1)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`galen-${dayKey()}.yuzu.json`;a.click();});
   $("#repair").addEventListener("click",async()=>{try{if(navigator.serviceWorker){const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.unregister();}if(window.caches){for(const k of await caches.keys())await caches.delete(k);}toast("Caches cleared, reloading");setTimeout(()=>location.reload(),600);}catch(x){toast("Repair failed: "+x.message,"bad");}});
-  const rb=$("#reset");rb.addEventListener("click",()=>{if(rb.dataset.arm){Store.s=blankState();Store.save(true);toast("Progress reset");open("today");}else{rb.dataset.arm=1;rb.textContent="Tap again to confirm";setTimeout(()=>{delete rb.dataset.arm;rb.textContent="Reset all progress";},4000);}});
+  const rb=$("#reset");rb.addEventListener("click",()=>{const now=Date.now();
+    if(rb.dataset.arm&&now-(+rb.dataset.arm)>700){const undo=Store.reset();Hands.undo("All progress reset (a backup is kept)",()=>{undo();toast("Progress restored","good");render(false,true);});open("today");}
+    else if(!rb.dataset.arm){rb.dataset.arm=now;rb.textContent="Tap again to reset everything";setTimeout(()=>{delete rb.dataset.arm;rb.textContent="Reset all progress";},5000);}});
 });
 function yuzuPack(){
   const ids=Store.s.signs.filter(k=>SIGNS[k]);const cards=[];
