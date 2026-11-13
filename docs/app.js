@@ -1,4 +1,4 @@
-window.GALEN_PLATFORM="pages";window.GALEN_VERSION="7.0.1";window.GALEN_BUILD="080d347443";
+window.GALEN_PLATFORM="pages";window.GALEN_VERSION="7.0.1";window.GALEN_BUILD="547be8408a";
 "use strict";
 /* ================= THE WORLD: the anatomical theatre =================
    The Table in the centre (the whole patient) and twelve halls around it, each bound to a body system.
@@ -7300,7 +7300,12 @@ function evalExpr(expr,vars){
   return expr_();
 }
 const fmtNum=v=>Math.abs(v)>=100?Math.round(v):Math.abs(v)>=10?Math.round(v*10)/10:Math.round(v*100)/100;
-function bandFor(t,v){return (t.bands||[]).find(b=>v>=b.min&&v<=b.max)||null;}
+/* bands may leave gaps between integers (0–449, 450–470): take the last band whose minimum the value reaches */
+function bandFor(t,v){if(v==null||!isFinite(v))return null;const bs=(t.bands||[]).slice().sort((x,y)=>x.min-y.min);let hit=null;for(const b of bs){if(v>=b.min)hit=b;}return hit;}
+/* numbers as people type them: Arabic-Indic and Persian digits, decimal comma or ٫ */
+function parseNum(raw){if(raw==null)return null;let s=String(raw).trim();if(!s)return null;
+  s=s.replace(/[\u0660-\u0669]/g,d=>String(d.charCodeAt(0)-0x660)).replace(/[\u06F0-\u06F9]/g,d=>String(d.charCodeAt(0)-0x6F0)).replace(/[٫,]/g,".").replace(/[^0-9.\-]/g,"");
+  if(!s||s==="-"||s==="."||(s.match(/\./g)||[]).length>1)return NaN;const n=+s;return isFinite(n)?n:NaN;}
 route("tools:calcs","Scores",(root,group)=>{
   const groups=[...new Set(TOOLS.map(t=>t.group))];group=group||"all";
   const L=TOOLS.filter(t=>group==="all"||t.group===group);
@@ -7312,34 +7317,54 @@ route("tools:calcs","Scores",(root,group)=>{
 route("tools:calc",(id)=>(TOOLS.find(t=>t.id===id)||{}).name||"Calculator",(root,id)=>{
   const t=TOOLS.find(x=>x.id===id);if(!t)throw new Error("Tool not found");
   const st=CALC_STATE[id]||(CALC_STATE[id]={});
-  const draw=()=>{
-    let result="",body="";
+  const cleanLabel=l=>String(l).replace(/\s*\((?:[0-9] = [^)]*)\)/g,"");
+  /* the form is drawn once; typing only redraws the result, so the caret and the keyboard stay where they are */
+  const resultHTML=()=>{
     if(t.kind==="score"){
-      const total=t.items.reduce((a,it)=>a+(st[it.k]!=null?it.opts[st[it.k]][1]:0),0),answered=t.items.filter(it=>st[it.k]!=null).length;
-      body=t.items.map(it=>`<div class="dcat"><span class="k">${esc(it.label)}</span><div class="chips">${it.opts.map((o,i)=>`<button class="chip${st[it.k]===i?" on":""}" data-k="${it.k}" data-i="${i}">${esc(o[0])}${o[1]?` <span class="mono tiny">+${o[1]}</span>`:""}</button>`).join("")}</div></div>`).join("");
+      const answered=t.items.filter(it=>st[it.k]!=null).length,n=t.items.length;
+      const total=t.items.reduce((a,it)=>a+(st[it.k]!=null?it.opts[st[it.k]][1]:0),0);
+      if(answered<n)return `<div class="card stack" style="gap:6px" aria-live="polite"><div class="row-x"><span class="eyebrow">So far</span><b class="big mono">${total}</b><span class="small muted">${answered} of ${n} answered</span></div><p class="muted" style="margin:0">Answer every item before reading the result. An unanswered item is not a "no".</p></div>`;
       const b=bandFor(t,total);
-      result=`<div class="card stack" style="gap:6px"><div class="row-x"><span class="eyebrow">Total</span><b class="big mono">${total}</b>${answered<t.items.length?`<span class="small muted">${answered}/${t.items.length} answered</span>`:""}</div>${b?`<p><b>${esc(b.label)}.</b> ${esc(b.text)}</p>`:""}</div>`;
+      return `<div class="card stack calc-res" style="gap:6px" aria-live="polite"><div class="row-x"><span class="eyebrow">Total</span><b class="big mono">${total}</b></div>${b?`<p style="margin:0"><b>${esc(b.label)}.</b> ${esc(b.text)}</p>`:""}<button class="btn sm ghost" data-copy>Copy for the notes</button></div>`;
+    }
+    const vals={},bad=[];
+    for(const inp of t.inputs){let v=st[inp.k];if(v==null&&inp.default!=null)v=inp.default;
+      if(v==null||v===""){return `<div class="card" aria-live="polite"><p class="muted" style="margin:0">Fill every field.</p></div>`;}
+      if(inp.opts){vals[inp.k]=+v;continue;}
+      if(!isFinite(v)){bad.push(`${cleanLabel(inp.label)}: not a number`);continue;}
+      if((inp.min!=null&&v<inp.min)||(inp.max!=null&&v>inp.max))bad.push(`${cleanLabel(inp.label)}: ${fmtNum(v)} is outside ${inp.min} to ${inp.max}${inp.unit?" "+inp.unit:""}. Check the unit.`);
+      vals[inp.k]=v;}
+    if(bad.length)return `<div class="card" aria-live="polite"><div class="note"><b>Check the inputs.</b><br>${bad.map(esc).join("<br>")}</div></div>`;
+    try{const v=evalExpr(t.expr,vals);if(!isFinite(v))throw new Error("no result for these values");const b=bandFor(t,v);
+      return `<div class="card stack calc-res" style="gap:6px" aria-live="polite"><div class="row-x"><span class="eyebrow">Result</span><b class="big mono">${fmtNum(v)}</b><span class="small muted">${esc(t.unit||"")}</span></div>${b?`<p style="margin:0"><b>${esc(b.label)}.</b> ${esc(b.text)}</p>`:""}<button class="btn sm ghost" data-copy>Copy for the notes</button></div>`;}
+    catch(e){return `<div class="card" aria-live="polite"><div class="note">Check the inputs (${esc(e.message)}).</div></div>`;}
+  };
+  const noteText=()=>{const el=$("#c-res .calc-res",root);if(!el)return "";const r=el.querySelector(".big").textContent;const bd=el.querySelector("p");return `${t.name} ${fmtDate(Date.now())}: ${r}${t.unit?" "+t.unit:""}${bd?". "+bd.textContent:""}`;};
+  const drawRes=()=>{const box=$("#c-res",root);if(!box)return;box.innerHTML=resultHTML();const c=$("[data-copy]",box);if(c)c.addEventListener("click",()=>{const s=noteText();(navigator.clipboard?navigator.clipboard.writeText(s):Promise.reject()).then(()=>toast("Copied"),()=>toast(s));});};
+  const drawForm=()=>{
+    let body="";
+    if(t.kind==="score"){
+      body=t.items.map(it=>`<div class="dcat" role="group" aria-label="${esc(it.label)}"><span class="k">${esc(it.label)}</span><div class="chips">${it.opts.map((o,i)=>`<button class="chip${st[it.k]===i?" on":""}" aria-pressed="${st[it.k]===i}" data-k="${it.k}" data-i="${i}">${esc(o[0])}${o[1]?` <span class="mono tiny">+${o[1]}</span>`:""}</button>`).join("")}</div></div>`).join("");
     }else{
       body=t.inputs.map(inp=>{const v=st[inp.k]!=null?st[inp.k]:(inp.default!=null?inp.default:null);
-        if(inp.opts)return `<div class="dcat"><span class="k">${esc(inp.label)}</span><div class="chips">${inp.opts.map((o,i)=>`<button class="chip${v===o[1]?" on":""}" data-k="${inp.k}" data-v="${o[1]}">${esc(o[0])}</button>`).join("")}</div></div>`;
-        return `<label class="fld"><span>${esc(inp.label)}${inp.unit?` <span class="muted">(${esc(inp.unit)})</span>`:""}</span><input class="inp" type="number" inputmode="decimal" data-k="${inp.k}" min="${inp.min}" max="${inp.max}" step="${inp.step||"any"}" value="${v!=null?v:""}" placeholder="${inp.min}–${inp.max}"></label>`;}).join("");
-      const ready=t.inputs.every(inp=>st[inp.k]!=null&&st[inp.k]!=="");
-      if(ready){try{const v=evalExpr(t.expr,st);const b=bandFor(t,v);result=`<div class="card stack" style="gap:6px"><div class="row-x"><span class="eyebrow">Result</span><b class="big mono">${isFinite(v)?fmtNum(v):"–"}</b><span class="small muted">${esc(t.unit||"")}</span></div>${b?`<p><b>${esc(b.label)}.</b> ${esc(b.text)}</p>`:""}</div>`;}catch(e){result=`<div class="note">Check the inputs (${esc(e.message)}).</div>`;}}
-      else result=`<div class="card"><p class="muted">Fill every field.</p></div>`;
+        if(inp.opts)return `<div class="dcat" role="group" aria-label="${esc(cleanLabel(inp.label))}"><span class="k">${esc(cleanLabel(inp.label))}</span><div class="chips">${inp.opts.map((o,i)=>`<button class="chip${v===o[1]?" on":""}" aria-pressed="${v===o[1]}" data-k="${inp.k}" data-v="${o[1]}">${esc(o[0])}</button>`).join("")}</div></div>`;
+        return `<label class="fld"><span>${esc(cleanLabel(inp.label))}${inp.unit?` <span class="muted">(${esc(inp.unit)})</span>`:""}</span><input class="inp" type="text" inputmode="decimal" autocomplete="off" data-k="${inp.k}" value="${v!=null&&isFinite(v)?v:""}" placeholder="${inp.min} to ${inp.max}"></label>`;}).join("");
     }
     root.innerHTML=`<section class="ph"><span class="eyebrow">${esc(t.group)} · ${t.kind==="score"?"score":"formula"}</span><h1>${esc(t.name)}</h1><p class="lede">${esc(t.use)}</p></section>
-     <div class="card stack" style="gap:14px">${body}</div>${result}
-     ${t.kind==="formula"?`<p class="small muted mono">${esc(t.expr)}</p>`:""}
+     <div class="card stack" style="gap:14px">${body}</div><div id="c-res"></div>
      ${t.note?`<div class="card"><div class="note"><b>Note.</b> ${esc(t.note)}</div></div>`:""}
-     <div class="card stack" style="gap:6px"><span class="eyebrow">Bands</span>${(t.bands||[]).map(b=>`<div class="lm"><b>${esc(b.label)} <span class="mono tiny muted">${b.min}–${b.max}</span></b><span>${esc(b.text)}</span></div>`).join("")}</div>
+     <details class="acc" style="padding:4px 14px"><summary style="padding:10px 0"><b>Bands and how it is worked out</b></summary><div class="stack" style="gap:6px;padding-bottom:12px">${(t.bands||[]).map(b=>`<div class="lm"><b>${esc(b.label)} <span class="mono tiny muted">${b.min} to ${b.max}</span></b><span>${esc(b.text)}</span></div>`).join("")}${t.kind==="formula"?`<p class="small muted mono" style="overflow-wrap:anywhere">${esc(t.expr)}</p>`:""}</div></details>
      <p class="small muted">Source: ${esc(t.src||"")}</p>
      <div class="row-x"><button class="btn sm ghost" id="c-reset">Clear</button></div>`;
-    $$("[data-k][data-i]",root).forEach(b=>b.addEventListener("click",()=>{st[b.dataset.k]=+b.dataset.i;draw();}));
-    $$("[data-k][data-v]",root).forEach(b=>b.addEventListener("click",()=>{st[b.dataset.k]=+b.dataset.v;draw();}));
-    $$("input[data-k]",root).forEach(el=>el.addEventListener("input",()=>{st[el.dataset.k]=el.value===""?null:+el.value;const y=window.scrollY;const a=document.activeElement;draw();window.scrollTo(0,y);const n=$(`input[data-k="${el.dataset.k}"]`,root);if(n){n.focus();}}));
+    $$("[data-k][data-i]",root).forEach(b=>b.addEventListener("click",()=>{const k=b.dataset.k,i=+b.dataset.i;st[k]=st[k]===i?null:i;
+      $$(`[data-k="${k}"][data-i]`,root).forEach(x=>{const on=st[k]===+x.dataset.i;x.classList.toggle("on",on);x.setAttribute("aria-pressed",on);});drawRes();}));
+    $$("[data-k][data-v]",root).forEach(b=>b.addEventListener("click",()=>{const k=b.dataset.k;st[k]=+b.dataset.v;
+      $$(`[data-k="${k}"][data-v]`,root).forEach(x=>{const on=st[k]===+x.dataset.v;x.classList.toggle("on",on);x.setAttribute("aria-pressed",on);});drawRes();}));
+    $$("input[data-k]",root).forEach(el=>el.addEventListener("input",()=>{const n=parseNum(el.value);st[el.dataset.k]=n==null?null:n;drawRes();}));
     $("#c-reset").addEventListener("click",()=>{CALC_STATE[id]={};render(false,true);});
+    drawRes();
   };
-  draw();
+  drawForm();
 });
 /* ---------- labs ---------- */
 route("tools:labs","Labs",(root)=>{
