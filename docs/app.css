@@ -624,6 +624,32 @@ input[type=text],input[type=search],input[type=number],select,textarea,.sel{bord
 .refpane .card{padding:14px}
 .refpane h2{font-size:1.45rem}
 
+/* ---------- help overlay and pad focus ---------- */
+.helpov{position:fixed;inset:0;z-index:60;background:rgb(20 12 5 / .55);display:grid;place-items:center;padding:16px}
+.helpov .card{max-width:640px;width:100%;max-height:85vh;overflow:auto}
+.helpov table{width:100%;border-collapse:collapse;font-size:.92rem}
+.helpov td,.helpov th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.helpov th{font-family:var(--f-sc);letter-spacing:.08em;text-transform:lowercase;color:var(--muted)}
+.helpov kbd{font-family:var(--f-mono);font-size:.78rem;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:1px 6px;background:var(--surface2);white-space:nowrap}
+html.pad :focus{outline:3px solid var(--accent)!important;outline-offset:3px;border-radius:6px}
+html.pad .theatre .door:focus .arch{stroke:var(--accent);stroke-width:3}
+
+/* ---------- seal (wax) ---------- */
+.waxseal{display:inline-block;width:30px;height:30px;vertical-align:middle}
+.toast.good{background:var(--good)}
+
+/* sound settings */
+.mixrow{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
+.mixrow input[type=range]{width:100%;accent-color:var(--accent)}
+
+.hall.table .prog{position:absolute;left:14px;right:14px;bottom:8px;width:auto}
+.hall.table .tx{flex:1;min-width:0}
+.hall.table{padding-bottom:18px}
+.theatre{max-width:820px;margin-inline:auto;width:100%}
+@media (max-width:480px){.sync{font-size:0;padding:4px}.sync::before{margin:0}}
+.wrap p,.wrap li,.wrap dd,.refpane p{overflow-wrap:anywhere}
+
+/* Theatre UI: guide, theatre home, halls, hall page, outline chapters. */
 /* ---------- Galen the guide ---------- */
 .guide{display:flex;gap:14px;align-items:flex-start}
 .medal{flex:none;width:68px;height:68px;border-radius:50%;padding:0;border:0;background:none;cursor:pointer;filter:drop-shadow(0 3px 6px rgb(60 30 5 / .3))}
@@ -683,36 +709,6 @@ input[type=text],input[type=search],input[type=number],select,textarea,.sel{bord
 .hallhead h1{max-width:none}
 .story{font-size:1.04rem;line-height:1.65;max-width:66ch}
 .story p{margin:0 0 .8em}
-.lorecard{display:flex;flex-direction:column;gap:6px;text-align:left}
-.lorecard .yr{font-family:var(--f-fell);color:var(--accent-ink)}
-.lorecard .k{font-family:var(--f-sc);letter-spacing:.1em;text-transform:lowercase;font-weight:700;font-size:.78rem}
-.lorecard .k.dark{color:var(--bad)}.lorecard .k.triumph{color:var(--good)}.lorecard .k.eponym{color:var(--insp)}.lorecard .k.theatre{color:var(--gilt)}
-.lore-body{font-size:1.04rem;line-height:1.7;max-width:66ch}
-.lore-body p{margin:0 0 .9em}
-.lore-body p:first-child::first-letter{font-family:var(--f-fell);float:left;font-size:3.3em;line-height:.8;padding:7px 8px 0 0;color:var(--accent-ink)}
-.lore-fact{border-left:3px solid var(--gilt);padding:6px 12px;background:var(--gilt-soft);border-radius:0 6px 6px 0;font-size:.94rem}
-.codexfilter{display:flex;gap:6px;flex-wrap:wrap}
-.marg{font-family:var(--f-fell);font-style:italic;color:var(--muted)}
-.marg b{font-family:var(--f-display);font-style:normal;color:var(--ink)}
-
-/* ---------- help overlay and pad focus ---------- */
-.helpov{position:fixed;inset:0;z-index:60;background:rgb(20 12 5 / .55);display:grid;place-items:center;padding:16px}
-.helpov .card{max-width:640px;width:100%;max-height:85vh;overflow:auto}
-.helpov table{width:100%;border-collapse:collapse;font-size:.92rem}
-.helpov td,.helpov th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-.helpov th{font-family:var(--f-sc);letter-spacing:.08em;text-transform:lowercase;color:var(--muted)}
-.helpov kbd{font-family:var(--f-mono);font-size:.78rem;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:1px 6px;background:var(--surface2);white-space:nowrap}
-html.pad :focus{outline:3px solid var(--accent)!important;outline-offset:3px;border-radius:6px}
-html.pad .theatre .door:focus .arch{stroke:var(--accent);stroke-width:3}
-
-/* ---------- seal (wax) ---------- */
-.waxseal{display:inline-block;width:30px;height:30px;vertical-align:middle}
-.toast.good{background:var(--good)}
-
-/* sound settings */
-.mixrow{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
-.mixrow input[type=range]{width:100%;accent-color:var(--accent)}
-
 /* ---------- the outline ---------- */
 .outline{display:flex;flex-direction:column;gap:10px}
 .chap{background:var(--surface);background-image:var(--paper);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
@@ -732,13 +728,21 @@ html.pad .theatre .door:focus .arch{stroke:var(--accent);stroke-width:3}
 .chap .trap,.chap .pearl{border-radius:6px;padding:9px 11px;font-size:.92rem}
 .chap .trap{background:var(--bad-soft);border-left:3px solid var(--bad)}
 .chap .pearl{background:var(--good-soft);border-left:3px solid var(--good)}
-.hall.table .prog{position:absolute;left:14px;right:14px;bottom:8px;width:auto}
-.hall.table .tx{flex:1;min-width:0}
-.hall.table{padding-bottom:18px}
-.theatre{max-width:820px;margin-inline:auto;width:100%}
-@media (max-width:480px){.sync{font-size:0;padding:4px}.sync::before{margin:0}}
+
+/* Codex and story pages. */
+.lorecard{display:flex;flex-direction:column;gap:6px;text-align:left}
+.lorecard .yr{font-family:var(--f-fell);color:var(--accent-ink)}
+.lorecard .k{font-family:var(--f-sc);letter-spacing:.1em;text-transform:lowercase;font-weight:700;font-size:.78rem}
+.lorecard .k.dark{color:var(--bad)}.lorecard .k.triumph{color:var(--good)}.lorecard .k.eponym{color:var(--insp)}.lorecard .k.theatre{color:var(--gilt)}
+.lore-body{font-size:1.04rem;line-height:1.7;max-width:66ch}
+.lore-body p{margin:0 0 .9em}
+.lore-body p:first-child::first-letter{font-family:var(--f-fell);float:left;font-size:3.3em;line-height:.8;padding:7px 8px 0 0;color:var(--accent-ink)}
+.lore-fact{border-left:3px solid var(--gilt);padding:6px 12px;background:var(--gilt-soft);border-radius:0 6px 6px 0;font-size:.94rem}
+.codexfilter{display:flex;gap:6px;flex-wrap:wrap}
+.marg{font-family:var(--f-fell);font-style:italic;color:var(--muted)}
+.marg b{font-family:var(--f-display);font-style:normal;color:var(--ink)}
+
 .lore-out dl{margin:6px 0 0;display:grid;grid-template-columns:max-content 1fr;gap:8px 14px}
 .lore-out dt{font-family:var(--f-sc);font-weight:700;letter-spacing:.08em;text-transform:lowercase;color:var(--accent-ink);font-size:.86rem;padding-top:2px}
 .lore-out dd{margin:0;font-size:.96rem}
 @media (max-width:520px){.lore-out dl{grid-template-columns:1fr;gap:2px}.lore-out dd{margin-bottom:8px}}
-.wrap p,.wrap li,.wrap dd,.refpane p{overflow-wrap:anywhere}

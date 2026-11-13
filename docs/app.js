@@ -1,4 +1,4 @@
-window.GALEN_PLATFORM="pages";window.GALEN_VERSION="7.0.1";window.GALEN_BUILD="e7e12ec67c";
+window.GALEN_PLATFORM="pages";window.GALEN_VERSION="7.0.1";window.GALEN_BUILD="080d347443";
 "use strict";
 /* ================= THE WORLD: the anatomical theatre =================
    The Table in the centre (the whole patient) and twelve halls around it, each bound to a body system.
@@ -122,54 +122,6 @@ function hallPres(h){return HIST.pres.filter(p=>presHall(p)===h);}
 function hallMastery(h){if(!CARDS)buildCards();const cs=CARDS.filter(c=>cardHall(c)===h);if(!cs.length)return {pct:0,seen:0,n:0};
   let m=0,seen=0;cs.forEach(c=>{const r=Store.s.srs[c.id];if(r){seen++;if(r.iv>=7)m++;else if(r.iv>=2)m+=.4;}});return {pct:m/cs.length,seen,n:cs.length};}
 
-/* ---- Galen's voice: demanding, a little vain, fair; the sting always ends with the fix ---- */
-const GALEN={
- morning:[["Mane surgendum.","Up early. The sick do not wait for you to wake."],["Nulla dies sine linea.","Not a day without a line. Begin."],[null,"Morning. In Pergamon I had dissected an ape before breakfast."],[null,"The light is good. Use it before the ward eats your day."]],
- afternoon:[["Festina lente.","Make haste slowly. One sign, properly."],[null,"Afternoon. A short round now beats a long one never."],["Repetitio mater studiorum.","Repetition is the mother of learning."],[null,"I lectured in the Temple of Peace in Rome. You have a phone. Fewer excuses."]],
- evening:[["Docendo discimus.","We learn by teaching. Explain one sign aloud tonight."],[null,"Evening. The candles are lit. Something short and sharp."],["Experientia docet.","Experience teaches, but only those who look back at it."],[null,"Review what you saw today, while it is still warm."]],
- night:[[null,"The lucubration hour. Hippocrates slept at this time. You should consider it."],["Vigilate.","Keep watch. But briefly: a tired brain stores nothing."],[null,"Night watch. Three cards, then sleep. I am not asking."]],
- afterNight:[[null,"You have been up all night. Three items, then sleep. That is an order, not advice."],[null,"After a night shift, memory is a leaking jar. Keep today light."]],
- first:[[null,"So. Another student. I am Galen of Pergamon, physician to emperors. Sit, look, and do not touch anything yet."]],
- back:[[null,"You were away. The signs did not forget you; you forgot them. We begin again, gently."],[null,"Ah. You return. The gladiators of Pergamon trained daily. Shall we?"]],
- right:[[null,"Correct."],[null,"Adequate."],[null,"Good. Again tomorrow and I may believe you."],[null,"Yes. Even Vesalius would nod."],[null,"Right. Now say why."],[null,"That is how it is done."],[null,"Better."]],
- wrong:[[null,"No. A first-year would not miss this."],[null,"No. Read the reason, then try again."],[null,"Wrong. Look again; the fix is below."],[null,"That is my kind of error: confident. Read it."],[null,"No. Slower this time."],[null,"Wrong, and that is how you learn. Read why."]],
- done:[[null,"Enough for today. What you did will be there tomorrow."],["Bene.","Well done. I do not say it often."],[null,"Finished. Go and examine a real patient."]],
- idle:[["Mortui vivos docent.","The dead teach the living. That is the motto over this theatre's door."],["Hic locus est ubi mors gaudet succurrere vitae.","This is the place where death delights to help the living."],[null,"Nearly three million of my words survive. You can manage one sign."],["Optimus medicus philosophus.","The best physician is also a philosopher. I wrote a book saying so."],[null,"Look at the patient before the monitor. The monitor has never been ill."],["Primum non nocere.","First, do no harm. It is not in the Hippocratic oath, by the way. Look it up."],[null,"I bled patients. I was wrong about that. The evidence won, and it should."],["Audi, vide, tace.","Listen, look, and keep quiet until you are sure."]],
- hall:{
-  table:[null,"Here is the patient, whole. Every hall borrows from this table."],
-  heart:[null,"Harvey studied here and then proved me wrong about the blood. I have forgiven him. Mostly."],
-  vessels:[null,"A parson and a mare taught the world blood pressure. Do not look so surprised."],
-  lungs:[null,"Laennec's wooden tube made doctors listen. Most still listen badly. Not you."],
-  belly:[null,"Inspect. Then touch. Then press. In that order, or the belly closes its doors to you."],
-  neck:[null,"A small gland can ruin a whole life. Palpate it from behind, gently."],
-  senses:[null,"The ophthalmoscope frightens students. It is only a light and a hole. Hold it properly."],
-  cranial:[null,"I counted seven pairs. There are twelve. We do not speak of it."],
-  mind:[null,"Neurology punishes the hurried. Take your time and test both sides."],
-  spine:[null,"Most backs need reassurance. A few need a scanner tonight. Learn which."],
-  arm:[null,"The hand examines everything else. Examine it."],
-  leg:[null,"Watch them walk before you touch them. The gait tells half the story."],
-  skin:[null,"Describe first. Name second. Guess never."]
- },
- lore:[null,"History is a list of confident men who were wrong. Read it, and stay humble."]
-};
-function galenPick(arr,seed){if(!arr||!arr.length)return [null,""];const i=seed==null?Math.floor(Math.random()*arr.length):Math.abs(seed)%arr.length;return arr[i];}
-
-/* ---- easter eggs: found ones are kept in Store.s.notes["egg:<id>"] (merges per record) ---- */
-const EGGS=[
- {id:"apes",hint:"The medallion does not like to be poked.",t:"The Barbary apes",x:"Very well. In Rome no one could open a human body, so I opened Barbary macaques, pigs and oxen, and wrote what I found as if it were human. For thirteen centuries no one checked. Then Vesalius did. Do not mention him."},
- {id:"rete",hint:"Search for a wonderful net.",t:"The rete mirabile",x:"The 'wonderful net' of vessels at the base of the brain. It exists, I promise you. In oxen. Vesalius looked for it in a man and found nothing. I may have been generous in assuming you were built like cattle."},
- {id:"humours",hint:"Ask about the four.",t:"The four humours",x:"Blood, phlegm, yellow bile, black bile. Fourteen centuries of physicians bled, purged and starved patients to balance them, on my authority. Then came the microscope, the germ and the trial. I was magnificent, and I was wrong."},
- {id:"skull",hint:"Something on the table is looking at you.",t:"Memento mori",x:"The skull on the table belonged to someone who never consented to teach you. Before the Anatomy Act of 1832, many such bodies came from the gallows or the grave. Learn well enough to deserve them."},
- {id:"ape",hint:"Someone small is hiding in the engraving.",t:"My best teacher",x:"Shh. He is a Barbary macaque. Half of what medicine believed about the human body until 1543 was really about him."},
- {id:"konami",hint:"The old code, on keys or a controller.",t:"The theatre at night",x:"↑↑↓↓←→←→ B A. So, you are a gamer as well as a physician. The candles are yours tonight."},
- {id:"night",hint:"Open the theatre in the small hours.",t:"Lucubration",x:"Working by lamplight: lucubratio. The Romans thought it noble. Your hippocampus thinks it is a disaster. Go to bed."},
- {id:"vesalius",hint:"Say the name I will not say.",t:"That name",x:"Andreas Vesalius, 1543, De humani corporis fabrica. Twenty-eight years old and he corrected some two hundred of my errors. He was right. I will not say it twice."},
- {id:"galen",hint:"Call me by name.",t:"You called?",x:"Claudius Galenus, born in Pergamon in 129. Surgeon to gladiators, physician to Marcus Aurelius, author of more surviving words than any other ancient writer. Yes, I am still here."},
- {id:"paper",hint:"Search for what Laennec rolled.",t:"A quire of paper",x:"Paris, 1816. A young woman with heart disease, a physician too shy to put his ear to her chest, and a rolled sheaf of paper. It carried the heart sounds better than an ear ever had. The stethoscope began as embarrassment."},
- {id:"birthday",hint:"Visit on the birthday of a man with a famous toe.",t:"Babinski's birthday",x:"Joseph Babinski was born in Paris on 17 November 1857. Today, stroke a sole in his honour. Gently: it is a reflex, not a tickle contest."},
- {id:"oath",hint:"Hold the serpent in the corner.",t:"The first line",x:"Ὁ βίος βραχύς, ἡ δὲ τέχνη μακρή. Life is short, the art long, opportunity fleeting, experience misleading, judgement difficult. The first aphorism of Hippocrates. Every word is still true."}
-];
-const BIRTHDAYS={"17/11":["Babinski","Joseph Babinski was born today in 1857. Stroke a sole in his honour."],"17/02":["Laennec","René Laennec was born today in 1781. Listen to a chest properly."],"01/04":["Harvey","William Harvey was born today in 1578. The blood still goes round."],"31/12":["Vesalius","Vesalius was born today in 1514. I suppose I should say something kind."],"01/07":["Semmelweis","Ignaz Semmelweis was born today in 1818. Wash your hands, and think of him."],"12/05":["Nightingale","Florence Nightingale was born today in 1820. She counted the dead and changed the army."],"27/12":["Pasteur","Louis Pasteur was born today in 1822. The germ won the argument."],"17/05":["Jenner","Edward Jenner was born today in 1749. Smallpox is gone; remember who started it."]};
 
 "use strict";
 /* ================= THE OUTLINE: each hall as a course =================
@@ -479,6 +431,56 @@ skin:[
   tools:["scorten","lrinec"],go:[["learn/demerg","Skin that can kill"]],
   trap:"Treating pain out of proportion to a red leg as cellulitis.",pearl:"Severe pain, rapid spread and systemic illness: necrotising fasciitis. Call the surgeons."}
 ]};
+
+"use strict";
+/* ---- Galen's voice: demanding, a little vain, fair; the sting always ends with the fix ---- */
+const GALEN={
+ morning:[["Mane surgendum.","Up early. The sick do not wait for you to wake."],["Nulla dies sine linea.","Not a day without a line. Begin."],[null,"Morning. In Pergamon I had dissected an ape before breakfast."],[null,"The light is good. Use it before the ward eats your day."]],
+ afternoon:[["Festina lente.","Make haste slowly. One sign, properly."],[null,"Afternoon. A short round now beats a long one never."],["Repetitio mater studiorum.","Repetition is the mother of learning."],[null,"I lectured in the Temple of Peace in Rome. You have a phone. Fewer excuses."]],
+ evening:[["Docendo discimus.","We learn by teaching. Explain one sign aloud tonight."],[null,"Evening. The candles are lit. Something short and sharp."],["Experientia docet.","Experience teaches, but only those who look back at it."],[null,"Review what you saw today, while it is still warm."]],
+ night:[[null,"The lucubration hour. Hippocrates slept at this time. You should consider it."],["Vigilate.","Keep watch. But briefly: a tired brain stores nothing."],[null,"Night watch. Three cards, then sleep. I am not asking."]],
+ afterNight:[[null,"You have been up all night. Three items, then sleep. That is an order, not advice."],[null,"After a night shift, memory is a leaking jar. Keep today light."]],
+ first:[[null,"So. Another student. I am Galen of Pergamon, physician to emperors. Sit, look, and do not touch anything yet."]],
+ back:[[null,"You were away. The signs did not forget you; you forgot them. We begin again, gently."],[null,"Ah. You return. The gladiators of Pergamon trained daily. Shall we?"]],
+ right:[[null,"Correct."],[null,"Adequate."],[null,"Good. Again tomorrow and I may believe you."],[null,"Yes. Even Vesalius would nod."],[null,"Right. Now say why."],[null,"That is how it is done."],[null,"Better."]],
+ wrong:[[null,"No. A first-year would not miss this."],[null,"No. Read the reason, then try again."],[null,"Wrong. Look again; the fix is below."],[null,"That is my kind of error: confident. Read it."],[null,"No. Slower this time."],[null,"Wrong, and that is how you learn. Read why."]],
+ done:[[null,"Enough for today. What you did will be there tomorrow."],["Bene.","Well done. I do not say it often."],[null,"Finished. Go and examine a real patient."]],
+ idle:[["Mortui vivos docent.","The dead teach the living. That is the motto over this theatre's door."],["Hic locus est ubi mors gaudet succurrere vitae.","This is the place where death delights to help the living."],[null,"Nearly three million of my words survive. You can manage one sign."],["Optimus medicus philosophus.","The best physician is also a philosopher. I wrote a book saying so."],[null,"Look at the patient before the monitor. The monitor has never been ill."],["Primum non nocere.","First, do no harm. It is not in the Hippocratic oath, by the way. Look it up."],[null,"I bled patients. I was wrong about that. The evidence won, and it should."],["Audi, vide, tace.","Listen, look, and keep quiet until you are sure."]],
+ hall:{
+  table:[null,"Here is the patient, whole. Every hall borrows from this table."],
+  heart:[null,"Harvey studied here and then proved me wrong about the blood. I have forgiven him. Mostly."],
+  vessels:[null,"A parson and a mare taught the world blood pressure. Do not look so surprised."],
+  lungs:[null,"Laennec's wooden tube made doctors listen. Most still listen badly. Not you."],
+  belly:[null,"Inspect. Then touch. Then press. In that order, or the belly closes its doors to you."],
+  neck:[null,"A small gland can ruin a whole life. Palpate it from behind, gently."],
+  senses:[null,"The ophthalmoscope frightens students. It is only a light and a hole. Hold it properly."],
+  cranial:[null,"I counted seven pairs. There are twelve. We do not speak of it."],
+  mind:[null,"Neurology punishes the hurried. Take your time and test both sides."],
+  spine:[null,"Most backs need reassurance. A few need a scanner tonight. Learn which."],
+  arm:[null,"The hand examines everything else. Examine it."],
+  leg:[null,"Watch them walk before you touch them. The gait tells half the story."],
+  skin:[null,"Describe first. Name second. Guess never."]
+ },
+ lore:[null,"History is a list of confident men who were wrong. Read it, and stay humble."]
+};
+function galenPick(arr,seed){if(!arr||!arr.length)return [null,""];const i=seed==null?Math.floor(Math.random()*arr.length):Math.abs(seed)%arr.length;return arr[i];}
+
+/* ---- easter eggs: found ones are kept in Store.s.notes["egg:<id>"] (merges per record) ---- */
+const EGGS=[
+ {id:"apes",hint:"The medallion does not like to be poked.",t:"The Barbary apes",x:"Very well. In Rome no one could open a human body, so I opened Barbary macaques, pigs and oxen, and wrote what I found as if it were human. For thirteen centuries no one checked. Then Vesalius did. Do not mention him."},
+ {id:"rete",hint:"Search for a wonderful net.",t:"The rete mirabile",x:"The 'wonderful net' of vessels at the base of the brain. It exists, I promise you. In oxen. Vesalius looked for it in a man and found nothing. I may have been generous in assuming you were built like cattle."},
+ {id:"humours",hint:"Ask about the four.",t:"The four humours",x:"Blood, phlegm, yellow bile, black bile. Fourteen centuries of physicians bled, purged and starved patients to balance them, on my authority. Then came the microscope, the germ and the trial. I was magnificent, and I was wrong."},
+ {id:"skull",hint:"Something on the table is looking at you.",t:"Memento mori",x:"The skull on the table belonged to someone who never consented to teach you. Before the Anatomy Act of 1832, many such bodies came from the gallows or the grave. Learn well enough to deserve them."},
+ {id:"ape",hint:"Someone small is hiding in the engraving.",t:"My best teacher",x:"Shh. He is a Barbary macaque. Half of what medicine believed about the human body until 1543 was really about him."},
+ {id:"konami",hint:"The old code, on keys or a controller.",t:"The theatre at night",x:"↑↑↓↓←→←→ B A. So, you are a gamer as well as a physician. The candles are yours tonight."},
+ {id:"night",hint:"Open the theatre in the small hours.",t:"Lucubration",x:"Working by lamplight: lucubratio. The Romans thought it noble. Your hippocampus thinks it is a disaster. Go to bed."},
+ {id:"vesalius",hint:"Say the name I will not say.",t:"That name",x:"Andreas Vesalius, 1543, De humani corporis fabrica. Twenty-eight years old and he corrected some two hundred of my errors. He was right. I will not say it twice."},
+ {id:"galen",hint:"Call me by name.",t:"You called?",x:"Claudius Galenus, born in Pergamon in 129. Surgeon to gladiators, physician to Marcus Aurelius, author of more surviving words than any other ancient writer. Yes, I am still here."},
+ {id:"paper",hint:"Search for what Laennec rolled.",t:"A quire of paper",x:"Paris, 1816. A young woman with heart disease, a physician too shy to put his ear to her chest, and a rolled sheaf of paper. It carried the heart sounds better than an ear ever had. The stethoscope began as embarrassment."},
+ {id:"birthday",hint:"Visit on the birthday of a man with a famous toe.",t:"Babinski's birthday",x:"Joseph Babinski was born in Paris on 17 November 1857. Today, stroke a sole in his honour. Gently: it is a reflex, not a tickle contest."},
+ {id:"oath",hint:"Hold the serpent in the corner.",t:"The first line",x:"Ὁ βίος βραχύς, ἡ δὲ τέχνη μακρή. Life is short, the art long, opportunity fleeting, experience misleading, judgement difficult. The first aphorism of Hippocrates. Every word is still true."}
+];
+const BIRTHDAYS={"17/11":["Babinski","Joseph Babinski was born today in 1857. Stroke a sole in his honour."],"17/02":["Laennec","René Laennec was born today in 1781. Listen to a chest properly."],"01/04":["Harvey","William Harvey was born today in 1578. The blood still goes round."],"31/12":["Vesalius","Vesalius was born today in 1514. I suppose I should say something kind."],"01/07":["Semmelweis","Ignaz Semmelweis was born today in 1818. Wash your hands, and think of him."],"12/05":["Nightingale","Florence Nightingale was born today in 1820. She counted the dead and changed the army."],"27/12":["Pasteur","Louis Pasteur was born today in 1822. The germ won the argument."],"17/05":["Jenner","Edward Jenner was born today in 1749. Smallpox is gone; remember who started it."]};
 
 "use strict";
 /* ================= THE CODEX: medical history, dark and bright =================
@@ -4852,6 +4854,8 @@ function streak(){
   return n;
 }
 
+"use strict";
+/* Card generation: buildCards, card type labels, auto-graded types. */
 /* ================= CARDS (spaced retrieval) =================
  Every learnable item becomes a card. Types:
   think  – a finding or sign → what to think (recall, self-graded)
@@ -4901,6 +4905,9 @@ function buildCards(){
 }
 const CARD_TYPE_LABEL={think:"What to think",verdict:"Test value",mech:"Mechanism",finding:"Finding",anat:"Surface anatomy",area:"Listening area",zone:"Lung zone",hlr:"History clue",red:"Red flags",sound:"Listen",snsp:"Rule in or out",derm:"Dermatome",myo:"Myotome",reflex:"Reflex root",rootnerve:"Root or nerve?",cranial:"Cranial nerve",dterm:"Skin term",dplate:"Name the rash",teach:"Teach it back"};
 const AUTO={verdict:1,mech:1,hlr:1,sound:1,snsp:1,myo:1,reflex:1,dplate:1};
+
+"use strict";
+/* Scheduler and sessions: scope, SM-2 schedule, due/new, interleave, buildSession, mastery, weak cards. */
 /* scope: "all", a system id, or "reg:<region>" */
 const inScope=(c,sys)=>!sys||sys==="all"||(sys.startsWith("reg:")?c.reg===sys.slice(4):c.sys===sys);
 
@@ -7670,53 +7677,10 @@ route("learn:hall",(id)=>(HALL[id]||{}).n||"Hall",(root,id)=>{
   SND.fx("door");
 });
 
-/* ================= THE CODEX ================= */
-let CODEX_F="all";
-route("learn:codex","The codex",(root)=>{
-  const draw=()=>{const list=LORE.filter(l=>CODEX_F==="all"||l.k===CODEX_F||l.hall===CODEX_F);const found=EGGS.filter(e=>eggFound(e.id));
-   root.innerHTML=`<section class="ph"><span class="eyebrow">The codex</span><h1>Medicine's long argument</h1><p class="lede">The people behind the names, the beliefs that harmed patients for centuries, and the discoveries that won anyway. Every story is tied to something you do at the bedside.</p></section>
-   ${guideHTML(GALEN.lore,{small:1})}
-   <div class="codexfilter" role="group" aria-label="Filter stories">${[["all","All"],["dark","The dark"],["triumph","Triumph"],["eponym","Behind the name"],["theatre","The theatre"]].map(([k,t])=>`<button class="chip" aria-pressed="${CODEX_F===k}" data-f="${k}">${t}</button>`).join("")}
-     <select class="sel" id="cx-hall" aria-label="Stories of one hall" style="width:auto"><option value="">By hall…</option>${HALLS.map(h=>`<option value="${h.id}" ${CODEX_F===h.id?"selected":""}>${esc(h.n)}</option>`).join("")}</select></div>
-   <div class="grid">${list.map(l=>loreCard(l,{hall:1})).join("")}</div>
-   <section class="section"><span class="label">Marginalia · ${found.length} of ${EGGS.length} secrets found</span><div class="card stack" style="gap:8px">${EGGS.map(e=>eggFound(e.id)?`<button class="link" style="text-align:left" data-egg-show="${e.id}"><span class="marg"><b>${esc(e.t)}</b> · found</span></button>`:`<span class="marg">${esc(e.hint)}</span>`).join("")}</div></section>`;
-   $$("[data-f]",root).forEach(b=>b.addEventListener("click",()=>{CODEX_F=b.dataset.f;draw();}));
-   $("#cx-hall",root).addEventListener("change",e=>{CODEX_F=e.target.value||"all";draw();});
-   $$("[data-egg-show]",root).forEach(b=>b.addEventListener("click",()=>showEgg(EGGS.find(x=>x.id===b.dataset.eggShow),false)));};
-  draw();
-});
-route("learn:lore",(id)=>(loreById(id)||{}).t||"Story",(root,id)=>{
-  const l=loreById(id);if(!l)throw new Error("No such story");const h=HALL[l.hall];const i=LORE.indexOf(l),nx=LORE[(i+1)%LORE.length];
-  Store.s.notes["lore:"+id]={t:Date.now(),v:1};Store.save();
-  root.innerHTML=`<section class="ph"><span class="row-x" style="gap:8px"><span class="eyebrow">${LORE_KIND[l.k]}</span><span class="spacer"></span><span class="latin" style="font-size:1rem">${esc(l.yr)}</span></span><h1>${esc(l.t)}</h1><p class="lede">${esc(l.who)}</p></section>
-  <article class="lore-body">${l.body.map(p=>`<p>${esc(p)}</p>`).join("")}</article>
-  ${LORE_OUT[l.id]?`<div class="card lore-out"><span class="label">The story in outline</span><dl>${["Before","The turning point","What followed"].map((k,i)=>`<dt>${k}</dt><dd>${esc(LORE_OUT[l.id][i])}</dd>`).join("")}<dt>At the bedside</dt><dd><b>${esc(l.fact)}</b></dd></dl></div>`:`<div class="lore-fact"><b>At the bedside:</b> ${esc(l.fact)}</div>`}
-  <div class="card">${guideHTML([null,l.galen],{small:1})}</div>
-  ${(l.signs||[]).filter(s=>SIGNS[s]).length?`<section class="section"><span class="label">The signs in this story</span><div class="chips">${l.signs.filter(s=>SIGNS[s]).map(signChip).join("")}</div></section>`:""}
-  <div class="row-x"><button class="btn ghost" data-go="learn/hall/${l.hall}">${ic("door")}${esc(h.n)}</button><span class="spacer"></span><button class="btn soft" data-go="learn/lore/${nx.id}">Next story ${ic("chev")}</button></div>
-  <p class="tiny muted">Source: ${esc(l.src)}</p>`;
-  SND.fx("page");
-});
-
-/* sign and technique pages: the story behind the name, and the hall it lives in */
-{const _sign=ROUTES["signs:sign"];ROUTES["signs:sign"]=(root,id)=>{_sign(root,id);const ls=LORE_BY_SIGN[id]||[],h=signHall(id);
-  const el=document.createElement("section");el.className="section";
-  el.innerHTML=`${ls.length?`<span class="label">The story behind it</span><div class="grid">${ls.map(l=>loreCard(l)).join("")}</div>`:""}${h?`<div class="row-x" style="margin-top:8px"><button class="btn ghost sm" data-go="learn/hall/${h}">${ic("door")}${esc(HALL[h].n)}</button></div>`:""}`;
-  root.append(el);};}
-{const _tech=ROUTES["learn:tech"];ROUTES["learn:tech"]=(root,id)=>{_tech(root,id);if(!id)return;const h=techHall(id);if(!h)return;
-  const el=document.createElement("div");el.className="row-x";el.innerHTML=`<button class="btn ghost sm" data-go="learn/hall/${h}">${ic("door")}${esc(HALL[h].n)}</button>`;root.append(el);};}
 /* Learn opens with the theatre */
 {const _learn=ROUTES["learn:home"];ROUTES["learn:home"]=(root)=>{_learn(root);const ph=$(".ph",root);const el=document.createElement("section");el.className="section";
   el.innerHTML=`<div class="row-x"><span class="label">The theatre · twelve halls and the table</span><span class="spacer"></span><button class="link small" data-go="learn/codex">The codex</button></div><div class="halls">${HALLS.map(hallCard).join("")}</div>`;
   if(ph)ph.after(el);else root.prepend(el);};}
-
-/* sessions can be scoped to a hall */
-{const _bs=buildSession;buildSession=function(sys){if(sys&&String(sys).startsWith("chap:")){const [,h,i]=sys.split(":");const keep=chapCardIds(h,+i);
-    const q=_bs("all").filter(c=>keep.has(c.id));if(q.length)return q;if(!CARDS)buildCards();return CARDS.filter(c=>keep.has(c.id)&&!Store.s.srs[c.id]).slice(0,12);}if(sys&&String(sys).startsWith("hall:")){const h=sys.slice(5);if(!CARDS)buildCards();
-    const keep=new Set(CARDS.filter(c=>cardHall(c)===h).map(c=>c.id));const all=_bs("all");const q=all.filter(c=>keep.has(c.id));
-    if(q.length)return q;/* nothing due here: take the first new cards of this hall */
-    return CARDS.filter(c=>keep.has(c.id)&&!Store.s.srs[c.id]).slice(0,10);}return _bs(sys);};}
-{const _st=sessionTitle;sessionTitle=function(sys){if(sys&&String(sys).startsWith("chap:")){const [,h,i]=sys.split(":");const c=(OUTLINE[h]||[])[+i];return c?c.t:"Chapter";}if(sys&&String(sys).startsWith("hall:")){const h=HALL[sys.slice(5)];return h?h.short+" · hall review":"Hall review";}return _st(sys);};TITLES["practice:session"]=s=>sessionTitle(s);}
 
 /* search finds halls and stories */
 {const _pi=palIndex;palIndex=function(){const I=_pi();if(I._th)return I;
@@ -7979,6 +7943,55 @@ document.addEventListener("pointerdown",()=>document.documentElement.classList.r
 /* right-click is the twin of hold-to-explain */
 document.addEventListener("contextmenu",e=>{const h=e.target.closest("[data-hint]");if(h){e.preventDefault();h.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true}));setTimeout(()=>h.dispatchEvent(new PointerEvent("pointerup",{bubbles:true})),650);}});
 
+
+"use strict";
+/* Hall and chapter sessions (scopes "hall:<id>" and "chap:<hall>:<i>"). */
+/* sessions can be scoped to a hall */
+{const _bs=buildSession;buildSession=function(sys){if(sys&&String(sys).startsWith("chap:")){const [,h,i]=sys.split(":");const keep=chapCardIds(h,+i);
+    const q=_bs("all").filter(c=>keep.has(c.id));if(q.length)return q;if(!CARDS)buildCards();return CARDS.filter(c=>keep.has(c.id)&&!Store.s.srs[c.id]).slice(0,12);}if(sys&&String(sys).startsWith("hall:")){const h=sys.slice(5);if(!CARDS)buildCards();
+    const keep=new Set(CARDS.filter(c=>cardHall(c)===h).map(c=>c.id));const all=_bs("all");const q=all.filter(c=>keep.has(c.id));
+    if(q.length)return q;/* nothing due here: take the first new cards of this hall */
+    return CARDS.filter(c=>keep.has(c.id)&&!Store.s.srs[c.id]).slice(0,10);}return _bs(sys);};}
+{const _st=sessionTitle;sessionTitle=function(sys){if(sys&&String(sys).startsWith("chap:")){const [,h,i]=sys.split(":");const c=(OUTLINE[h]||[])[+i];return c?c.t:"Chapter";}if(sys&&String(sys).startsWith("hall:")){const h=HALL[sys.slice(5)];return h?h.short+" · hall review":"Hall review";}return _st(sys);};TITLES["practice:session"]=s=>sessionTitle(s);}
+
+
+"use strict";
+/* The codex: list, story pages, and the story blocks on sign and technique pages. */
+/* ================= THE CODEX ================= */
+let CODEX_F="all";
+route("learn:codex","The codex",(root)=>{
+  const draw=()=>{const list=LORE.filter(l=>CODEX_F==="all"||l.k===CODEX_F||l.hall===CODEX_F);const found=EGGS.filter(e=>eggFound(e.id));
+   root.innerHTML=`<section class="ph"><span class="eyebrow">The codex</span><h1>Medicine's long argument</h1><p class="lede">The people behind the names, the beliefs that harmed patients for centuries, and the discoveries that won anyway. Every story is tied to something you do at the bedside.</p></section>
+   ${guideHTML(GALEN.lore,{small:1})}
+   <div class="codexfilter" role="group" aria-label="Filter stories">${[["all","All"],["dark","The dark"],["triumph","Triumph"],["eponym","Behind the name"],["theatre","The theatre"]].map(([k,t])=>`<button class="chip" aria-pressed="${CODEX_F===k}" data-f="${k}">${t}</button>`).join("")}
+     <select class="sel" id="cx-hall" aria-label="Stories of one hall" style="width:auto"><option value="">By hall…</option>${HALLS.map(h=>`<option value="${h.id}" ${CODEX_F===h.id?"selected":""}>${esc(h.n)}</option>`).join("")}</select></div>
+   <div class="grid">${list.map(l=>loreCard(l,{hall:1})).join("")}</div>
+   <section class="section"><span class="label">Marginalia · ${found.length} of ${EGGS.length} secrets found</span><div class="card stack" style="gap:8px">${EGGS.map(e=>eggFound(e.id)?`<button class="link" style="text-align:left" data-egg-show="${e.id}"><span class="marg"><b>${esc(e.t)}</b> · found</span></button>`:`<span class="marg">${esc(e.hint)}</span>`).join("")}</div></section>`;
+   $$("[data-f]",root).forEach(b=>b.addEventListener("click",()=>{CODEX_F=b.dataset.f;draw();}));
+   $("#cx-hall",root).addEventListener("change",e=>{CODEX_F=e.target.value||"all";draw();});
+   $$("[data-egg-show]",root).forEach(b=>b.addEventListener("click",()=>showEgg(EGGS.find(x=>x.id===b.dataset.eggShow),false)));};
+  draw();
+});
+route("learn:lore",(id)=>(loreById(id)||{}).t||"Story",(root,id)=>{
+  const l=loreById(id);if(!l)throw new Error("No such story");const h=HALL[l.hall];const i=LORE.indexOf(l),nx=LORE[(i+1)%LORE.length];
+  Store.s.notes["lore:"+id]={t:Date.now(),v:1};Store.save();
+  root.innerHTML=`<section class="ph"><span class="row-x" style="gap:8px"><span class="eyebrow">${LORE_KIND[l.k]}</span><span class="spacer"></span><span class="latin" style="font-size:1rem">${esc(l.yr)}</span></span><h1>${esc(l.t)}</h1><p class="lede">${esc(l.who)}</p></section>
+  <article class="lore-body">${l.body.map(p=>`<p>${esc(p)}</p>`).join("")}</article>
+  ${LORE_OUT[l.id]?`<div class="card lore-out"><span class="label">The story in outline</span><dl>${["Before","The turning point","What followed"].map((k,i)=>`<dt>${k}</dt><dd>${esc(LORE_OUT[l.id][i])}</dd>`).join("")}<dt>At the bedside</dt><dd><b>${esc(l.fact)}</b></dd></dl></div>`:`<div class="lore-fact"><b>At the bedside:</b> ${esc(l.fact)}</div>`}
+  <div class="card">${guideHTML([null,l.galen],{small:1})}</div>
+  ${(l.signs||[]).filter(s=>SIGNS[s]).length?`<section class="section"><span class="label">The signs in this story</span><div class="chips">${l.signs.filter(s=>SIGNS[s]).map(signChip).join("")}</div></section>`:""}
+  <div class="row-x"><button class="btn ghost" data-go="learn/hall/${l.hall}">${ic("door")}${esc(h.n)}</button><span class="spacer"></span><button class="btn soft" data-go="learn/lore/${nx.id}">Next story ${ic("chev")}</button></div>
+  <p class="tiny muted">Source: ${esc(l.src)}</p>`;
+  SND.fx("page");
+});
+
+/* sign and technique pages: the story behind the name, and the hall it lives in */
+{const _sign=ROUTES["signs:sign"];ROUTES["signs:sign"]=(root,id)=>{_sign(root,id);const ls=LORE_BY_SIGN[id]||[],h=signHall(id);
+  const el=document.createElement("section");el.className="section";
+  el.innerHTML=`${ls.length?`<span class="label">The story behind it</span><div class="grid">${ls.map(l=>loreCard(l)).join("")}</div>`:""}${h?`<div class="row-x" style="margin-top:8px"><button class="btn ghost sm" data-go="learn/hall/${h}">${ic("door")}${esc(HALL[h].n)}</button></div>`:""}`;
+  root.append(el);};}
+{const _tech=ROUTES["learn:tech"];ROUTES["learn:tech"]=(root,id)=>{_tech(root,id);if(!id)return;const h=techHall(id);if(!h)return;
+  const el=document.createElement("div");el.className="row-x";el.innerHTML=`<button class="btn ghost sm" data-go="learn/hall/${h}">${ic("door")}${esc(HALL[h].n)}</button>`;root.append(el);};}
 
 "use strict";
 /* ================= BOOT ================= */

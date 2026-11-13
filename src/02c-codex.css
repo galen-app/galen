@@ -1,0 +1,17 @@
+/* Codex and story pages. */
+.lorecard{display:flex;flex-direction:column;gap:6px;text-align:left}
+.lorecard .yr{font-family:var(--f-fell);color:var(--accent-ink)}
+.lorecard .k{font-family:var(--f-sc);letter-spacing:.1em;text-transform:lowercase;font-weight:700;font-size:.78rem}
+.lorecard .k.dark{color:var(--bad)}.lorecard .k.triumph{color:var(--good)}.lorecard .k.eponym{color:var(--insp)}.lorecard .k.theatre{color:var(--gilt)}
+.lore-body{font-size:1.04rem;line-height:1.7;max-width:66ch}
+.lore-body p{margin:0 0 .9em}
+.lore-body p:first-child::first-letter{font-family:var(--f-fell);float:left;font-size:3.3em;line-height:.8;padding:7px 8px 0 0;color:var(--accent-ink)}
+.lore-fact{border-left:3px solid var(--gilt);padding:6px 12px;background:var(--gilt-soft);border-radius:0 6px 6px 0;font-size:.94rem}
+.codexfilter{display:flex;gap:6px;flex-wrap:wrap}
+.marg{font-family:var(--f-fell);font-style:italic;color:var(--muted)}
+.marg b{font-family:var(--f-display);font-style:normal;color:var(--ink)}
+
+.lore-out dl{margin:6px 0 0;display:grid;grid-template-columns:max-content 1fr;gap:8px 14px}
+.lore-out dt{font-family:var(--f-sc);font-weight:700;letter-spacing:.08em;text-transform:lowercase;color:var(--accent-ink);font-size:.86rem;padding-top:2px}
+.lore-out dd{margin:0;font-size:.96rem}
+@media (max-width:520px){.lore-out dl{grid-template-columns:1fr;gap:2px}.lore-out dd{margin-bottom:8px}}
