@@ -11,13 +11,13 @@ IC.observe=IC.observe||'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 
 IC.why=IC.why||'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7v.5M12 17.2v.1"/>';
 
 const TECH_FIG={"otoscopy":"tech-otoscope","direct-ophthalmoscopy":"tech-ophthalmoscope","anterior-rhinoscopy":"tech-rhinoscopy","tinel":"tech-tinel","dix-hallpike":"tech-hallpike","hints":"tech-head-impulse","tendon-reflexes":"tech-reflex","plantar-response":"tech-plantar","tuning-fork":"tech-tuning-fork"};
-const TECH_GROUP_IC={"Ear, nose and eye":"eye","Peripheral nerve":"bolt","Sensory":"card","Reflexes and tone":"target","Coordination and gait":"mind","Vestibular and eye movements":"repeat","Meninges and functional":"case"};
-const TECH_GROUP_ORDER=["Ear, nose and eye","Peripheral nerve","Sensory","Reflexes and tone","Coordination and gait","Vestibular and eye movements","Meninges and functional"];
+const TECH_GROUP_IC={"Ear, nose and eye":"eye","Peripheral nerve":"bolt","Sensory":"card","Reflexes and tone":"target","Coordination and gait":"mind","Vestibular and eye movements":"repeat","Meninges and functional":"case","Musculoskeletal":"bone"};
+const TECH_GROUP_ORDER=["Ear, nose and eye","Peripheral nerve","Sensory","Reflexes and tone","Coordination and gait","Vestibular and eye movements","Meninges and functional","Musculoskeletal"];
 /* tests that give one result for the patient rather than one per side */
 const TECH_MIDLINE=new Set(["meningism","romberg","tandem-gait","hints","hoover","pronator-drift","cerebellar-tests"]);
 const techList=()=>typeof TECH!=="undefined"?TECH:[];
 const techById=id=>techList().find(t=>t.id===id);
-const techSys=t=>t.group==="Ear, nose and eye"?"hn":"neuro";
+const techSys=t=>t.group==="Ear, nose and eye"?"hn":t.group==="Musculoskeletal"?"msk":"neuro";
 function techRec(id){return Store.s.notes["tech:"+id]||{};}
 /* every field keeps its own time (ft) so two devices can be merged field by field */
 function techSave(id,patch){const old=techRec(id),now=Date.now(),ft=Object.assign({},old.ft||{});Object.keys(patch).forEach(k=>ft[k]=now);

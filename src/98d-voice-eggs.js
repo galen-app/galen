@@ -237,7 +237,10 @@ function decorateTheatre(){const svg=$("svg.th");if(!svg||!svg.isConnected)retur
   try{
   $$("g.egg[data-egg]",svg).forEach(g=>{const id=g.dataset.egg;
     let b0=null;if(g.dataset.bb)b0=g.dataset.bb.split(",").map(Number);
-    else{try{const bb=g.getBBox();if(bb.width||bb.height){b0=[bb.x,bb.y,bb.width,bb.height];g.dataset.bb=b0.map(v=>v.toFixed(2)).join(",");}}catch(e){}}
+    else{try{let x1=1e9,y1=1e9,x2=-1e9,y2=-1e9;   /* the drawing only: ignore transparent hit rects and our own additions */
+      for(const c of g.children){if(c.classList.contains("egg-hit")||c.classList.contains("egg-laurel"))continue;if(c.tagName==="rect"&&/transparent|none/.test(c.getAttribute("fill")||""))continue;
+        const bb=c.getBBox();if(!bb.width&&!bb.height)continue;x1=Math.min(x1,bb.x);y1=Math.min(y1,bb.y);x2=Math.max(x2,bb.x+bb.width);y2=Math.max(y2,bb.y+bb.height);}
+      if(x2>x1){b0=[x1,y1,x2-x1,y2-y1];g.dataset.bb=b0.map(v=>v.toFixed(2)).join(",");}}catch(e){}}
     if(!$(".egg-hit",g)){const b=b0&&{x:b0[0],y:b0[1],width:b0[2],height:b0[3]};
       if(b&&(b.width||b.height)){let sc=1;try{const m=g.transform.baseVal.consolidate();if(m)sc=Math.abs(m.matrix.a)||1;}catch(e){}
         const W=(id==="skull"?44:52)/sc,H=(id==="skull"?40:52)/sc,cx=b.x+b.width/2;
@@ -255,7 +258,9 @@ function decorateTheatre(){const svg=$("svg.th");if(!svg||!svg.isConnected)retur
   const vb=(svg.viewBox&&svg.viewBox.baseVal)||{width:420,height:356};const W=vb.width||420,H=vb.height||356,mid=W/2;
   let s="";const N=EGGS.length,gap=9,x0=mid-(N-1)*gap/2,y=H-5;
   EGGS.forEach((e,k)=>{const x=x0+k*gap;s+=eggFound(e.id)?`<path class="tr-on" d="M${x.toFixed(1)} ${y-3.4}l2.3 3.4-2.3 3.4-2.3-3.4z"/>`:`<circle class="tr-off" cx="${x.toFixed(1)}" cy="${y}" r=".9"/>`;});
-  if(eggFound("konami")){const cx=W/2,cy=176,rx=172,ry=103.2;[-75,-45,-15,15,45,75,105,135,165,195,225,255].forEach(d=>{const a=d*Math.PI/180,x=cx+rx*Math.cos(a),yy=cy+ry*Math.sin(a)-3;
+  if(eggFound("konami")){let cx=W/2,cy=176,rx=172,ry=103.2;
+    let big=null;$$("ellipse.tier",svg).forEach(t=>{if(!big||+t.getAttribute("rx")>+big.getAttribute("rx"))big=t;});
+    if(big){cx=+big.getAttribute("cx")||cx;cy=+big.getAttribute("cy")||cy;rx=+big.getAttribute("rx")||rx;ry=+big.getAttribute("ry")||ry;}[-75,-45,-15,15,45,75,105,135,165,195,225,255].forEach(d=>{const a=d*Math.PI/180,x=cx+rx*Math.cos(a),yy=cy+ry*Math.sin(a)-3;
     s+=`<g class="egg-candle"><rect x="${(x-1.2).toFixed(1)}" y="${(yy-6).toFixed(1)}" width="2.4" height="6"/><path class="fl flame" d="M${x.toFixed(1)} ${(yy-12).toFixed(1)}c-1.6 2.2-1.6 3.9 0 5.2 1.6-1.3 1.6-3 0-5.2z"/><circle class="fl halo" cx="${x.toFixed(1)}" cy="${(yy-9).toFixed(1)}" r="6"/></g>`;});}
   if(eggFound("finis"))s+=`<path class="tr-star" d="M${mid} 120l2 4.6 5 .5-3.8 3.3 1.2 4.9-4.4-2.6-4.4 2.6 1.2-4.9-3.8-3.3 5-.5z"/>`;
   tr.innerHTML=s;

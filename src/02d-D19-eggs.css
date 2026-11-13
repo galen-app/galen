@@ -44,7 +44,7 @@
    here the engraving itself turns to night and every tier of the theatre is lit. ---- */
 html.candles section.theatre,html.candles .theatre:has(svg.th){
   --ink-engr:#e8c995;--surface:#2b1a0c;--surface2:#1d1207;--surface3:#26170a;--accent-ink:#ffbf86;
-  background:radial-gradient(ellipse at 50% 56%,rgb(255 150 60 / .30),rgb(80 40 12 / .55) 38%,#140b04 82%);border-color:#5a3a18;
+  background:radial-gradient(ellipse at 50% 56%,#5c3112,#2c1708 40%,#140b04 82%);border-color:#5a3a18;
   box-shadow:0 10px 40px -12px rgb(255 120 30 / .45),inset 0 0 40px rgb(0 0 0 / .6)}
 html.candles .theatre .egg-candle .fl{display:inline}
 html.candles .theatre .egg-candle .halo{opacity:.28}

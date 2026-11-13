@@ -31,7 +31,7 @@
 .tk-mcq .opt span:last-child{font-weight:400}
 .tk-whyq{font-size:1.06rem;font-style:italic}
 /* bedside and observed checklist */
-.tk-alt{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+.tk-alt{display:flex;flex-direction:column;gap:6px;margin:8px 0 6px}
 .tk-sec{margin-top:18px}
 .tk-sec>.label{display:block;margin-bottom:8px}
 .tk-rep{display:flex;flex-direction:column;gap:6px}

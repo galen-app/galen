@@ -228,6 +228,8 @@ const Hub=(()=>{
     const r=await G.readFile({id});if(!r||r.unreadable)throw new Error("This backup cannot be read. Nothing was changed.");
     if((+r.data.v||0)>SUPPORTED())throw new Error("This backup is from a newer Galen. Update this device first.");
     const data=sanitize(r.data);
+    /* the store's own restore (merge mode) keeps a copy first, lifts a backup from before a reset over the epoch, and gives an undo */
+    if(typeof Store.restore==="function"){const before=count(Store.s);Store.restore(data);return {added:Math.max(0,count(Store.s)-before)};}
     /* a backup from before a reset would be filtered out by the reset's epoch: bring it in on today's epoch */
     if(Store.s.epoch)data.epoch=Store.s.epoch;else delete data.epoch;
     ls.set("galen.v3.before-bringback",{at:Date.now(),s:Store.s});
