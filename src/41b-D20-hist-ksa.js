@@ -20,7 +20,7 @@ const tag=(id,m)=>{const p=P(id);if(!p)return;p.lrTag=Object.assign(p.lrTag||{},
 /* ================= NEW PRESENTATIONS ================= */
 const NEWP=[
 /* ---------- heat illness ---------- */
-{id:"heat",name:"Collapse or confusion in the heat",sys:"gen",ksa:"Saudi summer: outdoor work is banned under direct sun from 12:00 to 15:00 between 15 June and 15 September (Ministry of Human Resources and Social Development).",
+{id:"heat",name:"Collapse or confusion in the heat",sys:"gen",ksa:"In summer, outdoor work is banned under direct sun from 12:00 to 15:00 between 15 June and 15 September (Ministry of Human Resources and Social Development).",
  frame:"Heat stroke is a time-critical emergency in which you treat first and take the history while cooling. Any worker or athlete who collapses or becomes confused in the heat has exertional heat stroke until a rectal temperature and the mental state say otherwise. Then the history separates exertional from classic heat stroke, finds the drugs and conditions that block heat loss, and decides when the worker may return.",
  ask:[
   Q("cns","Is he confused, behaving oddly, drowsy or has he had a fit since he became unwell?","Heat stroke is defined by central nervous system dysfunction with a high core temperature; heat exhaustion has a clear mind. Confusion, aggression, ataxia, seizures or coma mean the brain is already heat-injured.","Any CNS change with hyperthermia means cold-water immersion now, before transfer and before the rest of the history ('cool first, transport second').","Exertional heat stroke","Roberts 2023, ACSM Expert Consensus Statement on Exertional Heat Illness (Curr Sports Med Rep); Lipman 2024, Wilderness Medical Society heat illness guideline"),

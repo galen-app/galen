@@ -11,6 +11,7 @@ function hxChip(v,tg){
   const t=tg||["nq","Not quantified"];
   return `<span class="hx-chip hx-q hx-k-${esc(t[0])}" aria-label="${esc((HX_TAG[t[0]]||"")+": "+t[1])}">${esc(t[1])}</span>`;
 }
+function hxTagText(t){const k=HX_TAG[t[0]]||"",l=String(t[1]||"");return l.toLowerCase().startsWith(k.toLowerCase())||!k?`<b>${esc(l)}.</b>`:`<b>${esc(k)}.</b> ${esc(l)}.`;}
 function hxLinks(p){
   const L=p.links||{},out=[];
   const grp=(label,items)=>{items=items.filter(Boolean);if(items.length)out.push(`<div class="hx-lg"><span class="label">${label}</span><div class="chips">${items.join("")}</div></div>`);};
@@ -34,7 +35,7 @@ function histPresPage(p){
   const tg=p.lrTag||{},src=p.lrSrc||{};
   const ask=p.ask.map(a=>typeof a==="string"?`<p class="small">${esc(a)}</p>`:
     `<details class="acc why"><summary><span class="st"><b>${esc(a.q)}</b>${a.lr!=null?`<span class="hx-sum">${hxChip(a.lr)}${a.target?`<span class="tiny muted">${esc(a.target)}</span>`:""}</span>`:""}</span></summary><div class="acc-body"><div><span class="k">Why</span>${esc(a.why)}</div>${a.changes?`<div><span class="k">What changes</span>${esc(a.changes)}</div>`:""}${a.src?`<div class="tiny muted hx-src">Source: ${esc(a.src)}</div>`:""}</div></details>`).join("");
-  const rows=p.lr.map(([f,t,l],i)=>`<details class="hx-row"><summary><span class="hx-clue">${esc(f)}</span><span class="hx-to">${esc(t)}</span><span class="hx-v">${hxChip(l,tg[f])}</span></summary><div class="hx-more">${l!=null?`<p class="small"><b>${esc(hxLrWord(l))}</b> for ${esc(t)}.</p>`:tg[f]?`<p class="small"><b>${esc(HX_TAG[tg[f][0]]||"")}.</b> ${esc(tg[f][1])}.</p>`:`<p class="small"><b>Not quantified.</b> No pooled likelihood ratio is available for this clue.</p>`}<p class="tiny muted">Source: ${esc(src[f]||"not given")}</p></div></details>`).join("");
+  const rows=p.lr.map(([f,t,l],i)=>`<details class="hx-row"><summary><span class="hx-clue">${esc(f)}</span><span class="hx-to">${esc(t)}</span><span class="hx-v">${hxChip(l,tg[f])}</span></summary><div class="hx-more">${l!=null?`<p class="small"><b>${esc(hxLrWord(l))}</b> for ${esc(t)}.</p>`:tg[f]?`<p class="small">${hxTagText(tg[f])}</p>`:`<p class="small"><b>Not quantified.</b> No pooled likelihood ratio is available for this clue.</p>`}<p class="tiny muted">Source: ${esc(src[f]||"not given")}</p></div></details>`).join("");
   return `<section class="ph"><span class="eyebrow">History · presentation</span><h1>${esc(p.name)}</h1></section>
    ${p.frame?`<p class="quote">${esc(p.frame)}</p>`:""}
    ${p.ksa?`<div class="note hx-ksa"><b>Saudi Arabia.</b> ${esc(p.ksa)}</div>`:""}

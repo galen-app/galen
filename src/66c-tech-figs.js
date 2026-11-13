@@ -174,6 +174,41 @@ Object.assign(FIG,{
   {l:"Blur: rays miss the retina",hide:true,c:"In a refractive error the light from a point focuses in front of or behind the retina, so it spreads into a blur.",s:()=>`${[50,64,78].map(y=>P.ln(214,y,276,64+(y-64)*.1,"var(--muted)",1)+P.ln(276,64+(y-64)*.1,300,64-(y-64)*.5,"var(--muted)",1)).join("")}${P.t(262,104,"blur","middle","sm")}`},
   {l:"Pinhole: central rays only",c:"A pinhole lets through only the central rays, which need no focusing, so a refractive blur sharpens. No improvement suggests disease.",s:()=>`${P.r(222,40,6,18,"var(--ink)","none",1)}${P.r(222,70,6,18,"var(--ink)","none",1)}${P.ln(206,64,296,64,"var(--accent)",1.6)}${P.t(262,120,"sharpens: refractive","middle","fa sm")}${P.t(262,134,"no change: disease","middle","sm")}`}]}
 });
+Object.assign(FIG,{
+/* ---------------- joint position sense (new) ---------------- */
+"tech-jps":{t:"Joint position sense: grip the sides of the distal phalanx",mode:"dim",
+ c:"Stabilise the proximal phalanx with one hand. With the finger and thumb of the other hand, hold the distal phalanx by its medial and lateral sides, so the patient feels no pressure change on the nail or the pulp. Move it a few degrees up or down at random, returning to neutral between each, with the eyes closed.",
+ hint:"The big toe from the side. Left: right; right: the common mistake.",
+ s:()=>{const toe=x=>`${P.pa(`M${x} 96 L${x+70} 92 Q${x+104} 90 ${x+116} 100 Q${x+120} 112 ${x+106} 120 L${x} 124 Z`,"var(--skin)","var(--line)",1.3)}${P.bone(x+8,110,x+62,106,9)}${P.bone(x+66,106,x+100,106,8)}${P.pa(`M${x+84} 93 Q${x+102} 92 ${x+110} 98`,"none","var(--ink2)",2.4)}`;
+  return `${TF.H(80,14,"Right")}${TF.H(244,14,"Mistake")}${toe(14)}${toe(178)}${P.t(80,150,"IP joint","middle","sm")}${P.ln(80,140,80,112,"var(--muted)",1,"2 2")}${P.ln(164,24,164,180,"var(--line)",1,"2 4")}`;},
+ L:[
+  {l:"Stabilise the proximal phalanx",c:"One hand holds the proximal phalanx still, so only the interphalangeal joint moves.",s:()=>`${P.e(48,108,13,9,"var(--accent-soft)","var(--accent)",1.6)}${P.t(48,82,"steady","middle","fa")}`},
+  {l:"Grip the distal phalanx by its sides",c:"Finger and thumb on the medial and lateral sides: here you see the near-side finger pad over the bone, not on the nail or pulp.",s:()=>`${P.e(100,106,10,8,"var(--accent-soft)","var(--accent)",1.6)}${P.t(104,74,"sides only","middle","fa")}`},
+  {l:"Small, random moves",c:"A few degrees up or down, in random order, back to neutral each time; 5 to 10 trials.",s:()=>`${P.ar(118,104,122,86,"var(--accent)",2)}${P.ar(118,108,122,126,"var(--accent)",2)}${P.t(80,170,"a few degrees, random","middle","fa")}`},
+  {l:"Holding the nail and the pulp",bad:true,c:"Pressure on the top and bottom tells the patient the direction by touch, so a proprioceptive loss is missed.",s:()=>`${P.e(270,86,10,6,"var(--bad-soft)","var(--bad)",1.6)}${P.e(270,126,10,6,"var(--bad-soft)","var(--bad)",1.6)}${P.t(246,160,"pressure cues give","middle","bad")}${P.t(246,174,"the answer away","middle","bad")}`}]},
+/* ---------------- monofilament (new) ---------------- */
+"tech-monofilament":{t:"10 g monofilament: three sites, buckle, hold, sham",mode:"build",
+ c:"IWGDF method: test the plantar hallux and the first and fifth metatarsal heads of each foot, avoiding callus. Press perpendicular to the skin until the filament bends, hold about 1 to 2 seconds, and include one sham per site. Protective sensation is present if at least 2 of 3 answers are right. Rest a filament for 24 hours after 10 to 15 patients and replace it after 70 to 90.",
+ hint:"Left: the sole of the right foot (big toe on your right). Right: the filament.",
+ s:()=>`${P.pa("M60 190 Q36 186 34 156 Q30 120 36 92 Q42 60 66 48 Q98 36 126 42 Q144 50 146 76 Q148 108 134 132 Q124 152 120 172 Q114 192 90 192 Z","var(--skin)","var(--line)",1.3)}
+ ${P.c(130,38,11,"var(--skin)","var(--line)")}${P.c(106,30,7,"var(--skin)","var(--line)")}${P.c(88,32,6,"var(--skin)","var(--line)")}${P.c(72,38,5.5,"var(--skin)","var(--line)")}${P.c(58,48,5,"var(--skin)","var(--line)")}
+ ${P.ln(220,20,220,186,"var(--line)",1,"2 4")}${P.ln(234,180,312,180,"var(--line)",2)}${P.t(272,194,"skin","middle","sm")}`,
+ L:[
+  {l:"Three sites per foot",c:"Plantar hallux, first metatarsal head and fifth metatarsal head; move off callus, scars and ulcers.",s:()=>`${[[130,36],[124,66],[52,78]].map(([x,y])=>P.c(x,y,6,"var(--accent-soft)","var(--accent)",2)).join("")}${P.t(160,38,"hallux","start","fa sm")}${P.t(160,70,"1st MT head","start","fa sm")}${P.t(12,104,"5th MT head","start","fa sm")}`},
+  {l:"Perpendicular until it bends",c:"Press straight down until the filament buckles into a C: that is the 10 g force.",s:()=>`${P.r(262,22,20,40,"var(--surface3)","var(--ink2)",4)}${P.pa("M272 62 Q296 110 272 180","none","var(--ink)",2.4)}${P.t(304,120,"C bend","end","fa")}`},
+  {l:"Hold 1 to 2 s, then a sham",c:"Hold about 1 to 2 seconds, remove, and at each site add one sham (no touch) at a random moment. Ask: 'Do you feel it? Which foot?'",s:()=>`${P.t(250,86,"1-2 s","end","fa")}${P.t(160,150,"2 of 3 right:","start","fb")}${P.t(160,164,"sensation present","start")}`},
+  {l:"Sliding or over callus",bad:true,hide:true,c:"Sliding across the skin or tapping repeatedly changes the force; callus raises the threshold. Both give false results.",s:()=>`${P.e(120,64,16,10,"var(--warn-soft)","var(--warn)",1)}${P.x(120,64)}${P.ar(236,170,300,170,"var(--bad)",2)}${P.t(268,160,"no sliding","middle","bad")}${P.t(160,104,"not on callus","start","bad")}`}]},
+/* ---------------- two-point discrimination (new) ---------------- */
+"tech-2pd":{t:"Two-point discrimination: along the axis, one side at a time",mode:"dim",
+ c:"Each side of the fingertip pulp has its own digital nerve. Place both points along the long axis of the finger on one side of the pulp, with just enough pressure to blanch the skin, and test the radial and ulnar sides separately. Points placed across the pulp touch both nerves' territories, so an intact nerve on one side can hide a cut nerve on the other.",
+ hint:"The index finger pulp, palm up: radial side on your left.",
+ s:()=>{const f=x=>`${P.pa(`M${x-26} 196 L${x-26} 60 Q${x-26} 22 ${x} 22 Q${x+26} 22 ${x+26} 60 L${x+26} 196 Z`,"var(--skin)","var(--line)",1.3)}${P.nv(`M${x-18} 196 L${x-18} 40`,2)}${P.nv(`M${x+18} 196 L${x+18} 40`,2)}${P.ln(x-26,84,x+26,84,"var(--line)",1,"2 3")}`;
+  return `${TF.H(80,14,"Right")}${TF.H(240,14,"Mistake")}${f(80)}${f(240)}${P.t(42,190,"radial","end","sm")}${P.t(118,190,"ulnar","start","sm")}${P.ln(160,24,160,196,"var(--line)",1,"2 4")}`;},
+ L:[
+  {l:"Along the long axis, one side",c:"Both points sit on one side of the pulp, one above the other, over one digital nerve.",s:()=>`${P.c(64,44,4,"var(--accent)","none")}${P.c(64,62,4,"var(--accent)","none")}${P.ln(64,44,64,62,"var(--accent)",1.2)}${P.t(78,120,"one nerve","middle","fa")}`},
+  {l:"Then the other side",c:"Repeat on the other side of the pulp and compare with the same side of the uninjured finger.",s:()=>`${P.c(96,44,4,"var(--accent)","none")}${P.c(96,62,4,"var(--accent)","none")}${P.ln(96,44,96,62,"var(--accent)",1.2)}`},
+  {l:"Points across the pulp",bad:true,c:"Across the pulp, one point lands in each nerve's territory: an intact ulnar digital nerve can make a cut radial nerve look normal.",s:()=>`${P.c(224,52,4,"var(--bad)","none")}${P.c(256,52,4,"var(--bad)","none")}${P.ln(224,52,256,52,"var(--bad)",1.2)}${P.t(240,120,"both nerves","middle","bad")}${P.t(240,134,"touched","middle","bad")}`}]}
+});
 /* The sign pages share the corrected, layered technique drawings (same ids, so SIGNS[].fig keeps working). */
 [["hints","tech-head-impulse","Head impulse test","Turn the head 10 to 20° quickly while the patient fixes on your nose. A working vestibulo-ocular reflex counter-rotates the eyes so they stay on target. A peripheral lesion needs a catch-up saccade (reassuring in acute vestibular syndrome); a normal impulse with acute continuous vertigo is the worrying one. Avoid head thrusts with neck pain or possible neck injury."],
  ["dixhallpike","tech-hallpike","Dix-Hallpike and the posterior canal",null],

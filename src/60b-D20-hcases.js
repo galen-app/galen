@@ -1,7 +1,7 @@
 "use strict";
 /* D20 (7.1): history-first ER and occupational cases ("Take the history").
    Each case uses the question bank of one HIST presentation (pres), keyed by ask[].k.
-   ans[k] = {a: the patient's or witness's answer, lr: likelihood ratio this answer carries for the focus diagnosis (only when a source gives one for the finding as answered), grp: shared mechanism (optional)}.
+   ans[k] = {l: short label for the probability chart, a: the patient's or witness's answer, lr: likelihood ratio this answer carries for the focus diagnosis (only when a source gives one for the finding as answered), grp: shared mechanism (optional)}.
    Questions without an entry get the default answer and count as low yield. "ice" is always offered.
    must: the red-flag questions a competent clinician asks in this case. pre: a teaching estimate of the pre-test probability of the focus diagnosis in this setting, not a measured base rate.
    act: the next step, one correct option. Store: Store.s.notes["hc:"+id] = {best,last,n,t}. */
@@ -10,9 +10,9 @@ const HCASES=[
  stem:"54-year-old crane operator on a construction site in August. Tightness in the chest started while he climbed the ladder to the cab 40 minutes ago. He climbed down and is sitting in the site clinic. Still uncomfortable.",
  vit:{HR:96,BP:"158/94",RR:20,SpO2:"96%",T:"37.2"},focus:"Acute coronary syndrome",pre:30,budget:7,
  ans:{onset:{a:"It came on halfway up the ladder and built up over a couple of minutes. It has not gone away, about 40 minutes now."},
-  rad:{a:"It goes into both arms, more the left, and up into the jaw.",lr:4.1},
-  exer:{a:"Last week it came twice on the ladder and went off when I sat in the cab.",lr:2.4},
-  sweat:{a:"I was soaked, more than the heat does to me, and I felt sick.",lr:2.0},
+  rad:{a:"It goes into both arms, more the left, and up into the jaw.",lr:4.1,l:"Both arms"},
+  exer:{a:"Last week it came twice on the ladder and went off when I sat in the cab.",lr:2.4,l:"Exertional"},
+  sweat:{a:"I was soaked, more than the heat does to me, and I felt sick.",lr:2.0,l:"Sweating"},
   pleur:{a:"No, breathing in does not change it."},
   palp:{a:"No, pressing there does nothing. It is inside, like a weight."},
   tear:{a:"No, not tearing. Heavy pressure, the same all the time."},
@@ -83,7 +83,7 @@ const HCASES=[
   meal:{a:"Breakfast at six."},
   mech:{a:"(Paramedic) About 3 metres onto concrete. He landed on his side and his helmet came off."},
   loc:{a:"I cannot remember falling. My mate says I was out for a minute."},
-  vomit:{a:"I have been sick twice in the ambulance.",lr:3.6},
+  vomit:{a:"I have been sick twice in the ambulance.",lr:3.6,l:"Vomited twice"},
   fit:{a:"(Paramedic) No fit."},
   age:{a:"I am 42. No bone problems."},
   neck:{a:"The back of my neck hurts in the middle."},
@@ -128,7 +128,7 @@ const HCASES=[
  vit:{HR:104,BP:"138/84",RR:18,SpO2:"98%",T:"37.3"},focus:"Generalised tonic-clonic seizure",pre:45,budget:7,
  ans:{wit:{a:"(Colleague) He went stiff, cried out, then shook all over for about two minutes. I filmed the end on my phone."},
   before:{a:"Nothing. I was sitting at the desk, then I woke up here."},
-  tongue:{a:"The side of my tongue is bitten and sore.",lr:24},
+  tongue:{a:"The side of my tongue is bitten and sore.",lr:24,l:"Lateral bite"},
   after:{a:"(Colleague) He was confused for about 20 minutes and kept asking the same thing. Now he aches all over."},
   gluc:{a:"(Paramedic) Glucose 5.6. He is not diabetic."},
   etoh:{a:"I rarely drink. The doctor started tramadol for my back 2 weeks ago, and I doubled it this week."},
@@ -149,11 +149,11 @@ const HCASES=[
 {id:"hc-gibleed",pres:"gibleed",setting:"ER",title:"Black stools and a faint",
  stem:"61-year-old man with 2 days of black stools who fainted on the toilet this morning. Pale and clammy.",
  vit:{HR:112,BP:"102/64",RR:20,SpO2:"97%",T:"36.6"},focus:"Upper GI source of bleeding",pre:55,budget:6,
- ans:{what:{a:"Black, sticky, like tar, and it smells terrible. No red blood, no clots.",lr:5.1},
+ ans:{what:{a:"Black, sticky, like tar, and it smells terrible. No red blood, no clots.",lr:5.1,l:"Melaena"},
   faint:{a:"I fainted on the toilet. I feel dizzy when I stand and very thirsty."},
   liver:{a:"No liver problems. I drink very little."},
   drugs:{a:"Ibuprofen three times a day for my knee for a month, and aspirin 81 mg daily."},
-  prev:{a:"I had a stomach ulcer 10 years ago.",lr:6.2},
+  prev:{a:"I had a stomach ulcer 10 years ago.",lr:6.2,l:"Prior ulcer"},
   retch:{a:"No vomiting or retching."},
   dys:{a:"No trouble swallowing, no weight loss."},
   bowel:{a:"No red blood. My bowels are normal apart from this."},
@@ -227,7 +227,7 @@ const HCASES=[
   vacc:{a:"Her 8-week vaccinations are next week."},
   travel:{a:"No travel."},
   pmh:{a:"No medical problems. No antibiotics."},
-  gut:{a:"This is not like her at all. I am really frightened.",lr:14.4},
+  gut:{a:"This is not like her at all. I am really frightened.",lr:14.4,l:"Parent worried"},
   safety:{a:"We live 10 minutes away."},
   ice:{a:"Is it meningitis? My friend's baby had meningitis."}},
  must:["age","activity","colour","breath","hydr"],

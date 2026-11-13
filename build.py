@@ -63,9 +63,9 @@ page = f'''<!doctype html>
 if ('serviceWorker' in navigator) {{
   /* The update banner follows reg.waiting, so it comes back on every start until the user updates.
      The app also checks for an update when it comes back into view (Android keeps the PWA alive for days), when it comes online, and hourly. */
-  const tell = reg => {{ if (reg.waiting && navigator.serviceWorker.controller) document.dispatchEvent(new CustomEvent('galen:update', {{ detail: reg }})); }};
+  const tell = reg => {{ if (reg && reg.waiting && navigator.serviceWorker.controller) document.dispatchEvent(new CustomEvent('galen:update', {{ detail: reg }})); }};
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js', {{ updateViaCache: 'none' }}).then(reg => {{
-    window.GALEN_SW = reg; tell(reg);
+    if (!reg) return; window.GALEN_SW = reg; tell(reg);
     reg.addEventListener('updatefound', () => {{ const w = reg.installing; w && w.addEventListener('statechange', () => {{ if (w.state === 'installed') tell(reg); }}); }});
     let last = Date.now(); const check = () => {{ if (Date.now() - last < 60000 || navigator.onLine === false) return; last = Date.now(); reg.update().catch(() => {{}}); }};
     document.addEventListener('visibilitychange', () => {{ if (!document.hidden) check(); }});

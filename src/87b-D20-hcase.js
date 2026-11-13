@@ -71,7 +71,7 @@ function drawHc(root,c,S){
   }else{
     const R=hcScore(c,S),fin=c.ddx.find(d=>d.final).dx,mine=hcPath(c,S.asked),all=hcPath(c,Object.keys(c.ans)),t=hcClock(S);
     const qOf=k=>qs.find(q=>q.k===k)||{q:k,why:""};
-    const bars=pts=>`<div class="ppath">${pts.map(([k,v])=>`<div><span>${Math.round(v)}%</span><i style="height:${Math.max(4,v)}%"></i><span class="hc-pl">${esc(k==="Start"?"Start":(qOf(k).target||k))}</span></div>`).join("")}</div>`;
+    const bars=pts=>`<div class="ppath">${pts.map(([k,v])=>`<div><span>${Math.round(v)}%</span><i style="height:${Math.max(4,v)}%"></i><span class="hc-pl">${esc(k==="Start"?"Start":((c.ans[k]&&c.ans[k].l)||qOf(k).target||k))}</span></div>`).join("")}</div>`;
     const ao=c.act.opts[S.act]||{},good=c.act.opts.find(o=>o.ok);
     body=`<div class="card stack"><div class="row-x" style="gap:16px">${ring(R.total/100,76,8,R.total)}<div class="stack" style="gap:4px;flex:1;min-width:0"><span class="eyebrow">Diagnosis</span><h2>${esc(fin)}</h2><span class="pill ${R.ok?"good":"bad"}">${R.ok?"You got it":"You said "+esc(S.final)} · ${S.conf}% sure</span></div></div>
       <div class="lrrow small hc-sc"><span>Red flags ${R.red}/35</span><span>Focus ${R.eff}/10</span><span>Diagnosis ${R.dx}/25</span><span>Next step ${R.act}/15</span><span>Calibration ${R.cal}/10</span><span>ICE ${R.ice}/5</span></div>

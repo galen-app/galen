@@ -217,7 +217,6 @@ document.addEventListener("keydown",e=>{if(e.target.id==="palq"&&e.key==="Enter"
 /* ---------- the old code, and the candlelit theatre ---------- */
 function candlesOn(){return document.documentElement.classList.contains("candles");}
 function setCandles(on){const h=document.documentElement;h.classList.toggle("candles",!!on);_lsSet("galen.candles",on?"1":null);
-  if(on&&!$(".candlelight")){const c=document.createElement("div");c.className="candlelight";c.setAttribute("aria-hidden","true");c.innerHTML="<i></i><i></i><i></i>";document.body.append(c);}
   decorateTheatre();}
 function _konami(){const first=!eggFound("konami");_gfx("seal");
   if(first){setCandles(true);findEgg("konami");}

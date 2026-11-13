@@ -40,21 +40,12 @@
 .theatre .egg-candle .fl{display:none}
 .theatre .egg-candle .halo{fill:var(--accent);opacity:.16}
 
-/* ---- the candlelit theatre (the Konami reward): the room darkens, the engraving turns to night, every tier is lit ---- */
-.candlelight{display:none}
-html.candles .candlelight{display:block;position:fixed;inset:0;pointer-events:none;z-index:15}
-.candlelight i{position:absolute;inset:0;will-change:opacity;transform:translateZ(0)}
-.candlelight i:nth-child(1){background:radial-gradient(ellipse 85% 75% at 50% 52%,transparent 38%,rgb(28 13 3 / .30) 72%,rgb(18 8 2 / .55) 100%)}
-.candlelight i:nth-child(2){background:radial-gradient(60% 45% at 50% 100%,rgb(255 150 60 / .16),transparent 70%),radial-gradient(40% 30% at 0% 50%,rgb(255 140 50 / .08),transparent 70%),radial-gradient(40% 30% at 100% 50%,rgb(255 140 50 / .08),transparent 70%);animation:candleBreath 4.7s ease-in-out infinite}
-.candlelight i:nth-child(3){background:radial-gradient(120% 90% at 50% 0%,rgb(255 170 80 / .07),transparent 60%);animation:candleBreath 6.3s ease-in-out -2s infinite}
-@keyframes candleBreath{0%,100%{opacity:.75}22%{opacity:1}41%{opacity:.82}63%{opacity:.97}80%{opacity:.7}}
-html.candles .stage .glow{animation:flicker 5s infinite;opacity:1}
+/* ---- the candlelit theatre (the Konami reward). D15's base CSS dims the room and lights its edges;
+   here the engraving itself turns to night and every tier of the theatre is lit. ---- */
 html.candles section.theatre,html.candles .theatre:has(svg.th){
   --ink-engr:#e8c995;--surface:#2b1a0c;--surface2:#1d1207;--surface3:#26170a;--accent-ink:#ffbf86;
   background:radial-gradient(ellipse at 50% 56%,rgb(255 150 60 / .30),rgb(80 40 12 / .55) 38%,#140b04 82%);border-color:#5a3a18;
-  box-shadow:0 10px 40px -12px rgb(255 120 30 / .45),inset 0 0 60px rgb(0 0 0 / .65)}
-html.candles .theatre .flame{filter:drop-shadow(0 0 3px #ffb054) drop-shadow(0 0 9px rgb(255 130 40 / .75))}
+  box-shadow:0 10px 40px -12px rgb(255 120 30 / .45),inset 0 0 40px rgb(0 0 0 / .6)}
 html.candles .theatre .egg-candle .fl{display:inline}
 html.candles .theatre .egg-candle .halo{opacity:.28}
 html.candles .theatre text{fill:#f6d9a8}
-@media (prefers-reduced-motion:reduce){.candlelight i{animation:none!important}html.candles .stage .glow{animation:none}}

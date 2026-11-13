@@ -146,7 +146,10 @@ function padMove(dx,dy){padOn();const m=modalTop();const a=document.activeElemen
   /* sliders and menus take left and right */
   if(dx&&a.matches("input[type=range]")){dx>0?a.stepUp():a.stepDown();a.dispatchEvent(new Event("input",{bubbles:true}));a.dispatchEvent(new Event("change",{bubbles:true}));return;}
   if(dx&&a.tagName==="SELECT"){const i=clamp(a.selectedIndex+dx,0,a.options.length-1);if(i!==a.selectedIndex){a.selectedIndex=i;a.dispatchEvent(new Event("input",{bubbles:true}));a.dispatchEvent(new Event("change",{bubbles:true}));}return;}
-  const best=padSpatial(a,zoneList(z),dx,dy);if(best){padFocus(best);return;}
+  const zl=zoneList(z);
+  /* inside the engraved theatre, the doors (and whatever hides among them) come first */
+  const ring=a.matches(".door,[data-egg]")?padSpatial(a,zl.filter(el=>el.matches(".door,[data-egg]")),dx,dy):null;
+  const best=ring||padSpatial(a,zl,dx,dy);if(best){padFocus(best);return;}
   let hop=null;const side=railSide(),paneOn=zoneList("pane").length>0;
   if(z==="main"){if(dx<0&&side)hop="rail";else if(dy>0&&!side)hop="rail";else if(dx>0&&paneOn)hop="pane";else if(dy<0)hop="top";}
   else if(z==="rail"){if((side&&dx>0)||(!side&&dy<0))hop="main";}

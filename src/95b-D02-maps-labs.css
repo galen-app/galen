@@ -49,9 +49,10 @@
 .cmap-svg.focus .el:not(.on){opacity:.25}
 .cmap-svg.focus .el.on{fill:var(--ink)}
 .cmap-svg .nd,.cmap-svg .ed,.cmap-svg .el{transition:opacity .15s}
-.cm-ctl{position:absolute;right:8px;top:8px;display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px;box-shadow:var(--shadow,none)}
+.cm-tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:8px}
+.cm-ctl{display:flex;gap:4px;flex:none}
 .cm-ctl .btn{min-width:44px;min-height:40px;padding:0 10px;font-size:1rem}
-.cm-hint{margin:6px 2px 0}
+.cm-hint{margin:0;flex:1 1 200px}
 /* type colours: node fill + border, list item edge, glyphs */
 .t-symptom{--cmc:var(--cm-symptom);--cmb:var(--cm-symptom-bg)}.t-history{--cmc:var(--cm-history);--cmb:var(--cm-history-bg)}
 .t-mechanism{--cmc:var(--cm-mechanism);--cmb:var(--cm-mechanism-bg)}.t-anatomy{--cmc:var(--cm-anatomy);--cmb:var(--cm-anatomy-bg)}
@@ -66,8 +67,8 @@
 .cm-rels{display:flex;flex-direction:column;gap:4px}
 .cm-rel{display:flex;gap:8px;align-items:baseline;text-align:left;background:none;border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-height:44px;color:var(--ink);font:inherit;font-size:.95rem;cursor:pointer}
 .cm-rel:hover,.cm-rel:focus-visible{border-color:var(--accent)}
-.cm-rel i{font-style:italic;color:var(--ink2)}
-.cm-dir{flex:none;font-size:.8rem;color:var(--muted);min-width:2.6em}
+.cm-rel b{display:block;font-weight:600}.cm-rel i{display:block;font-style:italic;color:var(--ink2);font-size:.88rem}
+.cm-dir{flex:none;color:var(--accent-ink,var(--accent));font-weight:700}
 /* list view */
 .cm-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:16px;counter-reset:none}
 .cm-step{display:flex;flex-direction:column;gap:8px;position:relative;padding-left:18px;border-left:2px solid var(--line)}
