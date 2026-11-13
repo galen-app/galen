@@ -130,9 +130,9 @@ const Safety=(()=>{
       <p>Only one window saves your progress at a time, so nothing is overwritten.</p><div class="st-row"><button type="button" class="btn" id="st-here">Use Galen here</button></div></div></div>`);
     overlay.querySelector("#st-here").addEventListener("click",()=>takeOver(false));document.body.append(overlay);setTimeout(()=>{const b=overlay&&overlay.querySelector("#st-here");if(b)b.focus();},30);}
   function unveil(){if(overlay){overlay.remove();overlay=null;}}
-  function holdLock(){return new Promise(res=>{held=res;});}
+  function holdLock(){Store.lockHeld=true;return new Promise(res=>{held=()=>{Store.lockHeld=false;res();};});}
   function writer(reload){Store.passive=false;unveil();if(reload){Store.reloadFromDisk();rerender();try{Store.sync().catch(()=>{});}catch(x){}}Store.status=Store.provider?Store.status:"This device";Store.emit("status");}
-  function passive(kind,later){try{Store.flush();}catch(x){}Store.passive=true;Store.status="Open in another window";Store.emit("status");
+  function passive(kind,later){try{Store.flush();}catch(x){}Store.passive=true;Store.lockHeld=false;Store.status="Open in another window";Store.emit("status");
     if(later)setTimeout(()=>{if(Store.passive)veil(kind);},1200);else veil(kind);queue();}
   /* wait in line: when the writing window closes, this one takes over by itself */
   function queue(){if(queued)return;const ac=typeof AbortController==="function"?new AbortController():null;queued=ac||{};

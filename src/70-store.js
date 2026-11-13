@@ -235,6 +235,10 @@ function _mergeStates(a0,b0){
   o.log=[...byId.values()].sort((x,y)=>(x.t||x.at||0)-(y.t||y.at||0)).slice(-400);
   /* counters: per device, summed */
   const CE=stCtrEpoch(o),sides=[[a,aLegacy],[b,bLegacy]].filter(([s])=>stCtrEpoch(s)>=CE);
+  /* a copy saved without a commit shows totals above its counters: keep that gain in its base */
+  for(const [s,leg] of sides){if(leg)continue;const sum=stCtrSum(s.ctr),base=s.ctr._base||(s.ctr._base={s:0,xp:0,d:{}});if(!stObj(base.d))base.d={};
+    if((s.xp||0)>Math.round(sum.xp)&&sum.xp>=0)base.xp=(base.xp||0)+(s.xp-sum.xp);
+    for(const d of Object.keys(s.days))if((s.days[d]||0)>Math.round(sum.d[d]||0))base.d[d]=(base.d[d]||0)+(s.days[d]-(sum.d[d]||0));}
   const ctr={};
   for(const [s,leg] of sides){if(leg)continue;for(const k of Object.keys(s.ctr)){const e=s.ctr[k],p=ctr[k];
     if(k==="_base"){if(!p)ctr[k]=JSON.parse(JSON.stringify(e));else{p.xp=Math.max(p.xp||0,e.xp||0);for(const d of Object.keys(e.d||{}))p.d[d]=Math.max(p.d[d]||0,e.d[d]||0);}}
@@ -323,7 +327,7 @@ const Store={
       this._s=sanitizeState(o);stCtrEnsure(this._s);stCtrApply(this._s);this.rebase();this._lastRaw=raw;this.emit();return true;}catch(e){return false;}
   },
   /* ---------- change tracking ---------- */
-  _recStr(r){return JSON.stringify(r,(k,v)=>k==="_m"||k==="_ft"?undefined:v);},
+  _recStr(r){return JSON.stringify(r);},
   rebase(){
     const m=new Map(),s=this._s;
     for(const c of ST_REC){const C=s[c];if(!stObj(C))continue;for(const id of Object.keys(C))if(stObj(C[id]))m.set(c+ST_SEP+id,this._recStr(C[id]));}
@@ -338,7 +342,7 @@ const Store={
     const fieldwise=(c,id)=>c==="log"||(c==="notes"&&String(id).startsWith("tech:"));
     const look=(c,id,r)=>{const k=c+ST_SEP+id;live.add(k);const str=this._recStr(r),old=this._snap.get(k);if(old===str)return;const st=T();
       if(old!==undefined&&fieldwise(c,id)){try{const o=JSON.parse(old),ft=stObj(r._ft)?r._ft:{},base=stRecTime(c,r)||st;for(const f of stUni(Object.keys(o),Object.keys(r))){if(f==="_m"||f==="_ft")continue;if(JSON.stringify(o[f])!==JSON.stringify(r[f]))ft[f]=st;else if(!ft[f])ft[f]=Math.min(base,st);}r._ft=ft;}catch(e){}}
-      r._m=st;this._snap.set(k,str);untomb(c,id);};
+      r._m=st;this._snap.set(k,JSON.stringify(r));untomb(c,id);};
     for(const c of ST_REC){const C=s[c];if(!stObj(C))continue;for(const id of Object.keys(C)){const r=C[id];if(stObj(r))look(c,id,r);}}
     if(Array.isArray(s.log)){let minT=Infinity;for(const e of s.log){if(!stObj(e))continue;if(!e.id)e.id=String(e.at||e.t||Date.now());look("log",e.id,e);minT=Math.min(minT,e.t||e.at||0);}
       this._minLog=minT;}
@@ -361,7 +365,7 @@ const Store={
   cache(){
     if(this.readOnly||this.passive||this.holdWrites)return false;
     this.commit();
-    try{const raw=localStorage.getItem(LS);if(raw&&raw!==this._lastRaw){const other=stParse(raw);if(stLooksLikeState(other)&&!stIsNewer(other)){this._s=_mergeStates(this._s,other);this.rebase();}}}catch(e){}
+    if(!this.lockHeld)try{const raw=localStorage.getItem(LS);if(raw&&raw!==this._lastRaw){const other=stParse(raw);if(stLooksLikeState(other)&&!stIsNewer(other)){this._s=_mergeStates(this._s,other);this.rebase();}}}catch(e){}
     let out;try{out=JSON.stringify(this._s);}catch(e){stDiag("could not serialise: "+e.message);return false;}
     const write=()=>{localStorage.setItem(LS,out);this._lastRaw=out;};
     try{write();}
@@ -377,17 +381,19 @@ const Store={
     if(this.saveProblem!==kind){this.saveProblem=kind;this.status=kind==="full"?"Not saved: storage full":"Not saved on this device";stDiag(kind==="full"?"storage full, progress not saved":"storage blocked");this.signal("problem");this.emit("status");}
     return false;
   },
+  /* save(): written to this device within 250 ms (calls in a burst are coalesced; page hide and save(true) write at once) */
   save(now){
     if(this.readOnly||this.passive)return;
-    this.commit();this._s.updated=Math.round(GClock.now());
+    this._s.updated=Math.round(GClock.now());
     if(this._s.log.length>400)this._s.log=this._s.log.slice(-400);
-    this.cache();clearTimeout(this._t);
+    clearTimeout(this._w);if(now)this.cache();else{this._dirty=true;this._w=setTimeout(()=>{this._dirty=false;this.cache();},250);}
+    clearTimeout(this._t);
     if(!this.provider||this.blocked)return;
     if(this.status!=="Not saved: storage full"){this.status="Saving…";this.emit("status");}
     this._t=setTimeout(()=>this.push(),now?0:1500);
   },
   /* write any pending change now (page hidden or closing, or handing over to another tab) */
-  flush(){clearTimeout(this._t);if(this.readOnly||this.passive)return;this.cache();},
+  flush(){clearTimeout(this._w);this._dirty=false;if(this.readOnly||this.passive)return;this.cache();},
   /* ---------- snapshots, reset, restore ---------- */
   snapshotInfo(key){const raw=this.aside(key);if(!raw)return null;let t=0,groups=null;try{t=+localStorage.getItem(key+".t")||0;groups=JSON.parse(localStorage.getItem(key+".groups")||"null");}catch(e){}return {raw,t,groups};},
   /* Reset: a backup is kept on the device, an epoch makes the reset win over every other copy, and Undo is offered.
