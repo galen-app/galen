@@ -3,7 +3,7 @@ const {chromium}=require('playwright');(async()=>{const b=await chromium.launch(
 const p=await b.newPage({viewport:{width:1440,height:900}});p.on('pageerror',e=>errs.push('pageerror '+e.message));
 await p.goto('http://localhost:8765/');await p.waitForTimeout(900);
 ok('theatre svg has 12 doors + table',await p.evaluate(()=>document.querySelectorAll('svg.th .door').length===13));
-await p.click('svg.th .door[data-go="learn/hall/lungs"]');await p.waitForTimeout(400);ok('door opens hall',await p.evaluate(()=>cur().v==='hall'&&cur().a==='lungs'));
+await p.click('svg.th .door[data-go="today/hall/lungs"]');await p.waitForTimeout(400);ok('door opens hall',await p.evaluate(()=>cur().v==='hall'&&cur().a==='lungs'));
 ok('hall tint set',await p.evaluate(()=>document.documentElement.dataset.hall==='lungs'));
 ok('outline chapters render',await p.evaluate(()=>document.querySelectorAll('.chap').length===OUTLINE.lungs.length));
 await p.click('[data-act=chap-all]');ok('open all',await p.evaluate(()=>[...document.querySelectorAll('.chap')].every(d=>d.open)));
@@ -18,8 +18,8 @@ const chip=await p.$('#view [data-go^="signs/sign/"]');await chip.click();await 
 ok('sign opens in reference pane, not over the work',await p.evaluate(()=>cur().v==='module'&&!!document.querySelector('#refpane h2')));
 await p.click('#refpane [data-rp-close]');ok('pane closes',await p.evaluate(()=>!document.querySelector('#refpane [data-rp-close]')));
 /* eggs */
-await p.keyboard.press('/');await p.waitForTimeout(200);await p.keyboard.type('rete mirabile');await p.waitForTimeout(300);
-ok('search egg found',await p.evaluate(()=>eggFound('rete')&&!!document.querySelector('.helpov')));
+await p.keyboard.press('/');await p.waitForTimeout(200);await p.keyboard.type('rete mirabile');await p.waitForTimeout(1000);
+ok('search egg found, non-modal, focus kept',await p.evaluate(()=>eggFound('rete')&&!!document.querySelector('.egg-note')&&document.activeElement.id==='palq'));
 await p.keyboard.press('Escape');await p.waitForTimeout(100);await p.evaluate(()=>{document.querySelector('.helpov')?.remove();closePalette();});
 for(const k of ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'])await p.keyboard.press(k);
 await p.waitForTimeout(200);ok('konami egg',await p.evaluate(()=>eggFound('konami')));await p.evaluate(()=>document.querySelectorAll('.helpov').forEach(e=>e.remove()));
@@ -33,7 +33,7 @@ await p.keyboard.press('?');ok('help overlay',await p.evaluate(()=>!!document.qu
 /* alt tabs */
 await p.keyboard.press('Alt+3');ok('Alt+3 → Signs',await p.evaluate(()=>NAV.tab==='signs'));
 /* sound engine runs headless without throwing */
-ok('sound engine',await p.evaluate(async()=>{TP.amb=1;TP.music=1;tpSave();SND.apply();SND.fx('right');SND.fx('wrong');SND.fx('seal');SND.playTune();await new Promise(r=>setTimeout(r,300));SND.duck(true);SND.duck(false);TP.amb=0;TP.music=0;SND.apply();return !!SND.ctx;}));
+ok('sound engine (no NaN: see test/audio.js)',await p.evaluate(async()=>{TP.amb=1;TP.music=1;tpSave();SND.apply();SND.fx('right');SND.fx('wrong');SND.fx('seal');SND.playTune();await new Promise(r=>setTimeout(r,300));SND.duck(true);SND.duck(false);TP.amb=0;TP.music=0;SND.apply();return !!SND.ctx;}));
 /* codex and stories */
 await p.evaluate(()=>open('learn','codex'));await p.waitForTimeout(300);ok('codex lists all stories',await p.evaluate(()=>document.querySelectorAll('#view .lorecard').length===LORE.length));
 await p.click('[data-f=dark]');ok('filter dark',await p.evaluate(()=>document.querySelectorAll('#view .lorecard').length===LORE.filter(l=>l.k==='dark').length));

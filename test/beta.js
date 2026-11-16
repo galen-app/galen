@@ -90,7 +90,7 @@ const figId=await f.evaluate(()=>Object.keys(FIG)[0]);await f.evaluate(id=>Sketc
 const cv=await f.$('.sk-c');const cb=await cv.boundingBox();await f.mouse.move(cb.x+10,cb.y+10);await f.mouse.down();await f.mouse.move(cb.x+100,cb.y+80);await f.mouse.up();
 await f.click('[data-a="reveal"]');await f.click('[data-a="done"]');await f.waitForTimeout(100);log('sketch closed',await f.evaluate(()=>!document.querySelector('.lb')&&document.body.style.overflow===''));
 // backup/restore roundtrip through Store
-const s1=await f.evaluate(()=>JSON.stringify(Store.s.srs).length);await f.evaluate(()=>{const snap=JSON.parse(JSON.stringify(Store.s));Store.s.srs={};Store.s=mergeStates(Store.s,snap);});const s2=await f.evaluate(()=>JSON.stringify(Store.s.srs).length);log('merge-restore',s1===s2);if(s1!==s2)add('data','restore merge lost srs data');
+const s1=await f.evaluate(()=>JSON.stringify(Store.s.srs).length);await f.evaluate(()=>{const snap=JSON.parse(JSON.stringify(Store.s));Store.s.srs={};Store.restore(snap);});const s2=await f.evaluate(()=>JSON.stringify(Store.s.srs).length);log('merge-restore',s1===s2);if(s1!==s2)add('data','restore merge lost srs data');
 // reload persistence
 await f.reload();await f.waitForTimeout(1200);await f.evaluate(k=>window.__known=k,known);const s3=await f.evaluate(()=>Object.keys(Store.s.srs).length);log('after reload srs',s3);if(!s3)add('data','progress lost on reload');
 // theme toggle

@@ -16,7 +16,7 @@ REGIONS.forEach(r=>r.tests.forEach(t=>{if(!SIGNS[t])warn("region",r.id,"unknown 
 CMAPS.forEach(m=>m.nodes.forEach(n=>{if(n.link){const [tab,v,a]=n.link.split("/");const ok=v==="sign"?!!SIGNS[a]:v==="dcond"?DCOND.some(c=>c.id===a):true;if(!ok)warn("map",m.id,"dangling link",n.link);}}));
 const ids=new Set(DCOND.map(c=>c.id));if(ids.size!==DCOND.length)warn("duplicate derm ids");
 TOOLS.forEach(t=>{if(t.kind==="score"){const max=t.items.reduce((a,i)=>a+Math.max(...i.opts.map(o=>o[1])),0),min=t.items.reduce((a,i)=>a+Math.min(...i.opts.map(o=>o[1])),0);for(let v=min;v<=max;v++)if(!t.bands.some(b=>v>=b.min&&v<=b.max))warn("tool",t.id,"no band for",v);}});
-{const seen=new Set();const GR=["Ear, nose and eye","Peripheral nerve","Sensory","Reflexes and tone","Coordination and gait","Vestibular and eye movements","Meninges and functional"];
+{const seen=new Set();const GR=["Ear, nose and eye","Peripheral nerve","Sensory","Reflexes and tone","Coordination and gait","Vestibular and eye movements","Meninges and functional","Musculoskeletal"];
  TECH.forEach(t=>{if(seen.has(t.id))warn("tech dup",t.id);seen.add(t.id);if(!GR.includes(t.group))warn("tech",t.id,"group",t.group);
   for(const f of ["name","purpose","steps","errors","mcq"])if(!t[f]||(Array.isArray(t[f])&&!t[f].length))warn("tech",t.id,"missing",f);
   (t.steps||[]).forEach((x,i)=>{if(!x.do||!x.why)warn("tech",t.id,"step",i,"needs do+why");});
@@ -38,4 +38,13 @@ TOOLS.forEach(t=>{if(t.kind==="score"){const max=t.items.reduce((a,i)=>a+Math.ma
   ["t","yr","who","sum","fact","galen","src","k"].forEach(f=>{if(!l[f])warn("lore",l.id,"missing",f);});if(!l.body||l.body.length<2)warn("lore",l.id,"short body");if(!LORE_OUT[l.id]||LORE_OUT[l.id].length!==3)warn("lore",l.id,"needs an outline");
   (l.signs||[]).forEach(x=>{if(!SIGNS[x])warn("lore",l.id,"unknown sign",x);});if(/\u2014|—/.test(JSON.stringify(l)))warn("lore",l.id,"em dash");});
  console.log("galen 7:",HALLS.length,"halls,",Object.values(OUTLINE).reduce((a,c)=>a+c.length,0),"chapters,",LORE.length,"stories,",EGGS.length,"secrets");}
+
+/* 7.1 checks: outline ids, tools, derm emergencies, codex links */
+{const ids=new Set();Object.entries(OUTLINE).forEach(([h,chs])=>{if(chs.length>10)warn("outline",h,"has more than 10 chapters (ROMAN has 10)");
+  chs.forEach(c=>{if(!c.id)warn("outline",h,c.t,"no id");else{if(ids.has(c.id))warn("outline dup id",c.id);if(/:/.test(c.id))warn("outline id has colon",c.id);ids.add(c.id);}
+   if(c.master&&(c.master.length<3||c.master.length>5))warn("outline",c.id||c.t,"master should have 3 to 5 objectives");
+   ["red","say","src"].forEach(k=>{if(c[k]!=null&&typeof c[k]!=="string")warn("outline",c.id,k,"not a string");});});});
+ TOOLS.forEach(t=>{if(/\u2014|—/.test(JSON.stringify(t)))warn("tool",t.id,"em dash");});
+ DCOND.forEach(c=>{if(c.g==="Emergency"&&!c.act)warn("derm emergency",c.id,"has no act");});
+ LORE.forEach(l=>(l.go||[]).forEach(g=>{if(!Array.isArray(g)||!g[0]||!g[1])warn("lore",l.id,"bad go link");}));}
 console.log(bad?`${bad} issue(s)`:"all consistent",Object.keys(SIGNS).length,"signs",DCOND.length,"derm",CMAPS.length,"maps",TOOLS.length,"tools",TECH.length,"techniques");
