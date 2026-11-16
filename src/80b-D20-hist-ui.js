@@ -32,10 +32,10 @@ function histPresList(){
    <div class="list">${HIST.pres.map(x=>`<button class="lrow" data-go="learn/pres/${x.id}"><span class="icwrap n">${ic("history")}</span><span class="txt"><b>${esc(x.name)}</b><span>${x.lr.length} clues · ${x.red.length} red flags · ${x.dd.length} differentials</span></span>${tagN(x)}${ic("chev","chev")}</button>`).join("")}</div>`;
 }
 function histPresPage(p){
-  const tg=p.lrTag||{},src=p.lrSrc||{};
+  const tg=p.lrTag||{},src=p.lrSrc||{},sgm=p.lrSign||{};
   const ask=p.ask.map(a=>typeof a==="string"?`<p class="small">${esc(a)}</p>`:
     `<details class="acc why"><summary><span class="st"><b>${esc(a.q)}</b>${a.lr!=null?`<span class="hx-sum">${hxChip(a.lr)}${a.target?`<span class="tiny muted">${esc(a.target)}</span>`:""}</span>`:""}</span></summary><div class="acc-body"><div><span class="k">Why</span>${esc(a.why)}</div>${a.changes?`<div><span class="k">What changes</span>${esc(a.changes)}</div>`:""}${a.src?`<div class="tiny muted hx-src">Source: ${esc(a.src)}</div>`:""}</div></details>`).join("");
-  const rows=p.lr.map(([f,t,l],i)=>`<details class="hx-row"><summary><span class="hx-clue">${esc(f)}</span><span class="hx-to">${esc(t)}</span><span class="hx-v">${hxChip(l,tg[f])}</span></summary><div class="hx-more">${l!=null?`<p class="small"><b>${esc(hxLrWord(l))}</b> for ${esc(t)}.</p>`:tg[f]?`<p class="small">${hxTagText(tg[f])}</p>`:`<p class="small"><b>Not quantified.</b> No pooled likelihood ratio is available for this clue.</p>`}<p class="tiny muted">Source: ${esc(src[f]||"not given")}</p></div></details>`).join("");
+  const rows=p.lr.map(([f,t,l],i)=>`<details class="hx-row"><summary><span class="hx-clue">${esc(f)}</span><span class="hx-to">${esc(t)}</span><span class="hx-v">${hxChip(l,tg[f])}</span></summary><div class="hx-more">${l!=null?`<p class="small"><b>${esc(hxLrWord(l))}</b> for ${esc(t)}.</p>`:tg[f]?`<p class="small">${hxTagText(tg[f])}</p>`:`<p class="small"><b>Not quantified.</b> No pooled likelihood ratio is available for this clue.</p>`}<p class="tiny muted">Source: ${esc(src[f]||"not given")}</p>${sgm[f]&&typeof signChip==="function"?`<div class="chips">${signChip(sgm[f])}</div>`:""}</div></details>`).join("");
   return `<section class="ph"><span class="eyebrow">History · presentation</span><h1>${esc(p.name)}</h1></section>
    ${p.frame?`<p class="quote">${esc(p.frame)}</p>`:""}
    ${p.ksa?`<div class="note hx-ksa"><b>Saudi Arabia.</b> ${esc(p.ksa)}</div>`:""}

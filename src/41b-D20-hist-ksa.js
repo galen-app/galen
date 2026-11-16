@@ -332,4 +332,23 @@ const FR=[
 <li><strong>Close</strong>: "Is there anything else you were hoping to ask?" and agree the plan.</li></ul>
 <p class="tiny muted">Sources: Silverman, Kurtz & Draper, Skills for Communicating with Patients, 3rd ed (Calgary-Cambridge); Almond 2009, Br J Gen Pract (safety-netting).</p>`}];
 FR.forEach(f=>{if(!HIST.frames.some(x=>x.t===f.t))HIST.frames.push(f);});
+/* lrSign{clue:signId}: history LR rows that are (or are scored by) a bedside sign link to that sign page (t09#13, D17).
+   Only rows whose clue is the sign itself; history-only clues stay unlinked. */
+const LRSIGN={
+ chest:{"Radiation to both arms or shoulders":"acs-radiation","Reproduced by palpation":"chest-wall-tender"},
+ chestwork:{"Radiation to both arms or shoulders":"acs-radiation","Reproduced by palpation":"chest-wall-tender"},
+ head:{"Age > 50 with new headache and jaw claudication":"jaw-claudication"},
+ back:{"Urinary retention (late sign: established CES-R)":"cauda"},
+ weak:{"Urinary retention (late sign: established CES-R)":"cauda","Any one of facial paresis, arm drift or abnormal speech":"befast","None of facial paresis, arm drift or abnormal speech":"befast","Ice test positive (ptosis improves)":"ice-pack"},
+ dizz:{"Continuous vertigo + normal head impulse test":"hints","Vertigo lasting seconds, triggered by rolling over":"dix-hallpike","Dizziness on standing with postural drop":"postural"},
+ fever:{"Non-blanching rash":"purpura-glass"},
+ rash:{"Haemorrhagic non-blanching rash with fever":"purpura-glass"},
+ febchild:{"Petechial rash":"purpura-glass","Cyanosis":"cyanosis","Poor peripheral perfusion":"cap-refill","Rapid breathing":"resp-rate"},
+ legswell:{"Wells score high probability":"wells-dvt","Wells score low probability":"wells-dvt","Peripheral oedema (bilateral) in a dyspnoeic patient":"oedema"},
+ womabdo:{"Cervical motion tenderness":"cmt","Peritoneal signs":"rebound"},
+ throat:{"Centor score 4":"centor","Centor score 0":"centor","Centor score 1":"centor"},
+ trauma:{"Skull fracture signs (open, depressed, Battle sign, haemotympanum, CSF leak, raccoon eyes)":"battle"},
+ gibleed:{"Melaena seen on rectal examination":"dre"}};
+Object.entries(LRSIGN).forEach(([id,m])=>{const p=P(id);if(!p||!p.lr)return;const rows=new Set(p.lr.map(r=>r[0]));const o={};
+ Object.entries(m).forEach(([c,sg])=>{if(rows.has(c))o[c]=sg;/* SIGNS loads later (50-*): ids are checked by the renderer (signChip) and offline */});p.lrSign=Object.assign(p.lrSign||{},o);});
 })();

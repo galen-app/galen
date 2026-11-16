@@ -151,7 +151,7 @@ const SND={ctx:null,cache:{},ducked:false,hallKey:"table",amb:null,tune:null,mus
   fxAt(kind,t){const c=this.ctx,F=this.fxG;
     if(kind==="right"){this.lute(76,t,.42,1.4,F);this.lute(81,t+.11,.4,1.8,F);}
     /* wrong: a soft falling semitone (E4 to D#4), audible on a phone speaker and quieter than right */
-    else if(kind==="wrong"){this.lute(64,t,.22,1.1,F);this.lute(63,t+.17,.2,1.4,F);}
+    else if(kind==="wrong"){this.lute(64,t,.17,1.1,F);this.lute(63,t+.17,.155,1.4,F);}
     else if(kind==="bell"||kind==="seal"){[1,2.76,5.4,8.93].forEach((r,i)=>{const o=c.createOscillator(),g=c.createGain();o.frequency.value=392*r;
         g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.09/(i+1),t+.002);g.gain.exponentialRampToValueAtTime(.0005,t+3.2/(i*.6+1));o.connect(g);g.connect(F);o.start(t);o.stop(t+3.5);o.onended=()=>{try{g.disconnect();}catch(e){}};});
       if(kind==="seal"){[57,64,69,72].forEach((m,i)=>this.lute(m,t+.25+i*.09,.3,2.5,F));}}

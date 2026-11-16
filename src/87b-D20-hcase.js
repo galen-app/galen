@@ -81,6 +81,7 @@ function drawHc(root,c,S){
      ${!S.asked.includes("ice")?`<div class="note">You did not ask about ideas, concerns and expectations. This patient's answer: <i>${esc((c.ans.ice||{}).a||"")}</i></div>`:""}
      <div class="card stack"><span class="eyebrow">Next step</span><p><b>${ao.ok?"Right.":"Not the best choice."}</b> ${esc(ao.why||"")}</p>${ao.ok?"":`<p><b>Best:</b> ${esc(good.t)}. ${esc(good.why)}</p>`}</div>
      ${hcHasLr(c)?`<div class="grid g2"><div class="card stack" style="gap:6px"><span class="eyebrow">Probability of ${esc(c.focus)}: your questions</span>${bars(mine)}</div><div class="card stack" style="gap:6px"><span class="eyebrow">Every answer with an LR</span>${bars(all)}</div></div><p class="tiny muted">Clues from the same mechanism are not independent, so multiplying them overstates certainty; the bar is capped at 99% for that reason.</p>`:""}
+     ${(()=>{const sg=[...new Set([...(c.signs||[]),...((p&&p.links&&p.links.signs)||[])])].filter(x=>typeof SIGNS!=="undefined"&&SIGNS[x]);return sg.length&&typeof signChip==="function"?`<div class="section"><span class="label">Now examine: the signs that test it</span><div class="chips">${sg.map(signChip).join("")}</div></div>`:"";})()}
      <div class="note acc">${esc(c.teach)}</div>
      <div class="row-x"><button class="btn" id="hcagain">Try again</button><button class="btn ghost" id="hcnext">Next case</button><button class="btn soft" data-go="learn/pres/${esc(c.pres)}">${ic("history")}${esc(p?p.name:"Presentation")}</button></div>`;
   }
