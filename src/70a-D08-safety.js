@@ -165,7 +165,7 @@ const Safety=(()=>{
   if(typeof window!=="undefined"&&window.addEventListener){
     window.addEventListener("galen:store",ev=>{const k=ev.detail;
       /* every save attempt in a read-only window says so, at once, and keeps the change for "Use Galen here" */
-      if(k==="passive-save"){if(!overlay||!overlay.querySelector(".st-pend"))veil("pending");else{const c=overlay.querySelector(".st-card");c.classList.remove("st-nudge");void c.offsetWidth;c.classList.add("st-nudge");}say("Not saved: Galen is open in another window","bad");return;}
+      if(k==="passive-save"){if(!overlay||!overlay.querySelector(".st-pend"))veil("pending");else{const c=overlay.querySelector(".st-card");c.classList.remove("st-nudge");void c.offsetWidth;c.classList.add("st-nudge");}if(!overlay)say("Not saved: Galen is open in another window","bad");return;}
       if(k==="readonly-save"){const t=Date.now();if(t-(window.__stRo||0)>4000){window.__stRo=t;say("Not saved: this window is read only until Galen is updated","bad");}return;}
       try{banner();}catch(x){}});
     window.addEventListener("beforeunload",ev=>{if(Store.passive&&Store.pendingCarry){ev.preventDefault();ev.returnValue="";}});
