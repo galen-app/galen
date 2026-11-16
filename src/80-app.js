@@ -569,8 +569,8 @@ route("learn:module",(id)=>(SYSTEMS.find(s=>s.id===id)||{}).short||"Module",(roo
 const TECH_GROUP_SYS={"Ear, nose and eye":["hn","neuro"],"Peripheral nerve":["neuro","msk"],"Sensory":["neuro"],"Reflexes and tone":["neuro"],"Coordination and gait":["neuro"],"Vestibular and eye movements":["neuro"],"Meninges and functional":["neuro"],"Musculoskeletal":["msk"]};
 function modTech(s){if(typeof TECH==="undefined"||!s)return [];
   const sg=new Set();(s.seq||[]).forEach(st=>(st.signs||[]).forEach(k=>sg.add(k)));
-  const hit=TECH.filter(t=>(t.signs||[]).some(k=>sg.has(k))),grp=TECH.filter(t=>!hit.includes(t)&&(TECH_GROUP_SYS[t.group]||[])[0]===s.id);
-  return hit.concat(grp);}
+  const hit=TECH.filter(t=>(t.signs||[]).some(k=>sg.has(k))),grp=hit.length>=6?[]:TECH.filter(t=>!hit.includes(t)&&(TECH_GROUP_SYS[t.group]||[])[0]===s.id);
+  return hit.concat(grp).slice(0,14);}
 /* surface anatomy maps (data in ANAT) */
 const OUTLINES={
  chest:()=>{const ribs=[];for(let i=0;i<7;i++){const y=82+i*24;ribs.push(`<path d="M138 ${y} C 112 ${y-4}, 78 ${y+2}, 52 ${y+26}"/><path d="M162 ${y} C 188 ${y-4}, 222 ${y+2}, 248 ${y+26}"/>`);}

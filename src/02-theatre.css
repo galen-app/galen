@@ -85,10 +85,6 @@ html.candles .brandmark{box-shadow:0 0 0 1.5px color-mix(in srgb,var(--gilt) 70%
 /* motion budget: nothing ticks while the page is hidden or the person asks for less motion (html.paused is set by 99c-D15-motion.js) */
 html.paused *,html.paused *::before,html.paused *::after{animation-play-state:paused!important}
 @media (prefers-reduced-motion:reduce){.stage .flick,html.candles .stage .flick{animation:none!important;opacity:.9}}
-/* the engraving's doors keep their gilt but lose the per-door blur filter: an SVG repaints whole while its flames move,
-   and thirteen drop-shadow filters made each of those repaints expensive (dark home 28 fps headless, 58 without) */
-section.theatre svg.th .door .gilt,.theatre svg .door .gilt{filter:none}
-
 /* numerals: Cormorant's old-style figures make "S1" read "SI"; titles and rows always use lining figures (t06#34) */
 h1,h2,.lrow b,.lrow .txt b{font-variant-numeric:lining-nums}
 
