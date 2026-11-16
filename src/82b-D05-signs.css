@@ -103,3 +103,5 @@ button.lr.ev:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #mi,#mi .sec,#mi .chips{min-width:0;max-width:100%}
 #mi .chip{white-space:normal;max-width:100%;text-align:left;height:auto}
 #mi h2,#mi dd{overflow-wrap:anywhere}
+/* the generic ".mapgrid svg{width:100%}" rule was stretching the chip icons in the info card to 150 px */
+.mapgrid #mi svg.i,.mapgrid .chip svg.i{width:16px;height:16px;max-width:16px;margin:0;display:inline-block;flex:none}

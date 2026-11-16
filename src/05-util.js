@@ -53,7 +53,8 @@ const ic=(k,cls="")=>`<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="tru
 function ring(p,size=44,stroke=5,label){
   const r=(size-stroke)/2,C=2*Math.PI*r,v=clamp(p,0,1);
   return `<svg class="ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="${Math.round(v*100)}%">
-   <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--surface2)" stroke-width="${stroke}"/>
+   <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--surface3,var(--surface2))" stroke-width="${stroke}"/>
+   <circle cx="${size/2}" cy="${size/2}" r="${r+stroke/2-0.5}" fill="none" stroke="var(--line)" stroke-width="1"/>
    ${v>0.005?"":"<!--empty-->"}<circle ${v>0.005?"":'display="none"'} cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--accent)" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${(C*v).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 ${size/2} ${size/2})"/>
    ${label!=null?`<text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" class="ring-t">${label}</text>`:""}</svg>`;
 }
