@@ -61,7 +61,9 @@ const SND={ctx:null,cache:{},ducked:false,hallKey:"table",amb:null,tune:null,mus
     let Ni=Math.floor(sr/f-S),fr=sr/f-S-Ni;if(fr<.1&&Ni>3){Ni--;fr++;}Ni=Math.max(2,Ni);
     const C=(1-fr)/(1+fr),T60=Math.min(3.2,Math.max(1.1,3*Math.pow(1.3/3,(midi-45)/36))),rho=Math.pow(.001,1/(f*T60));
     const len=Math.max(Ni+4,Math.floor(sr*dur)),b=c.createBuffer(1,len,sr),y=b.getChannelData(0);
-    let p=0,m=0;for(let i=0;i<Ni;i++){const w=Math.random()*2-1;p=p*(1-bright)+w*bright;y[i]=p;m+=p;}m/=Ni;
+    /* seeded excitation: the same note always has the same level, so right stays louder than wrong on every load */
+    let sd=(midi*2654435761+Math.round(dur*1000))>>>0;const rnd=()=>(sd=(Math.imul(sd,1664525)+1013904223)>>>0)/4294967296;
+    let p=0,m=0;for(let i=0;i<Ni;i++){const w=rnd()*2-1;p=p*(1-bright)+w*bright;y[i]=p;m+=p;}m/=Ni;
     let pk=0;for(let i=0;i<Ni;i++){y[i]-=m;pk=Math.max(pk,Math.abs(y[i]));}const kk=pk?.8/pk:0;for(let i=0;i<Ni;i++)y[i]*=kk;
     let v1=0,a1=0;
     for(let i=Ni;i<len;i++){const v=rho*((1-S)*y[i-Ni]+S*(i>Ni?y[i-Ni-1]:0));let a=C*v+v1-C*a1;if(!Number.isFinite(a))a=0;v1=v;a1=a;y[i]=a;}

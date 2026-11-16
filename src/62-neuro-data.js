@@ -127,7 +127,7 @@ const REFLEX=[
  ["Cremasteric","L1–2","Stroke the inner thigh","Absent in most torsions"],
  ["Knee (patellar)","L3–4","Tap the patellar tendon, legs dangling","Lost in L4 radiculopathy, femoral neuropathy, diabetic neuropathy"],
  ["Ankle (Achilles)","S1–2","Dorsiflex slightly, tap the tendon; kneeling on a chair if hard to get","Lost in S1 radiculopathy and length-dependent neuropathy; absent in many healthy over-80s; slow relaxation in hypothyroidism"],
- ["Plantar","L5–S1 (corticospinal)","Stroke lateral sole","Extensor = UMN lesion"],
+ ["Plantar","L5–S1","Stroke lateral sole","Tests the corticospinal tract, not a root: an extensor response (Babinski) = UMN lesion"],
  ["Anal wink / bulbocavernosus","S2–4","Scratch perianal skin; squeeze the glans or tug a catheter","Return of the bulbocavernosus reflex traditionally marks the end of spinal shock (it often returns within 1–3 days)"]
 ];
 /* Root or nerve? Common bedside dilemmas */

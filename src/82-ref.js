@@ -214,7 +214,8 @@ route("signs:verdicts","Verdicts",(root)=>{
    Pre-test values are illustrative starting points, not prevalence data: the user sets their own. */
 const PRESETS=[
  {n:"Breathless: heart failure?",pre:30,ids:["jvp","s3","crackles"],why:"Wang 2005 LRs for heart failure in breathless ED patients. Abdominojugular reflux and oedema overlap with these: add them to see the overlap rule."},
- {n:"Systolic murmur: severe AS?",pre:20,ids:["carotid-upstroke","a2-soft",["murmur-rclav","neg"]],why:"Slow carotid upstroke and a soft or absent A2 (Etchells 1997) both target severe AS. They grade the same valve, so treat the combined value as an upper bound. S4 is not used: its LR is for a stiff ventricle, not AS."},
+ {n:"Systolic murmur: severe AS?",pre:20,ids:["carotid-upstroke","a2-soft"],why:"Slow carotid upstroke and a soft or absent A2 (Etchells 1997) both target severe AS. They grade the same valve, so treat the combined value as an upper bound. S4 is not used: its LR is for a stiff ventricle, not AS."},
+ {n:"No murmur over the right clavicle: AS?",pre:20,ids:[["murmur-rclav","neg"]],why:"Etchells 1998: no systolic murmur over the right clavicle rules out moderate or severe AS (LR 0.10, 95% CI 0.01 to 0.44)."},
  {n:"Cough and fever: pneumonia?",pre:15,ids:["egophony","bronchial-breathing"],why:"Both detect consolidation by the same mechanism, so they count once. Consolidation signs are absent in many pneumonias: a chest X-ray decides."},
  {n:"Dull base: effusion?",pre:30,ids:["chest-expansion","percussion-dull"],why:"Wong 2009. Tactile fremitus overlaps with dullness (both detect fluid against the chest wall)."},
  {n:"Smoker: COPD?",pre:30,ids:["hoover","fet"],why:"Hoover's sign reflects hyperinflation; a long forced expiratory time reflects airflow obstruction. Wheeze overlaps with the latter."},
@@ -225,7 +226,7 @@ const PRESETS=[
  {n:"Twisted knee: ACL?",pre:40,ids:["lachman","ant-drawer-knee","pivot-shift"],why:"Lachman and pivot shift measure different laxities. The anterior drawer overlaps with Lachman, so only the stronger of the two counts; McMurray targets the meniscus, not the ACL."},
  {n:"Ankle injury: fracture? (rule negative)",pre:15,ids:[["ottawa-ankle","neg"]],why:"A negative Ottawa ankle rule: its value is the LR−."},
  {n:"Neck injury: C-spine? (rule negative)",pre:2,ids:[["c-spine-rule","neg"]],why:"A negative Canadian C-spine rule in an alert, stable adult."},
- {n:"Chest pain: ACS?",pre:15,ids:["acs-radiation","chest-wall-tender"],why:"Swap 2005 LRs for acute coronary syndrome. No pain feature alone or combined allows discharge without an ECG and troponin."},
+ {n:"Chest pain: ACS?",pre:15,ids:["acs-radiation","chest-wall-tender"],why:"Swap 2005 LRs for acute coronary syndrome; here both are present and pull in opposite directions. No pain feature alone or combined allows discharge without an ECG and troponin."},
  {n:"Older patient, headache: GCA?",pre:20,ids:["jaw-claudication","temporal-artery"],why:"Smetana 2002 LRs for a positive temporal artery biopsy. Check ESR and CRP and start steroids the same day if suspicion is high."},
  {n:"Older patient, confused: delirium?",pre:25,ids:["four-at"],why:"4AT pooled accuracy in older adults (Tieges 2021). A positive screen means search for the cause."},
  {n:"Fever, headache: meningitis? (why Kernig fails)",pre:10,ids:["kernig","neck-stiffness"],why:"Both have LRs near 1 and overlap: the post-test barely moves. Lumbar puncture decides."}];
