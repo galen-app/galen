@@ -20,7 +20,10 @@ applySize();
 
 /* ================= GALEN: medallion and voice ================= */
 let MEDAL_N=0;
-function medal(size){const u="md"+(++MEDAL_N);const beads=[...Array(36)].map((_,i)=>{const a=i*Math.PI/18;return `<circle cx="${(50+45.5*Math.cos(a)).toFixed(2)}" cy="${(50+45.5*Math.sin(a)).toFixed(2)}" r="1.5" fill="url(#${u}b)"/>`;}).join("");
+function medal(size){return _medal().replace(/__U__/g,"md"+(++MEDAL_N));}
+let _MEDAL=null;
+function _medal(){if(_MEDAL)return _MEDAL;const u="__U__";_MEDAL=_medalSVG(u);return _MEDAL;}
+function _medalSVG(u){const beads=[...Array(36)].map((_,i)=>{const a=i*Math.PI/18;return `<circle cx="${(50+45.5*Math.cos(a)).toFixed(2)}" cy="${(50+45.5*Math.sin(a)).toFixed(2)}" r="1.5" fill="url(#${u}b)"/>`;}).join("");
   return `<svg viewBox="0 0 100 100" aria-hidden="true"><defs>
   <radialGradient id="${u}g" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#f6dc95"/><stop offset=".5" stop-color="#c99a3e"/><stop offset="1" stop-color="#7c5518"/></radialGradient>
   <radialGradient id="${u}b" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#fbe7a8"/><stop offset="1" stop-color="#8a6020"/></radialGradient>
@@ -28,7 +31,7 @@ function medal(size){const u="md"+(++MEDAL_N);const beads=[...Array(36)].map((_,
   <path id="${u}t" d="M50 50 m-35 0 a35 35 0 1 1 70 0 a35 35 0 1 1 -70 0"/></defs>
   <circle cx="50" cy="50" r="49" fill="#6b4712"/><circle cx="50" cy="50" r="47.5" fill="url(#${u}g)"/>${beads}
   <circle cx="50" cy="50" r="41" fill="url(#${u}f)" stroke="#7c5518" stroke-width=".8"/>
-  <text font-family="Cormorant SC,Georgia,serif" font-weight="700" font-size="7.4" letter-spacing="1.6" fill="#5a3b0c"><textPath href="#${u}t" startOffset="2%">CL · GALENVS · PERGAMENVS · MEDICVS ·</textPath></text>
+  <text font-family="Cormorant SC,Georgia,serif" font-weight="700" font-size="7.4" letter-spacing="1.6" fill="#5a3b0c"><textPath href="#${u}t" startOffset="1%" textLength="214" lengthAdjust="spacing">GALENVS · PERGAMENVS · MEDICVS ·</textPath></text>
   <circle cx="50" cy="50" r="29" fill="#d4ab55" stroke="#7c5518" stroke-width=".6"/>
   <g transform="translate(50 52) scale(.62) translate(-50 -52)" stroke="#5a3b0c" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round">
    <path d="M64 86 L64 76 C70 70 71 58 68 50 C66 40 60 33 50 32 C44 32 41 36 40 42 L39 46 L35 51 L39 53 L39 56 L41 57.5 L39.5 59.5 C39 64 39 70 43 74 C46 77 50 78 52 80 L52 86 Z" fill="#b98a35"/>
@@ -44,9 +47,9 @@ function daySeed(){const d=new Date();return d.getFullYear()*400+d.getMonth()*32
 const FIRST_LINE=[null,"So. Another student. I am Galen of Pergamon, physician to emperors. Sit down; we begin at the table."];
 function isFirstRun(){return !Store.s.notes.welcome&&!Object.keys(Store.s.srs).length;}
 function galenFor(ctx){
-  if(ctx==="home"){
-    const hr=new Date().getHours();if(hr<5&&!isFirstRun())setTimeout(()=>findEgg("night",true),2500);
-    if(isFirstRun())return FIRST_LINE;
+  if(ctx==="home"&&isFirstRun())return FIRST_LINE;
+  if(typeof galenSay==="function"){try{const l=galenSay(ctx);if(l&&l[1])return l;}catch(e){}}
+  if(ctx==="home"){const hr=new Date().getHours();
     const bd=BIRTHDAYS[fmtDate(Date.now()).slice(0,5)];if(bd){if(bd[0]==="Babinski")setTimeout(()=>findEgg("birthday",true),1500);return [null,bd[1]];}
     const last=Store.s.last||0;if(last&&Date.now()-last>4*DAY_MS)return galenPick(GALEN.back,daySeed());
     try{const p=Hub.todayFromPlan();if(p&&p.afterNight)return galenPick(GALEN.afterNight,daySeed());}catch(e){}
@@ -110,48 +113,71 @@ const STAGE_WORD=["not started","begun","a candle lit","gilded","sealed"];
 /* ================= THE THEATRE (home) ================= */
 function ellPt(cx,cy,rx,ry,a){return [cx+rx*Math.cos(a),cy+ry*Math.sin(a)];}
 function narrowTheatre(){return matchMedia("(max-width:560px)").matches;}
-function theatreSVG(opt={}){
+/* The engraving is drawn once per state and cached. Everything still lives in one static SVG with few nodes (the rails and the
+   crowd are single paths); the only moving things, the flames, sit in a small overlay layer of their own, so a flicker never
+   repaints the theatre (it used to drop a Steam Deck-class GPU, and headless Chromium, to about 5 fps at 1440x900). */
+let _TH={k:"",v:""};
+function theatreSig(opt){let a=0,b=0;const S=Store.s.srs;for(const id in S){const r=S[id];a++;if(r.iv>=7)b++;else if(r.iv>=2)b+=.001;}
+  return [narrowTheatre()?1:0,opt.first?1:0,(place()||{}).h||"",a,b.toFixed(3),CARDS?CARDS.length:0].join("|");}
+function theatreSVG(opt={}){const k=theatreSig(opt);if(_TH.k===k)return _TH.v;const v=theatreDraw(opt);_TH={k,v};return v;}
+function theatreDraw(opt={}){
   const nar=narrowTheatre();
   /* on a phone the ring is taller, so every door gets a target of at least 44 px */
-  const W=420,H=nar?436:364,cx=210,cy=nar?216:180,DRX=nar?176:190,DRY=nar?166:132,tk=nar?.72:.6;let s="";
+  const W=420,H=nar?442:364,cx=210,cy=nar?216:180,DRX=nar?176:190,DRY=nar?166:132,tk=nar?.72:.6;let s="",fx="";
   let seed=7;const rnd=()=>(seed=(seed*9301+49297)%233280)/233280;
+  let rails="",heads="",bodies="";
   [64,86,108,130,152,172].forEach((rx,ti)=>{const ry=rx*tk;s+=`<ellipse class="tier" cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" stroke-width="${ti===5?1.6:1}"/>`;
-    if(ti>0){const n=Math.round(rx/3.2);for(let k=0;k<n;k++){const a=k/n*Math.PI*2,[x,y]=ellPt(cx,cy,rx-4,ry-3,a);s+=`<line class="rail" x1="${x.toFixed(1)}" y1="${y.toFixed(1)}" x2="${x.toFixed(1)}" y2="${(y-4).toFixed(1)}" stroke-width=".8"/>`;}
-      const m=Math.round(rx/6);for(let k=0;k<m;k++){if(rnd()<.45)continue;const a=rnd()*Math.PI*2,[x,y]=ellPt(cx,cy,rx-11,ry-8,a);s+=`<circle cx="${x.toFixed(1)}" cy="${(y-6).toFixed(1)}" r="2.3" fill="var(--ink-engr)" opacity=".18"/><path d="M${(x-3).toFixed(1)} ${(y-1).toFixed(1)}q3-4 6 0" stroke="var(--ink-engr)" opacity=".18" fill="none"/>`;}}});
+    if(ti>0){const n=Math.round(rx/3.2);for(let k=0;k<n;k++){const a=k/n*Math.PI*2,[x,y]=ellPt(cx,cy,rx-4,ry-3,a);rails+=`M${x.toFixed(1)} ${y.toFixed(1)}v-4`;}
+      const m=Math.round(rx/6);for(let k=0;k<m;k++){if(rnd()<.45)continue;const a=rnd()*Math.PI*2,[x,y]=ellPt(cx,cy,rx-11,ry-8,a);
+        heads+=`M${(x+2.3).toFixed(1)} ${(y-6).toFixed(1)}a2.3 2.3 0 1 0 -4.6 0a2.3 2.3 0 1 0 4.6 0z`;bodies+=`M${(x-3).toFixed(1)} ${(y-1).toFixed(1)}q3-4 6 0`;}}});
+  s+=`<path class="rail" d="${rails}" stroke-width=".8"/><path d="${heads}" fill="var(--ink-engr)" opacity=".18"/><path d="${bodies}" stroke="var(--ink-engr)" opacity=".18" fill="none"/>`;
   /* the pit and the table */
   const tm=hallMastery("table"),tst=hallStage(tm),first=!!opt.first;
   s+=`<ellipse class="pit" cx="${cx}" cy="${cy}" rx="46" ry="27"/>`;
   s+=`<g class="door table st${tst}${first?" beckon":""}" tabindex="0" role="link" aria-label="The Table: the whole patient, ${Math.round(tm.pct*100)}% mastered" data-go="today/hall/table">
-   <rect class="hit" x="${cx-50}" y="${cy-30}" width="100" height="84" fill="transparent"/>
-   ${first?`<ellipse class="glow" cx="${cx}" cy="${cy}" rx="56" ry="35"/>`:""}
+   <rect class="hit" x="${cx-50}" y="${cy-10}" width="100" height="66" fill="transparent"/>
    <rect x="${cx-30}" y="${cy-9}" width="60" height="16" rx="2" fill="var(--surface)" stroke="var(--ink-engr)" stroke-width="1.2"/>
    <path d="M${cx-22} ${cy-1}c6-6 14-6 22-4s14 2 20 4c-6 6-14 6-22 4s-14-2-20-4z" fill="var(--surface2)" stroke="var(--ink-engr)" stroke-width=".8"/>
-   <line x1="${cx-26}" y1="${cy+7}" x2="${cx-26}" y2="${cy+14}" stroke="var(--ink-engr)"/><line x1="${cx+26}" y1="${cy+7}" x2="${cx+26}" y2="${cy+14}" stroke="var(--ink-engr)"/>
+   <path d="M${cx-26} ${cy+7}v7M${cx+26} ${cy+7}v7" stroke="var(--ink-engr)"/>
    ${tm.pct>0?`<path d="M${cx-30} ${cy+18}h${(60*Math.min(1,tm.pct)).toFixed(1)}" stroke="var(--accent)" stroke-width="2.4"/>`:""}
    <text class="lbl tlbl" x="${cx}" y="${cy+(nar?59:49)}" text-anchor="middle">the table</text></g>`;
-  /* candles */
-  [[cx-38,cy-4],[cx+38,cy-4]].forEach(([x,y],i)=>{s+=`<rect x="${x-2}" y="${y-12}" width="4" height="12" fill="var(--surface)" stroke="var(--ink-engr)" stroke-width=".7"/><path class="flame${i?" b":""}" d="M${x} ${y-21}c-2.6 3.4-2.6 6 0 8 2.6-2 2.6-4.6 0-8z"/><circle cx="${x}" cy="${y-16}" r="9" fill="var(--accent)" opacity=".12"/>`;});
-  /* the skull on the table's end (a 20-unit hit area so a finger can find it) */
-  s+=`<g class="egg" data-egg="skull" role="button" aria-label="A skull" tabindex="-1"><rect x="${cx-35}" y="${cy-26}" width="20" height="20" fill="transparent"/><path d="M${cx-30} ${cy-14}a5 5 0 0 1 10 0v3l-1.5 1.5h-7l-1.5-1.5z" fill="var(--surface)" stroke="var(--ink-engr)" stroke-width=".9"/><circle cx="${cx-27.3}" cy="${cy-13.6}" r="1.1" fill="var(--ink-engr)"/><circle cx="${cx-22.7}" cy="${cy-13.6}" r="1.1" fill="var(--ink-engr)"/></g>`;
+  if(first)fx+=`<ellipse class="glow" cx="${cx}" cy="${cy}" rx="56" ry="35"/>`;
+  /* candles: the stick and its halo are engraved; the flame is in the overlay */
+  [[cx-38,cy-4],[cx+38,cy-4]].forEach(([x,y],i)=>{s+=`<rect x="${x-2}" y="${y-12}" width="4" height="12" fill="var(--surface)" stroke="var(--ink-engr)" stroke-width=".7"/><circle cx="${x}" cy="${y-16}" r="9" fill="var(--accent)" opacity=".12"/>`;
+    fx+=`<path class="flame${i?" b":""}" d="M${x} ${y-21}c-2.6 3.4-2.6 6 0 8 2.6-2 2.6-4.6 0-8z"/>`;});
+  /* the skull on the table's end: its hit area ends at cy-10, clear of the Table door (whose top is cy-9) */
+  s+=`<g class="egg" data-egg="skull" role="button" aria-label="A skull at the end of the table" tabindex="0"><rect class="egg-hit" x="${cx-41}" y="${cy-31}" width="32" height="21" rx="4" fill="transparent"/><path d="M${cx-30} ${cy-14}a5 5 0 0 1 10 0v3l-1.5 1.5h-7l-1.5-1.5z" fill="var(--surface)" stroke="var(--ink-engr)" stroke-width=".9"/><circle cx="${cx-27.3}" cy="${cy-13.6}" r="1.1" fill="var(--ink-engr)"/><circle cx="${cx-22.7}" cy="${cy-13.6}" r="1.1" fill="var(--ink-engr)"/></g>`;
   /* the doors, laid out as a body map */
   const ring=(typeof THEATRE_RING!=="undefined"?THEATRE_RING:HALLS.map(h=>h.id).filter(x=>x!=="table")).filter(id=>HALL[id]);
   const here=(place()||{}).h;
   ring.forEach((id,i)=>{const h=HALL[id],a=-Math.PI/2+i*Math.PI*2/ring.length,[x,y]=ellPt(cx,cy,DRX,DRY,a),m=hallMastery(id),st=hallStage(m);
     const below=Math.sin(a)>-.35,ly=below?36:-27,n=(OUTLINE[id]||[]).length,sc=st?sealedCount(id):0;
+    const tr=`translate(${x.toFixed(1)} ${y.toFixed(1)})${nar?" scale(1.18)":""}`;
     const hit=below?`<rect class="hit" x="-31" y="-24" width="62" height="68" fill="transparent"/>`:`<rect class="hit" x="-31" y="-44" width="62" height="68" fill="transparent"/>`;
-    s+=`<g class="door st${st}${here===id?" here":""}" tabindex="0" role="link" aria-label="Hall ${h.rn}: ${esc(h.short)}, ${Math.round(m.pct*100)}% mastered, ${STAGE_WORD[st]}" data-go="today/hall/${id}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})${nar?" scale(1.18)":""}">${hit}
-     ${st>=3?`<path class="gilt" d="M-19 21V-5a19 19 0 0 1 38 0v26z"/>`:""}
+    s+=`<g class="door st${st}${here===id?" here":""}" tabindex="0" role="link" aria-label="Hall ${h.rn}: ${esc(h.short)}, ${Math.round(m.pct*100)}% mastered, ${STAGE_WORD[st]}" data-go="today/hall/${id}" transform="${tr}">${hit}
+     ${st>=3?`<path class="gilt-halo" d="M-19 21V-5a19 19 0 0 1 38 0v26z"/><path class="gilt" d="M-19 21V-5a19 19 0 0 1 38 0v26z"/>`:""}
      <path class="arch" d="M-15 18V-5a15 15 0 0 1 30 0v23z"/><path d="M-10 18V-3a10 10 0 0 1 20 0v21" fill="none" stroke="var(--ink-engr)" stroke-width=".7" opacity=".6"/>
      ${m.pct>0?`<path d="M-15 22h${(30*Math.min(1,m.pct)).toFixed(1)}" stroke="var(--accent)" stroke-width="2.6" stroke-linecap="round"/>`:""}
-     ${st>=2?`<g class="cndl" transform="translate(${below?20:-20} 8)"><rect x="-1.6" y="0" width="3.2" height="9" fill="var(--surface)" stroke="var(--ink-engr)" stroke-width=".6"/><path class="flame${i%2?" b":""}" d="M0 -7c-2 2.6-2 4.6 0 6 2-1.4 2-3.4 0-6z"/><circle cx="0" cy="-3" r="6" fill="var(--accent)" opacity=".14"/></g>`:""}
+     ${st>=2?`<g class="cndl" transform="translate(${below?20:-20} 8)"><rect x="-1.6" y="0" width="3.2" height="9" fill="var(--surface)" stroke="var(--ink-engr)" stroke-width=".6"/><circle cx="0" cy="-3" r="6" fill="var(--accent)" opacity=".14"/></g>`:""}
      ${st>=4?`<g class="seal" transform="translate(0 -21)"><circle r="6.5"/><path d="M-3 0l2 2.4 4-4.6" fill="none" stroke="var(--on-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></g>`:""}
      <text class="num" x="0" y="6" text-anchor="middle">${h.rn}</text>
      ${st&&n?`<text class="cnt" x="0" y="15" text-anchor="middle">${sc}/${n}</text>`:""}
-     <text class="lbl" x="0" y="${ly}" text-anchor="middle">${esc(h.short)}</text></g>`;});
+     <text class="lbl" x="0" y="${ly}" text-anchor="middle">${esc(h.short)}</text></g>`;
+    if(st>=2)fx+=`<g transform="${tr}"><g transform="translate(${below?20:-20} 8)"><path class="flame${i%2?" b":""}" d="M0 -7c-2 2.6-2 4.6 0 6 2-1.4 2-3.4 0-6z"/></g></g>`;});
   /* a small ape hides in the corner of the engraving (a solid hit area: the drawing itself is only strokes) */
-  s+=`<g class="egg" data-egg="ape" role="button" aria-label="A small figure" tabindex="-1" opacity=".42" transform="translate(12 ${H-36}) scale(.9)"><rect x="-6" y="-6" width="32" height="34" fill="transparent"/><path d="M6 0a4 4 0 1 1 0 .1zM3 7c-2 2-2 7 0 10l-2 6M9 7c2 2 2 7 0 10l2 6M3 11h6M2 8l-3 5M10 8l3 5M9 17c4 0 6-3 7-6" fill="none" stroke="var(--ink-engr)" stroke-width="1.3" stroke-linecap="round"/></g>`;
-  return `<svg class="th" viewBox="${nar?0:-14} 0 ${nar?W:W+28} ${H}" role="group" aria-label="The anatomical theatre: twelve halls around the table">${s}</svg>`;
+  s+=`<g class="egg" data-egg="ape" role="button" aria-label="A small figure in the corner of the engraving" tabindex="0" opacity=".42" transform="translate(12 ${H-42}) scale(.9)"><rect x="-6" y="-6" width="32" height="34" fill="transparent"/><path d="M6 0a4 4 0 1 1 0 .1zM3 7c-2 2-2 7 0 10l-2 6M9 7c2 2 2 7 0 10l2 6M3 11h6M2 8l-3 5M10 8l3 5M9 17c4 0 6-3 7-6" fill="none" stroke="var(--ink-engr)" stroke-width="1.3" stroke-linecap="round"/></g>`;
+  const vb=`${nar?0:-14} 0 ${nar?W:W+28} ${H}`;
+  return `<svg class="th" viewBox="${vb}" role="group" aria-label="The anatomical theatre: twelve halls around the table">${s}</svg><svg class="th-fx" viewBox="${vb}" aria-hidden="true" focusable="false">${fx}</svg>`;
 }
+/* the flames only move while the theatre is on screen, the tab is visible, and for a while after the last touch:
+   a still room costs nothing on a Steam Deck's battery */
+let _thIO=null,_thIdle=0;
+function theatreLive(sec){if(!sec)return;
+  const wake=()=>{sec.classList.remove("still");clearTimeout(_thIdle);_thIdle=setTimeout(()=>sec.classList.add("still"),45000);};
+  if(_thIO)_thIO.disconnect();
+  if("IntersectionObserver" in window){_thIO=new IntersectionObserver(es=>es.forEach(e=>sec.classList.toggle("off",!e.isIntersecting)));_thIO.observe(sec);}
+  wake();["pointerdown","keydown","wheel"].forEach(t=>sec.addEventListener(t,wake,{passive:true}));}
+document.addEventListener("visibilitychange",()=>{const t=$("#view section.theatre");if(t)t.classList.toggle("off",document.hidden);});
 /* the hall card (Learn hub) and a one-line hall row (reference pane, home lists) */
 function hallCard(h){const m=hallMastery(h.id),pc=Math.round(m.pct*100),n=(OUTLINE[h.id]||[]).length,st=hallStage(m),scope=(typeof HALL_SCOPE!=="undefined"&&HALL_SCOPE[h.id])||"";
   const lab=`${h.id==="table"?"The Table":"Hall "+(ROMAN.indexOf(h.rn)+1)}, ${h.short}: ${scope}. ${n} chapters, ${pc}% mastered`;
@@ -159,7 +185,8 @@ function hallCard(h){const m=hallMastery(h.id),pc=Math.round(m.pct*100),n=(OUTLI
 function hallRow(h,opt={}){const m=hallMastery(h.id),pc=Math.round(m.pct*100);const d=opt.due?hallDue(h.id):0;
   return `<button class="hallrow st${hallStage(m)}" data-go="${opt.go||"today/hall/"+h.id}"><span class="emb" aria-hidden="true"><svg viewBox="0 0 64 64">${EMB[h.id]}</svg></span><span class="txt"><b>${esc(h.n)}</b><span>${esc((typeof HALL_SCOPE!=="undefined"&&HALL_SCOPE[h.id])||h.la)}</span></span>${d?`<span class="pill acc">${d} due</span>`:""}${ring(m.pct,30,3.5)}<span class="vh">${pc}% mastered</span></button>`;}
 function loreOfDay(){return LORE[daySeed()%LORE.length];}
-function loreCard(l,opt={}){return `<button class="tile lorecard" data-go="learn/lore/${l.id}"><span class="row-x" style="gap:8px"><span class="k k-${l.k}">${LORE_KIND[l.k]}</span><span class="spacer"></span><span class="yr">${esc(l.yr)}</span></span><b>${esc(l.t)}</b><span class="sub">${esc(l.sum)}</span>${opt.hall?`<span class="tiny muted">${esc(HALL[l.hall].n)}</span>`:""}</button>`;}
+/* the story card is the codex's (98h codexCard assigns itself to loreCard at load) */
+var loreCard=function(l,opt){return typeof codexCard==="function"?codexCard(l,opt||{}):"";};
 
 /* the welcome a newcomer sees once: what this is, how the halls work, one first step */
 function welcomeHTML(){const v=k=>`<span class="v v-${k}">${VERDICT[k]}</span>`;
@@ -182,7 +209,7 @@ function bestAction(){const due=dueCards().length,p=place();
 function continueHTML(){const p=place();if(!p)return "";const i=p.i!=null?p.i:nextChap(p.h);const c=(OUTLINE[p.h]||[])[i];if(!c)return "";
   const st=chapState(p.h,i),h=HALL[p.h],pc=st.m?Math.round(st.m.pct*100):0;
   return `<button class="contcard" data-go="today/hall/${p.h}/${i}"><span class="emb" aria-hidden="true"><svg viewBox="0 0 64 64">${EMB[p.h]}</svg></span><span class="txt"><span class="eyebrow">Continue where you left off</span><b>${ROMAN[i]}. ${esc(c.t)}</b><span>${esc(h.n)}${st.m?` · ${st.m.seen} of ${st.m.n} cards started · ${pc}%`:""}</span></span>${ic("chev","chev")}</button>`;}
-function birthdayStory(){const bd=BIRTHDAYS[fmtDate(Date.now()).slice(0,5)];if(!bd||isFirstRun())return "";const l=LORE.find(x=>(x.who||"").includes(bd[0])||x.t.includes(bd[0])||x.id===bd[0].toLowerCase());return l?`<button class="chip" data-go="learn/lore/${l.id}">${ic("scroll")}Read his story</button>`:"";}
+function birthdayStory(){const bd=BIRTHDAYS[fmtDate(Date.now()).slice(0,5)];if(!bd||isFirstRun())return "";const l=(bd[2]&&loreById(bd[2]))||LORE.find(x=>(x.who||"").includes(bd[0])||x.t.includes(bd[0])||x.id===bd[0].toLowerCase());return l?`<button class="chip" data-go="learn/lore/${l.id}">${ic("scroll")}Read his story</button>`:"";}
 
 {const _home=ROUTES["today:home"];
 route("today:home","Galen",(root)=>{
@@ -195,17 +222,23 @@ route("today:home","Galen",(root)=>{
   </section>
   <section class="theatre${first?" first":""}">${theatreSVG({first})}</section>
   <p class="marg th-cap">Teatro anatomico, after Padua, 1594. A door shows a bar as you learn, a candle at a quarter, gilt at half, a seal when mastered.</p>
-  <section class="section"><div class="row-x"><span class="label">From the codex, today</span><span class="spacer"></span><button class="link small" data-go="learn/codex">All ${LORE.length} stories</button></div><div class="grid">${loreCard(loreOfDay(),{hall:1})}</div></section>
+  <section class="section"><div class="row-x"><span class="label">${first?"From the codex, today":"Today in the theatre"}</span><span class="spacer"></span><button class="link small" data-go="learn/codex">All ${LORE.length} stories</button></div><div class="grid th-today">${loreCard(loreOfDay(),{hall:1})}${first?"":techTileHTML()}</div></section>
   <div class="orn" aria-hidden="true">❦</div><div id="today-old" class="today-old"></div>`;
   const old=$("#today-old",root);if(!first){try{_home(old);}catch(e){console.error(e);}}
-  /* the old greeting, counts and second CTA are replaced by Galen's card; the system rings by the doors */
+  /* the old greeting, counts and second CTA are replaced by Galen's card; the system rings by the doors;
+     the technique of the day sits beside today's story, so the old home's copy goes */
   $(".hero",old)?.remove();const sg=$(".sysgrid",old);if(sg)sg.closest("section")?.remove();
+  if($(".th-today .techday",root))$$('#today-old > .tile[data-go^="learn/tech/"]',root).forEach(x=>x.remove());
+  theatreLive($("section.theatre",root));
   $("[data-act=pal]",root).addEventListener("click",openPalette);
   $$("[data-welcome]",root).forEach(b=>b.addEventListener("click",()=>{Store.s.notes.welcome={t:Date.now()};Store.save();if(!b.dataset.go)render(false,true);}));
   if(!TP.seen){TP.seen=1;tpSave();}
 });}
 /* the doors are drawn for the width: re-draw when a phone turns or a window narrows */
-matchMedia("(max-width:560px)").addEventListener("change",()=>{const t=$("#view section.theatre");if(t&&NAV.tab==="today"&&cur().v==="home")t.innerHTML=theatreSVG({first:isFirstRun()});});
+matchMedia("(max-width:560px)").addEventListener("change",()=>{const t=$("#view section.theatre");if(t&&NAV.tab==="today"&&cur().v==="home"){t.innerHTML=theatreSVG({first:isFirstRun()});if(typeof decorateTheatre==="function")requestAnimationFrame(decorateTheatre);}});
+/* the technique of the day (89c techOfDay), beside today's story */
+function techTileHTML(){try{const td=typeof techOfDay==="function"&&techOfDay();if(!td)return "";const c=typeof techConf==="function"?techConf(td.id):null,dn=typeof techDone==="function"?techDone(td.id):0;
+  return `<button class="tile techday" data-go="learn/tech/${td.id}"><div class="t-top"><span class="eyebrow">Technique of the day</span>${typeof pips==="function"?pips(td.id):""}</div><b>${esc(td.name)}</b><span class="sub">${esc(td.hook||td.purpose||"")}</span><span class="small td-cta">${c==null?"Rate your confidence, then walk it through":`Confidence ${c}/5 · ${dn}/5 milestones`}</span></button>`;}catch(e){return "";}}
 
 /* ================= HALLS ================= */
 const HALL_LINKS={
@@ -258,7 +291,7 @@ function hallPage(root,id,ch){
   <div class="card hallprog">
    <div class="hp-top">${ring(m.pct,52,5)}<div class="hp-tx"><b>${Math.round(m.pct*100)}% mastered</b><span class="small muted">${sealed} of ${chs.length} chapters sealed · ${m.seen} of ${m.n} cards started</span><span class="tiny muted">${["Start any chapter and this hall's door gets its first bar.","At 25% a candle is lit beside the door.","At 50% the door is gilded.","At 80% the door is sealed.","This door is sealed. Keep it so with a hall review now and then."][st]}</span></div></div>
    <div class="hp-act">${nc?`<button class="btn" data-open-chap="${nx}">${ic("door")}${nst.started?"Continue":"Start"}: ${ROMAN[nx]}. ${esc(nc.t)}</button>`:""}<button class="btn ${nc?"ghost":""}" data-go="practice/session/hall:${id}">${ic("play")}Practise the whole hall</button></div></div>
-  <div class="card stack">${guideHTML(GALEN.hall[id]||galenPick(GALEN.idle),{small:1})}</div>
+  <div class="card stack">${guideHTML(galenFor(id),{small:1})}</div>
   <details class="story"${read?"":" open"}><summary><span class="label">The story of this hall</span><svg class="i chv" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary><p class="dropcap">${esc(h.intro[0])}</p><p>${esc(h.intro[1])}</p><p class="latin" style="margin-top:.4em">${esc(h.maxim[0])}</p><p class="en" style="margin-top:-.6em">${esc(h.maxim[1])}</p></details>
   ${outlineHTML(id,openI)}
   ${(HALL_LINKS[id]||[]).length?`<section class="section"><span class="label">Rooms of this hall</span><div class="list">${HALL_LINKS[id].map(([go,t])=>`<button class="lrow" data-go="${go}"><span class="icwrap n">${ic("door")}</span><span class="txt"><b>${esc(t)}</b></span>${ic("chev","chev")}</button>`).join("")}</div></section>`:""}
