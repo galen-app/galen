@@ -75,7 +75,9 @@ function chapMap(){if(!CARDS)buildCards();const no=Object.values(OUTLINE).reduce
       else if(t==="hlr"&&pr.has(x.ref[0]))set.add(x.id);
       else if(t==="red"&&pr.has(x.ref))set.add(x.id);
       else if(t==="sound"&&sd.has(x.ref))set.add(x.id);});});
-  CARDS.forEach(x=>{const ch=cardChapter(x);if(ch){const k=ch[0]+":"+ch[1];if(m[k])m[k].add(x.id);}});
+  /* chapter claims (cards:[…], exact ids and "prefix*") add the card to every chapter that lists it; the rules place the rest */
+  CARDS.forEach(x=>{const cl=typeof cardClaims==="function"?cardClaims(x):[];cl.forEach(([h,i])=>{const k=h+":"+i;if(m[k])m[k].add(x.id);});
+    if(cl.length)return;const ch=cardChapter(x);if(ch){const k=ch[0]+":"+ch[1];if(m[k])m[k].add(x.id);}});
   /* anything new that no chapter links yet goes to the chapter of its hall whose words it shares most */
   const inAny=new Set();Object.values(m).forEach(st=>st.forEach(id=>inAny.add(id)));
   const words=t=>new Set(String(t||"").toLowerCase().split(/[^a-z0-9]+/).filter(w=>w.length>3&&!STOPW.has(w)));
@@ -93,15 +95,29 @@ function chapCardIds(h,i){return (chapMap()[h+":"+i])||new Set();}
 function chapMastery(h,i){const ids=[...chapCardIds(h,i)];if(!ids.length)return null;return masteryOf(ids);}
 /* scoped sessions: the set of card ids in "hall:<id>" or "chap:<hall>:<i>", null for any other scope */
 function scopeIds(sys){sys=String(sys||"");
-  if(sys.startsWith("chap:")){const [,h,i]=sys.split(":");if(!OUTLINE[h]||!OUTLINE[h][+i])return new Set();return chapCardIds(h,+i);}
+  if(sys.startsWith("chap:")){const pr=sys.split(":");
+    if(pr.length===2){for(const [h,cs] of Object.entries(OUTLINE)){const i=cs.findIndex(c=>c.id===pr[1]);if(i>=0)return chapCardIds(h,i);}return new Set();}/* "chap:<chapter id>" */
+    const [,h,i]=pr;if(!OUTLINE[h]||!OUTLINE[h][+i])return new Set();return chapCardIds(h,+i);}
   if(sys.startsWith("hall:")){const h=sys.slice(5);return HALL[h]?new Set(hallCardIds(h)):new Set();}
   return null;}
 function hallDue(h){const ids=new Set(hallCardIds(h));return dueCards().filter(c=>ids.has(c.id)).length;}
 function chapState(h,i){const m=chapMastery(h,i);return {m,sealed:!!(m&&m.pct>=SEAL_AT),started:!!(m&&m.seen)};}
 function hallChapters(h){return (OUTLINE[h]||[]).map((c,i)=>chapState(h,i));}
 function sealedCount(h){return hallChapters(h).filter(x=>x.sealed).length;}
-function place(){const p=Store.s.notes.place;return p&&HALL[p.h]?p:null;}
-function setPlace(h,i){const p=place();if(p&&p.h===h&&p.i===i&&Date.now()-p.t<6e4)return;Store.s.notes.place={t:Date.now(),h,i};Store.save();}
+/* chapters are found by their stable id (D13); the index is only a fallback for notes written before ids existed */
+function chapIndex(h,ref){const cs=OUTLINE[h]||[];if(ref==null||ref==="")return -1;if(/^\d+$/.test(String(ref)))return cs[+ref]?+ref:-1;return cs.findIndex(c=>c.id===ref);}
+function place(){const p=Store.s.notes.place;if(!p||!HALL[p.h])return null;
+  if(p.c){const i=chapIndex(p.h,p.c);return Object.assign({},p,{i:i<0?null:i});}
+  return Object.assign({},p,{i:p.i!=null&&(OUTLINE[p.h]||[])[p.i]?p.i:null});}
+function setPlace(h,i){const p=place();if(p&&p.h===h&&p.i===i&&Date.now()-p.t<6e4)return;const c=i!=null&&(OUTLINE[h]||[])[i];
+  Store.s.notes.place=c&&c.id?{t:Date.now(),h,i,c:c.id}:{t:Date.now(),h,i:i==null?null:i};Store.save();}
+/* fading mastery (70c scopeMastery): the answers that build it, the re-checks that keep it */
+function mstOf(scope){try{return typeof scopeMastery==="function"?scopeMastery(scope):null;}catch(e){return null;}}
+function mstHTML(scope,what){const m=mstOf(scope);if(!m||m.state==="none")return "";const dn=typeof dayNum==="function"?dayNum():0;
+  const rc=`<button class="btn sm${m.state==="fading"?"":" soft"}" data-go="practice/session/chk:${scope}">${ic("check")}Re-check (5 questions)</button>`;
+  if(m.state==="building")return `<div class="mst mst-building"><span class="mst-k">Building mastery</span><span class="small muted">${Math.min(m.n,m.need)} of ${m.need} recent answers${m.needDays?` · over ${m.needDays} days`:""} · ${Math.round(m.pct*100)}% right</span></div>`;
+  if(m.state==="mastered"){const d=Math.max(0,(m.next||dn)-dn);return `<div class="mst mst-mastered"><span class="mst-k">Mastered</span><span class="small muted">${d?`Next re-check in ${d} day${d===1?"":"s"}`:"Re-check from tomorrow"}</span></div>`;}
+  return `<div class="mst mst-${m.state}"><span class="mst-k">${m.state==="fading"?"Fading":"Re-check due"}</span><span class="small muted">${m.state==="fading"?`This ${what} is slipping. Five questions; get 4 right to keep it mastered.`:`Five questions; get 4 right to keep this ${what} mastered.`}</span>${rc}</div>`;}
 /* the next chapter to study in a hall: where you were, else the first chapter not yet sealed */
 function nextChap(h){const cs=OUTLINE[h]||[];if(!cs.length)return -1;const p=place(),st=hallChapters(h);
   if(p&&p.h===h&&p.i!=null&&cs[p.i]&&!st[p.i].sealed)return p.i;
@@ -275,21 +291,27 @@ function cnBadge(i,st){const p=st.m?Math.round(st.m.pct*100):0;return `<span cla
 function outlineHTML(h,openI){const chs=OUTLINE[h]||[];if(!chs.length)return "";const nx=nextChap(h);
   return `<section class="section" id="outline"><div class="row-x"><span class="label">The outline · ${chs.length} chapters · ${sealedCount(h)} sealed</span><span class="spacer"></span><button class="link small chap-all" data-act="chap-all" aria-pressed="false">Open all</button></div><div class="outline">${chs.map((c,i)=>{const st=chapState(h,i),m=st.m;
    const status=st.sealed?"Sealed":m&&m.seen?`${m.seen} of ${m.n} started · ${Math.round(m.pct*100)}%`:m?`${m.n} cards`:"";
-   return `<details class="chap${i===nx?" next":""}${st.sealed?" sealed":""}" id="chap-${i}" data-i="${i}"${i===openI?" open":""}><summary><span class="vh">Chapter ${i+1}${st.sealed?", sealed":""}. </span>${cnBadge(i,st)}<span class="ct"><b>${esc(c.t)}</b><span>${esc(c.aim)}</span>${status||i===nx?`<span class="cst">${i===nx?`<span class="cnx">${st.started?"Continue here":"Next"}</span>`:""}${esc(status)}</span>`:""}</span><svg class="i chv" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+   const scope=`chap:${h}:${i}`,ms=mstOf(scope),fad=ms&&(ms.state==="check"||ms.state==="fading");
+   return `<details class="chap${i===nx?" next":""}${st.sealed?" sealed":""}${fad?" fading":""}" id="chap-${i}" data-i="${i}" data-cid="${esc(c.id||"")}"${i===openI?" open":""}><summary><span class="vh">Chapter ${i+1}${st.sealed?", sealed":""}. </span>${cnBadge(i,st)}<span class="ct"><b>${esc(c.t)}</b><span>${esc(c.aim)}</span>${status||i===nx||fad?`<span class="cst">${i===nx?`<span class="cnx">${st.started?"Continue here":"Next"}</span>`:""}${fad?`<span class="cnx fade">${ms.state==="fading"?"Fading":"Re-check"}</span>`:""}${esc(status)}</span>`:""}</span><svg class="i chv" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
    <div class="cbody"><span class="k">You will be able to</span><ul class="obj">${c.master.map(o=>`<li>${esc(o)}</li>`).join("")}</ul>
    <span class="k">Study and practise</span><div class="chips">${chapItems(c)}</div>
    <div class="tp"><div class="trap"><span class="k">The trap</span>${esc(c.trap)}</div><div class="pearl"><span class="k">The pearl</span>${esc(c.pearl)}</div></div>
-   ${m?`<div class="row-x cfoot">${ring(m.pct,34,4)}<span class="small muted" style="flex:1;min-width:0">${m.seen} of ${m.n} cards started · ${m.held} held a week or more</span><button class="btn sm${i===nx?"":" soft"}" data-go="practice/session/chap:${h}:${i}">${ic("play")}Practise this chapter</button></div>`:`<p class="small muted" style="margin:0">This chapter has no practice cards yet. Study the pages above; their cards arrive with the next update.</p>`}</div></details>`;}).join("")}</div></section>`;}
+   ${c.red?`<div class="redf" role="note"><span class="k">Red flags</span>${esc(c.red)}</div>`:""}
+   ${c.say?`<figure class="sayit"><figcaption class="k">Say it like this</figcaption><blockquote>${esc(c.say)}</blockquote></figure>`:""}
+   ${m?mstHTML(scope,"chapter"):""}
+   ${m?`<div class="row-x cfoot">${ring(m.pct,34,4)}<span class="small muted" style="flex:1;min-width:0">${m.seen} of ${m.n} cards started · ${m.held} held a week or more</span><button class="btn sm${i===nx?"":" soft"}" data-go="practice/session/${scope}">${ic("play")}Practise this chapter</button></div>`:`<p class="small muted" style="margin:0">This chapter has no practice cards yet. Study the pages above; their cards arrive with the next update.</p>`}
+   ${c.src?`<p class="csrc">Sources: ${esc(c.src)}</p>`:""}</div></details>`;}).join("")}</div></section>`;}
 
 function hallPage(root,id,ch){
   const h=HALL[id];if(!h)throw new Error("That hall is not in the theatre.");
   const sg=hallSigns(id),tc=hallTech(id),pr=hallPres(id),lo=LORE.filter(l=>l.hall===id),m=hallMastery(id),st=hallStage(m),chs=OUTLINE[id]||[];
-  const nx=nextChap(id),openI=ch!=null&&ch!==""&&chs[+ch]?+ch:nx,read=!!Store.s.notes["hall:"+id],sealed=sealedCount(id);
+  const ci=chapIndex(id,ch),nx=nextChap(id),openI=ci>=0?ci:nx,read=!!Store.s.notes["hall:"+id],sealed=sealedCount(id);
   const vOrder=s=>VERDICT_ORDER.indexOf(SIGNS[s].v);sg.sort((a,b)=>vOrder(a)-vOrder(b)||SIGNS[a].name.localeCompare(SIGNS[b].name));
   const nc=chs[nx],nst=nc?chapState(id,nx):null;
   root.innerHTML=`<section class="hallhead st${st}"><span class="emb" aria-hidden="true"><svg viewBox="0 0 64 64">${EMB[id]}</svg></span><span class="eyebrow">${id==="table"?"The centre of the theatre":"Hall "+h.rn}</span><h1>${esc(h.n)}</h1><span class="latin">${esc(h.la)} · ${esc(h.patron)}</span>${HALL_SCOPE&&HALL_SCOPE[id]?`<span class="hscope">${esc(HALL_SCOPE[id])}</span>`:""}</section>
   <div class="card hallprog">
    <div class="hp-top">${ring(m.pct,52,5)}<div class="hp-tx"><b>${Math.round(m.pct*100)}% mastered</b><span class="small muted">${sealed} of ${chs.length} chapters sealed · ${m.seen} of ${m.n} cards started</span><span class="tiny muted">${["Start any chapter and this hall's door gets its first bar.","At 25% a candle is lit beside the door.","At 50% the door is gilded.","At 80% the door is sealed.","This door is sealed. Keep it so with a hall review now and then."][st]}</span></div></div>
+   ${mstHTML("hall:"+id,"hall")}
    <div class="hp-act">${nc?`<button class="btn" data-open-chap="${nx}">${ic("door")}${nst.started?"Continue":"Start"}: ${ROMAN[nx]}. ${esc(nc.t)}</button>`:""}<button class="btn ${nc?"ghost":""}" data-go="practice/session/hall:${id}">${ic("play")}Practise the whole hall</button></div></div>
   <div class="card stack">${guideHTML(galenFor(id),{small:1})}</div>
   <details class="story"${read?"":" open"}><summary><span class="label">The story of this hall</span><svg class="i chv" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary><p class="dropcap">${esc(h.intro[0])}</p><p>${esc(h.intro[1])}</p><p class="latin" style="margin-top:.4em">${esc(h.maxim[0])}</p><p class="en" style="margin-top:-.6em">${esc(h.maxim[1])}</p></details>
@@ -313,7 +335,7 @@ function hallPage(root,id,ch){
   /* a hall you have opened before keeps its story folded */
   if(!read){Store.s.notes["hall:"+id]={t:Date.now()};Store.save();}
   if(!place()||place().h!==id)setPlace(id,null);
-  if(ch!=null&&ch!==""&&chs[+ch])requestAnimationFrame(()=>requestAnimationFrame(()=>goChap(+ch)));
+  if(ci>=0)requestAnimationFrame(()=>requestAnimationFrame(()=>goChap(ci)));
   SND.fx("door");
 }
 route("learn:hall",(id)=>(HALL[id]||{}).n||"No such hall",hallPage);
@@ -335,9 +357,11 @@ route("today:hall",(id)=>(HALL[id]||{}).n||"No such hall",hallPage);
 
 /* after every render: the hall's tint and the room's key; remember the chapter a session came from */
 {const _chrome=chrome;chrome=function(){_chrome();const r=cur(),key=NAV.tab+":"+r.v;
-  if(key==="practice:session"&&String(r.a||"").startsWith("chap:")){const [,h,i]=String(r.a).split(":");if(OUTLINE[h]&&OUTLINE[h][+i])setPlace(h,+i);}
+  if(key==="practice:session"&&String(r.a||"").startsWith("chap:")){const pr=String(r.a).split(":");if(pr.length===3){if(OUTLINE[pr[1]]&&OUTLINE[pr[1]][+pr[2]])setPlace(pr[1],+pr[2]);}
+    else for(const [h,cs] of Object.entries(OUTLINE)){const i=cs.findIndex(c=>c.id===pr[1]);if(i>=0){setPlace(h,i);break;}}}
   const hid=(key==="learn:hall"||key==="today:hall")?r.a:key==="signs:sign"?signHall(r.a):key==="learn:tech"&&r.a?techHall(r.a):key==="learn:lore"?(loreById(r.a)||{}).hall:key==="practice:session"&&/^(hall|chap):/.test(r.a||"")?String(r.a).split(":")[1]:null;
   const h=hid&&HALL[hid];document.documentElement.style.setProperty("--hall-tint",h?h.tint:"transparent");document.documentElement.dataset.hall=h?hid:"";
+  document.documentElement.classList.toggle("on-theatre",key==="today:home");/* 02b holds the room still behind the engraving */
   SND.setHall(h?hid:"table");if(typeof rpRender==="function")rpRender();};}
 
 /* nav labels for the world */

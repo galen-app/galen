@@ -51,6 +51,12 @@
 section.theatre{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:radial-gradient(ellipse at 50% 55%,color-mix(in srgb,var(--accent) 10%,var(--surface)),var(--surface2) 75%);box-shadow:var(--shadow),inset 0 0 0 3px var(--surface2),inset 0 0 0 4px var(--line)}
 @media (min-width:700px){section.theatre{max-width:min(720px,calc((100dvh - 96px) * 1.2));margin-inline:auto;width:100%}}
 .theatre svg.th{display:block;width:100%;height:auto}
+/* the flames live in their own small layer over the engraving, so a flicker never repaints the theatre */
+.theatre svg.th-fx{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;will-change:transform;contain:strict}
+section.theatre{contain:layout paint}
+.theatre svg.th{contain:paint}
+section.theatre.still .flame,section.theatre.off .flame,section.theatre.still .glow,section.theatre.off .glow{animation-play-state:paused}
+.theatre svg.th .flame{animation:none}
 .theatre .door{cursor:pointer}
 .theatre .door .arch{fill:var(--surface);stroke:var(--ink-engr);stroke-width:1.2;transition:fill .2s}
 .theatre .door:hover .arch,.theatre .door:focus .arch{fill:var(--accent-soft)}
@@ -65,14 +71,15 @@ section.theatre{position:relative;border-radius:10px;overflow:hidden;border:1px 
 .theatre .door:focus-visible .hit{stroke-dasharray:4 3}
 .theatre .pit{fill:var(--surface3);stroke:var(--ink-engr);stroke-width:1.2}
 /* door stages: bar → candle (25%) → gilt frame (50%) → seal (80%) */
-.theatre .door .gilt{fill:none;stroke:var(--gilt);stroke-width:2.2;filter:drop-shadow(0 0 2px color-mix(in srgb,var(--gilt) 60%,transparent))}
+.theatre .door .gilt{fill:none;stroke:var(--gilt);stroke-width:2.2}
+.theatre .door .gilt-halo{fill:none;stroke:var(--gilt);stroke-width:5;opacity:.22}
 .theatre .door.st3 .arch{stroke:var(--gilt)}
 .theatre .door.st4 .arch{fill:color-mix(in srgb,var(--gilt-soft) 70%,var(--surface));stroke:var(--gilt);stroke-width:1.6}
 .theatre .door .seal circle{fill:var(--wax);stroke:var(--wax-dark);stroke-width:.8}
 .theatre .door.here .arch{stroke:var(--accent);stroke-width:1.8}
-.theatre .door.table.beckon .glow{fill:none;stroke:var(--accent);stroke-width:2;opacity:.8;animation:beckon 2.2s ease-in-out infinite}
+.theatre .th-fx .glow{fill:none;stroke:var(--accent);stroke-width:2;opacity:.8;animation:beckon 2.2s ease-in-out infinite}
 @keyframes beckon{0%,100%{opacity:.25;transform:scale(.96)}50%{opacity:.9;transform:scale(1.03)}}
-.theatre .door.table .glow{transform-box:fill-box;transform-origin:50% 50%}
+.theatre .th-fx .glow{transform-box:fill-box;transform-origin:50% 50%}
 section.theatre.first .door:not(.table){opacity:.55}
 .theatre .egg{cursor:pointer}
 .theatre .tier{fill:none;stroke:var(--ink-engr);opacity:.55}
@@ -80,16 +87,23 @@ section.theatre.first .door:not(.table){opacity:.55}
 .theatre .flame{fill:var(--accent);transform-box:fill-box;transform-origin:50% 100%;animation:flame 2.4s ease-in-out infinite}
 .theatre .flame.b{animation-delay:-1.1s}
 @keyframes flame{0%,100%{transform:scaleY(1) skewX(0)}30%{transform:scaleY(1.12) skewX(3deg)}60%{transform:scaleY(.92) skewX(-3deg)}}
-@media (prefers-reduced-motion:reduce){.theatre .flame,.theatre .door.table.beckon .glow{animation:none}}
+@media (prefers-reduced-motion:reduce){.theatre .flame,.theatre .th-fx .glow{animation:none}}
+/* candlelight (Konami) without filters on moving things: a static halo replaces the drop-shadow */
+html.candles .theatre .flame{filter:none}
+html.candles .theatre .th-fx .flame{stroke:color-mix(in srgb,var(--accent) 45%,transparent);stroke-width:2.2;paint-order:stroke}
+/* on the theatre home the room behind the engraving holds still: its full-screen flicker (02-theatre .stage) cost a frame
+   rate of 58 down to about 5 in software rendering, and it re-runs the bars' backdrop blur on every frame */
+html.on-theatre .stage .glow,html.on-theatre .stage::before,html.on-theatre .stage::after{animation-play-state:paused}
 .th-cap{text-align:center;margin:-6px auto 0;max-width:60ch;font-size:.9rem;line-height:1.4}
+.th-today .techday .td-cta{font-weight:700;color:var(--accent-ink)}
 .today-old{display:flex;flex-direction:column;gap:var(--gap,18px)}
 .today-old:empty{display:none}
 
 /* ---------- hall cards (Learn) and hall rows ---------- */
-.halls{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-@media (min-width:340px){.halls{grid-template-columns:repeat(3,1fr)}}@media (min-width:480px){.halls{gap:12px}}
-@media (min-width:700px){.halls{grid-template-columns:repeat(4,1fr)}}
-@media (min-width:1500px){.halls{grid-template-columns:repeat(6,1fr)}}
+.halls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (min-width:340px){.halls{grid-template-columns:repeat(3,minmax(0,1fr))}}@media (min-width:480px){.halls{gap:12px}}
+@media (min-width:700px){.halls{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (min-width:1200px){.halls{grid-template-columns:repeat(6,minmax(0,1fr))}}
 .hall{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:5px;padding:14px 8px 12px;border:1px solid var(--line);border-radius:999px 999px 6px 6px;background:var(--surface);background-image:var(--paper);box-shadow:var(--shadow),inset 0 0 0 3px var(--surface),inset 0 0 0 4px color-mix(in srgb,var(--line) 80%,transparent);min-width:0;color:var(--ink)}
 .hall:hover{border-color:var(--accent)}
 .hall .emb{width:50px;height:50px;color:var(--ink-engr)}
@@ -97,7 +111,7 @@ section.theatre.first .door:not(.table){opacity:.55}
 .hall .rn{font-family:var(--f-fell);color:var(--accent-ink);font-size:.95rem}
 .hall b{font-family:var(--f-display);font-size:1.12rem;line-height:1.1}
 .hall .sc{font-size:.8rem;line-height:1.3;color:var(--ink2)}
-.hall .la{font-family:var(--f-fell);font-style:italic;font-size:max(.8rem,12px);color:var(--muted)}
+.hall .la{font-family:var(--f-fell);font-style:italic;font-size:max(.82rem,12px);color:var(--muted)}
 .hall .prog{width:70%;height:4px;border-radius:2px;background:var(--surface3);overflow:hidden;margin-top:auto}
 .hall .prog i{display:block;height:100%;background:var(--accent)}
 .hall.st3,.hall.st4{border-color:var(--gilt);box-shadow:var(--shadow),inset 0 0 0 3px var(--surface),inset 0 0 0 4px var(--gilt)}
@@ -168,4 +182,24 @@ details[open]>summary .chv{transform:rotate(90deg)}
 .chap .trap{background:var(--bad-soft);border-left:3px solid var(--bad)}
 .chap .pearl{background:var(--good-soft);border-left:3px solid var(--good)}
 /* codex kind label: its own class, so it never inherits the theatre frame (t02#5) */
-.lorecard .k.k-dark{color:var(--bad)}.lorecard .k.k-triumph{color:var(--good)}.lorecard .k.k-eponym{color:var(--insp)}.lorecard .k.k-theatre{color:color-mix(in srgb,var(--gilt) 72%,var(--ink))}
+.lorecard .k.k-dark{color:var(--bad)}.lorecard .k.k-triumph{color:var(--good)}.lorecard .k.k-eponym{color:var(--insp)}.lorecard .k.k-theatre{color:var(--gilt-ink,color-mix(in srgb,var(--gilt) 72%,var(--ink)))}
+/* red flags, a line to say, sources (D13's chapter fields) */
+.chap .redf{border-radius:6px;padding:9px 11px;font-size:.92rem;background:var(--bad-soft);border:1px solid color-mix(in srgb,var(--bad) 45%,transparent);border-left-width:4px}
+.chap .redf .k{color:var(--bad)}
+.chap .sayit{margin:0;padding:9px 12px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 6px 6px 0}
+.chap .sayit blockquote{margin:2px 0 0;font-family:var(--f-display);font-size:1.08rem;line-height:1.4;font-style:italic;color:var(--ink)}
+.chap .sayit blockquote::before{content:"\201C"}.chap .sayit blockquote::after{content:"\201D"}
+.chap .csrc{margin:0;font-size:.8rem;line-height:1.45;color:var(--muted);overflow-wrap:anywhere}
+/* fading mastery (70c): building, mastered, re-check due, fading */
+.mst{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:8px 11px;border-radius:6px;border:1px solid var(--line);background:var(--surface2)}
+.mst .mst-k{font-family:var(--f-sc);font-weight:700;letter-spacing:.08em;text-transform:lowercase;font-size:max(.8rem,12px);color:var(--ink2)}
+.mst .small{flex:1 1 200px;min-width:0}
+.mst .btn{min-height:40px}
+@media (pointer:coarse){.mst .btn{min-height:44px}}
+@media (max-width:480px){.mst .btn{flex:1 1 100%;justify-content:center}}
+.mst-mastered{border-color:var(--gilt)}.mst-mastered .mst-k{color:var(--gilt-ink,var(--ink2))}
+.mst-check{border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}.mst-check .mst-k{color:var(--accent-ink)}
+.mst-fading{border-color:var(--bad);background:var(--bad-soft)}.mst-fading .mst-k{color:var(--bad)}
+.chap.fading{border-color:color-mix(in srgb,var(--bad) 55%,var(--line))}
+.chap .cnx.fade{color:var(--bad);background:var(--bad-soft)}
+.hallprog .mst{margin-top:-2px}

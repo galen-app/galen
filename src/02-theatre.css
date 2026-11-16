@@ -53,27 +53,44 @@
 /* the paper lives on the root, so it never ends in a seam on short pages */
 html{background-color:var(--bg);background-image:var(--paper);background-attachment:fixed}
 body{background:transparent}
-/* the stage: a candle's warmth from above and a soft vignette; never above content */
-.stage{position:fixed;inset:0;pointer-events:none;z-index:0}
+/* the stage: a candle's warmth from above and a soft vignette; never above content.
+   Performance (Steam Deck, phones, headless): the full-viewport layers are painted once and never animated.
+   The only moving light is .flick, a small composited layer at the top whose opacity alone changes.
+   No backdrop-filter anywhere above it (a blur over a moving layer is re-rendered every frame). */
+.stage{position:fixed;inset:0;pointer-events:none;z-index:0;contain:strict}
 .stage i{position:absolute;inset:0}
-.stage .glow{background:radial-gradient(120% 70% at 50% -10%,color-mix(in srgb,var(--accent) 12%,transparent),transparent 60%),radial-gradient(60% 50% at 50% 0%,var(--hall-tint),transparent 70%)}
+.stage .glow{background:radial-gradient(120% 70% at 50% -10%,color-mix(in srgb,var(--accent) 11%,transparent),transparent 60%),radial-gradient(60% 50% at 50% 0%,var(--hall-tint),transparent 70%)}
 .stage .vig{background:radial-gradient(140% 100% at 50% 40%,transparent 55%,rgb(60 35 10 / .14))}
+.stage .flick{inset:auto;top:-140px;left:50%;width:min(640px,64vw);height:300px;margin-left:calc(min(640px,64vw) / -2);
+  background:radial-gradient(closest-side,color-mix(in srgb,var(--accent) 9%,transparent),transparent);opacity:0;will-change:opacity;contain:strict}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .stage .vig{background:radial-gradient(130% 95% at 50% 35%,transparent 45%,rgb(0 0 0 / .55))}
-  :root:not([data-theme="light"]) .stage .glow{animation:flicker 7s infinite}}
+  :root:not([data-theme="light"]) .stage .flick{opacity:1;animation:flicker 7s infinite}}
 :root[data-theme="dark"] .stage .vig{background:radial-gradient(130% 95% at 50% 35%,transparent 45%,rgb(0 0 0 / .55))}
-:root[data-theme="dark"] .stage .glow{animation:flicker 7s infinite}
-@keyframes flicker{0%,100%{opacity:1}12%{opacity:.86}15%{opacity:.97}41%{opacity:.9}43%{opacity:1}70%{opacity:.93}74%{opacity:.99}}
+:root[data-theme="dark"] .stage .flick{opacity:1;animation:flicker 7s infinite}
+@keyframes flicker{0%,100%{opacity:1}12%{opacity:.55}15%{opacity:.9}41%{opacity:.7}43%{opacity:1}70%{opacity:.78}74%{opacity:.96}}
 .shell,.nav{z-index:1}
 .nav{position:fixed}
 
-/* the Konami reward: "the candles are yours tonight". The room dims, two more candles burn at the edges, the flames grow. */
-html.candles .stage .glow{background:radial-gradient(90% 60% at 50% -8%,color-mix(in srgb,var(--accent) 26%,transparent),transparent 62%),radial-gradient(60% 50% at 50% 0%,var(--hall-tint),transparent 70%);animation:flicker 3.6s infinite}
+/* the Konami reward: "the candles are yours tonight". The room dims, two more candles burn at the edges, the flames grow.
+   The edge glows are static; only the small top flame layer flickers. */
+html.candles .stage .glow{background:radial-gradient(90% 60% at 50% -8%,color-mix(in srgb,var(--accent) 24%,transparent),transparent 62%),radial-gradient(60% 50% at 50% 0%,var(--hall-tint),transparent 70%)}
 html.candles .stage .vig{background:radial-gradient(115% 90% at 50% 38%,transparent 32%,rgb(18 8 0 / .5) 78%,rgb(8 3 0 / .72))}
-html.candles .stage::before,html.candles .stage::after{content:"";position:absolute;top:-12vh;width:46vw;height:70vh;background:radial-gradient(closest-side,color-mix(in srgb,var(--accent) 22%,transparent),transparent);animation:flicker 5.2s infinite;pointer-events:none}
+html.candles .stage::before,html.candles .stage::after{content:"";position:absolute;top:-12vh;width:46vw;height:70vh;background:radial-gradient(closest-side,color-mix(in srgb,var(--accent) 20%,transparent),transparent);pointer-events:none}
 html.candles .stage::before{left:-14vw}
-html.candles .stage::after{right:-14vw;animation-delay:-2.3s}
-html.candles .theatre .flame{animation-duration:1.5s;filter:drop-shadow(0 0 4px var(--accent)) drop-shadow(0 0 10px color-mix(in srgb,var(--accent) 60%,transparent))}
+html.candles .stage::after{right:-14vw}
+html.candles .stage .flick{opacity:1;background:radial-gradient(closest-side,color-mix(in srgb,var(--accent) 22%,transparent),transparent);animation:flicker 3.6s infinite}
+html.candles .theatre .flame{animation-duration:1.5s}
 html.candles .brandmark{box-shadow:0 0 0 1.5px color-mix(in srgb,var(--gilt) 70%,transparent),0 0 14px 2px color-mix(in srgb,var(--accent) 55%,transparent)}
+
+/* motion budget: nothing ticks while the page is hidden or the person asks for less motion (html.paused is set by 99c-D15-motion.js) */
+html.paused *,html.paused *::before,html.paused *::after{animation-play-state:paused!important}
+@media (prefers-reduced-motion:reduce){.stage .flick,html.candles .stage .flick{animation:none!important;opacity:.9}}
+/* the engraving's doors keep their gilt but lose the per-door blur filter: an SVG repaints whole while its flames move,
+   and thirteen drop-shadow filters made each of those repaints expensive (dark home 28 fps headless, 58 without) */
+section.theatre svg.th .door .gilt,.theatre svg .door .gilt{filter:none}
+
+/* numerals: Cormorant's old-style figures make "S1" read "SI"; titles and rows always use lining figures (t06#34) */
+h1,h2,.lrow b,.lrow .txt b{font-variant-numeric:lining-nums}
 
 /* ---------- type accents ---------- */
 .latin{font-family:var(--f-fell);font-style:italic;color:var(--accent-ink);font-size:1.12rem;line-height:1.3}
@@ -97,9 +114,9 @@ button.tile:hover,a.tile:hover,.rnd:hover,.sysbtn:hover{box-shadow:var(--shadow)
 .btn.ghost{background:var(--surface);box-shadow:none}
 .btn.danger{background:var(--bad)}
 .btn.ghost.danger{background:transparent}
-.top{background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:saturate(1.3) blur(10px);-webkit-backdrop-filter:saturate(1.3) blur(10px);box-shadow:0 1px 0 var(--line),0 3px 0 -2px var(--line)}
+.top{background:color-mix(in srgb,var(--bg) 97%,transparent);box-shadow:0 1px 0 var(--line),0 3px 0 -2px var(--line)}
 .brandmark{background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--accent) 70%,#fff),var(--accent) 60%,color-mix(in srgb,var(--accent) 70%,#000));box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--gilt) 70%,transparent)}
-.nav{background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 -1px 0 var(--line),0 -3px 0 -2px var(--line)}
+.nav{background:var(--surface);box-shadow:0 -1px 0 var(--line),0 -3px 0 -2px var(--line)}
 #soundbtn[aria-pressed="true"] .i{stroke:var(--accent-ink)}
 @media (min-width:980px){
   .nav{background:var(--surface2);background-image:var(--paper);box-shadow:inset -1px 0 0 var(--line),inset -4px 0 0 -3px var(--gilt)}
