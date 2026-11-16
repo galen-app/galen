@@ -353,14 +353,20 @@ document.addEventListener("keydown",e=>{
 function revertExtraNew(){try{const S=Store.s.settings,x=S.extraNew;
   if(x&&x.d!==dayNum()){S.newPerDay=Math.max(0,num(S.newPerDay)-num(x.n));delete S.extraNew;Store.save();}
   else if(!x&&num(S.newPerDay)>40){S.newPerDay=40;Store.save();}}catch(e){}}
-function grantExtraNew(n){revertExtraNew();const S=Store.s.settings,d=dayNum(),x=S.extraNew&&S.extraNew.d===d?S.extraNew:{d,n:0};
-  n=Math.max(0,Math.min(num(n),60-num(x.n)));S.newPerDay=num(S.newPerDay)+n;x.n=num(x.n)+n;S.extraNew=x;Store.save();return n;}
+/* the one-day extra now lives in 70c-srs.js (notes "xn:<day>", added by dayPlan); grantExtraNew stays as a wrapper */
+function grantExtraNew(n){revertExtraNew();n=Math.max(0,Math.min(num(n,10),60));
+  if(typeof addExtraNew==="function"){addExtraNew(n);return n;}
+  const S=Store.s.settings,d=dayNum(),x=S.extraNew&&S.extraNew.d===d?S.extraNew:{d,n:0};
+  n=Math.min(n,60-num(x.n));S.newPerDay=num(S.newPerDay)+n;x.n=num(x.n)+n;S.extraNew=x;Store.save();return n;}
 onNav(i=>{if(i.to&&i.to.v==="home")revertExtraNew();});
 function greet(){const h=new Date().getHours();return h<5?"Late shift?":h<12?"Good morning":h<17?"Good afternoon":"Good evening";}
 const WD=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 route("today:home","Today",(root)=>{
-  const due=dueCards().length,room=Math.max(0,Store.s.settings.newPerDay-newToday()),nw=Math.min(room,newCards().length);
-  const total=due+nw,mins=Math.max(1,Math.round(total*0.35));
+  let P=null;try{P=typeof dayPlan==="function"?dayPlan():null;}catch(e){}
+  const due=dueCards().length,room=P?num(P.room):Math.max(0,num(Store.s.settings.newPerDay)-newToday()),nw=Math.min(room,newCards().length);
+  const total=due+nw,mins=Math.max(1,Math.round(total*(P?num(P.spc,21):21)/60));
+  let checks=[];try{checks=typeof checksDue==="function"?checksDue():[];}catch(e){}
+  const wkDay=(()=>{try{if(typeof weekStartOf!=="function")return new Date().getDay();const a=new Date();a.setHours(12,0,0,0);return Math.round((a-weekStartOf(a))/DAY_MS);}catch(e){return 0;}})();
   const st=streak(),days=Store.s.days,name=Store.s.settings.name;
   const week=[...Array(7)].map((_,i)=>{const t=Date.now()-(6-i)*DAY_MS,k=dayKey(t);return `<div><i class="${days[k]?"on":""}${i===6?" today":""}" title="${fmtDate(t)}${days[k]?": "+num(days[k])+" items":""}"></i><span>${WD[new Date(t).getDay()][0]}</span></div>`;}).join("");
   const learned=Object.values(Store.s.srs).filter(r=>r.iv>=7).length,started=Object.keys(Store.s.srs).length;
@@ -371,7 +377,7 @@ route("today:home","Today",(root)=>{
   const roundDone=ROUND.filter(r=>round[r[0]]).length,roundN=light?3:5;
   const lv=levelOf(Store.s.xp),mastered=Object.values(Store.s.snd).filter(x=>x.m).length;
   const ready=Object.keys(DCOND).length;
-  const planLine=plan?(plan.blocks.length?`Citrus planned <b>${esc(plan.blocks[0].title)}</b> at ${esc(plan.blocks[0].start)}${num(plan.blocks[0].minutes)?` (${num(plan.blocks[0].minutes)} min)`:""}`:plan.shift?`Today: <b>${esc(plan.shift.label||plan.shift.code||"shift")}</b>${plan.shift.start?` ${esc(plan.shift.start)}–${esc(plan.shift.end)}`:""}${light?" · after a night, three items are plenty":""}`:light?"After a night: three items are plenty today":""):"";
+  const planLine=plan?(plan.blocks.length?`Citrus planned <b>${esc(plan.blocks[0].title)}</b> at ${esc(plan.blocks[0].start)}${(+plan.blocks[0].minutes||0)>0?` (${+plan.blocks[0].minutes||0} min)`:""}`:plan.shift?`Today: <b>${esc(plan.shift.label||plan.shift.code||"shift")}</b>${plan.shift.start?` ${esc(plan.shift.start)}–${esc(plan.shift.end)}`:""}${light?" · after a night, three items are plenty":""}`:light?"After a night: three items are plenty today":""):"";
   const roundItems=ROUND.map(([k,t,sub,go,icn])=>{let g=go,s2=sub;if(k==="session"){s2=total?`${due} due, ${nw} new · about ${mins} min`:"Nothing due · learn 10 more";}if(k==="case"){const alt=["practice/hdpe/"+nextCase.id,"practice/er","practice/localiser"][new Date().getDate()%3];g=alt;s2=alt.startsWith("practice/er")?"An ER case":alt.endsWith("localiser")?"Pinpoint a lesion":esc(nextCase.title);}
     if(k==="eye")g=new Date().getDate()%2?"practice/describe":"practice/spot";if(k==="read")g=new Date().getDate()%2?"signs/er":"learn/maps";if(k==="hands"){const td=typeof techOfDay==="function"&&techOfDay();g=["practice/rehearse","tools/narrate","practice/drill",td?"learn/tech/"+td.id:"practice/drill"][new Date().getDate()%4];if(td&&new Date().getDate()%4===3)s2="Technique: "+td.name;}
     return `<button class="rnd${round[k]?" done":""}" data-go="${g}"><span class="rdot">${round[k]?ic("check"):ic(icn)}</span><span class="txt"><b>${t}</b><span>${s2}</span></span>${ic("chev","chev")}</button>`;}).join("");
@@ -385,6 +391,7 @@ route("today:home","Today",(root)=>{
       <select class="sel" id="focus" aria-label="Focus the session on one system" style="width:auto;min-width:0;flex:0 1 auto"><option value="">Focus: all systems</option>${Object.entries(SYS_NAME).map(([k,v])=>`<option value="${k}">${v}</option>`).join("")}</select></div>
   </section>
   <section class="section"><div class="row-x"><span class="label">Today's round</span><span class="spacer"></span>${ring(roundDone/roundN,26,4)}</div><div class="round">${roundItems}</div></section>
+  ${checks.length?`<section class="section"><span class="label">Mastery re-checks due</span><div class="list">${checks.slice(0,4).map(([sc,m])=>`<button class="lrow" data-go="practice/session/chk:${esc(sc)}"><span class="tag">${m.state==="fading"?"fading":"re-check"}</span><span class="txt"><b>${esc(typeof sessionTitle==="function"?sessionTitle(sc):sc)}</b><span>5 questions · pass 4 to keep it mastered</span></span>${ic("chev","chev")}</button>`).join("")}</div>${checks.length>4?`<p class="tiny muted" style="margin-top:6px">${checks.length-4} more under Practice.</p>`:""}</section>`:""}
   ${(()=>{const td=typeof techOfDay==="function"&&techOfDay();if(!td)return "";const c=techConf(td.id);return `<button class="tile" data-go="learn/tech/${td.id}"><div class="t-top"><span class="eyebrow">Technique of the day</span>${pips(td.id)}</div><b>${esc(td.name)}</b><span class="sub">${esc(td.hook||td.purpose)}</span><span class="small" style="font-weight:700;color:var(--accent-ink)">${c==null?"Rate your confidence, then walk it through":`Confidence ${c}/5 · ${techDone(td.id)}/5 milestones`}</span></button>`;})()}
   <section class="grid">
     <div class="tile" data-hint="This week|Days with any practice. Streaks count up to yesterday if today isn't done yet."><div class="t-top"><span class="eyebrow">This week</span><span class="pill acc">${ic("flame")}${st} day${st===1?"":"s"}</span></div><div class="week">${week}</div></div>
@@ -397,39 +404,56 @@ route("today:home","Today",(root)=>{
     <button class="tile" data-go="practice/drill/${nextDrill.id}"><div class="t-top"><span class="icwrap">${ic("bolt")}</span><span class="tag">perceptual</span></div><b>Drill: ${esc(nextDrill.name)}</b><span class="sub">Listen until it is automatic.</span></button>
     <button class="tile" data-go="practice/hdpe/${nextCase.id}"><div class="t-top"><span class="icwrap">${ic("target")}</span><span class="tag">predict first</span></div><b>${esc(nextCase.title)}</b><span class="sub">Hypothesis-driven examination.</span></button>
     <button class="tile" data-go="practice/log"><div class="t-top"><span class="icwrap">${ic("log")}</span><span class="tag">feedback</span></div><b>Bedside log</b><span class="sub">${logPending?`${logPending} finding${logPending>1?"s":""} waiting for verification.`:"Log a real finding and verify it later."}</span></button>
-    ${new Date().getDay()<=2?`<button class="tile" data-go="today/recap"><div class="t-top"><span class="icwrap">${ic("calendar")}</span><span class="tag">weekly</span></div><b>Last week in Galen</b><span class="sub">What you did, what stuck, what to repeat.</span></button>`:""}
+    ${wkDay<3?`<button class="tile" data-go="today/recap"><div class="t-top"><span class="icwrap">${ic("calendar")}</span><span class="tag">weekly</span></div><b>Last week in Galen</b><span class="sub">What you did, what stuck, what to repeat.</span></button>`:""}
   </div></section>
   ${weak.length?`<section class="section"><span class="label">Trouble spots</span><div class="list">${weak.map(c=>`<button class="lrow" data-go="${cardHome(c)}"><span class="tag">${CARD_TYPE_LABEL[c.type]}</span><span class="txt"><b>${esc(c.label)}</b><span>${SYS_SHORT[c.sys]||""} · forgotten ${num(Store.s.srs[c.id].l)} time${num(Store.s.srs[c.id].l)>1?"s":""}</span></span>${ic("chev","chev")}</button>`).join("")}</div></section>`:""}
   <div class="grid"><button class="tile" data-go="learn/method"><div class="t-top"><span class="icwrap n">${ic("mind")}</span><span class="tag">evidence</span></div><b>How Galen teaches</b><span class="sub">Seven learning methods with their studies.</span></button>
   <button class="tile" data-go="tools"><div class="t-top"><span class="icwrap">${ic("gear")}</span></div><b>Settings, sync and tools</b><span class="sub">${Store.mode==="drive"?"Synced with Google Drive":Store.mode==="cloud"?"Synced with your Claude account":"Progress is saved on this device"}</span></button></div>`;
   const f=$("#focus");f.addEventListener("change",()=>{if(f.value)open("practice","session",f.value);});
-  $("[data-act=extra]",root)?.addEventListener("click",()=>{grantExtraNew(10);open("practice","session","all");});
+  $("[data-act=extra]",root)?.addEventListener("click",()=>{grantExtraNew(10);toast("10 extra new cards, today only","good");open("practice","session","all");});
 });
-/* Weeks run Sunday to Saturday (the Saudi working week starts on Sunday). By default the recap shows the last full
-   week; "this" shows the week so far. Items are practice events from the day log, not distinct cards. */
-function weekBounds(which){const d=new Date();d.setHours(0,0,0,0);const sun=new Date(d.getTime());sun.setDate(d.getDate()-d.getDay());
+/* The recap is built from recapWeek() (70c-srs.js): the last full week, Monday to Sunday unless Settings sets the first
+   day of the week. "this" shows the week so far. weekBounds() stays for older callers. */
+function weekBounds(which){if(typeof recapWeek==="function"){const R=recapWeek(which==="this"?0:1);return {start:R.start,end:R.end,keys:R.keys};}
+  const d=new Date();d.setHours(0,0,0,0);const sun=new Date(d.getTime());sun.setDate(d.getDate()-d.getDay());
   const start=new Date(sun.getTime());if(which!=="this")start.setDate(sun.getDate()-7);
   const keys=[...Array(7)].map((_,i)=>{const x=new Date(start.getTime());x.setDate(start.getDate()+i);return dayKey(x.getTime());});
   const end=new Date(start.getTime());end.setDate(start.getDate()+6);return {start,end,keys};}
 route("today:recap",w=>w==="this"?"This week":"Last week",(root,which)=>{
-  const W=weekBounds(which),keys=W.keys,inWeek=t=>t&&keys.includes(dayKey(t)),vals=o=>Object.values(o||{}).filter(x=>x&&typeof x==="object");
+  const soFar=which==="this";let R=null;try{R=typeof recapWeek==="function"?recapWeek(soFar?0:1):null;}catch(e){R=null;}
+  const W=R||weekBounds(which),keys=W.keys,inWeek=t=>t&&keys.includes(dayKey(t)),vals=o=>Object.values(o||{}).filter(x=>x&&typeof x==="object");
   const srs=vals(Store.s.srs),touched=srs.filter(r=>inWeek(r.last)).length,learned=srs.filter(r=>inWeek(r.last)&&num(r.iv)>=7).length;
-  const cases=vals(Store.s.hd).filter(x=>inWeek(x.at)).length+vals(Store.s.loc).filter(x=>inWeek(x.at)).length,plates=vals(Store.s.dprac).filter(x=>inWeek(x.at)).length;
-  const pins=vals(Store.s.pins).filter(p=>!p.deleted&&inWeek(p.t)).length,days=keys.filter(k=>num(Store.s.days[k])).length,items=keys.reduce((a,k)=>a+num(Store.s.days[k]),0);
+  const hcases=Object.entries(Store.s.notes||{}).filter(([k,x])=>k.startsWith("hc:")&&x&&!x.deleted&&inWeek(x.t)).length;
+  const cases=vals(Store.s.hd).filter(x=>inWeek(x.at)).length+vals(Store.s.loc).filter(x=>inWeek(x.at)).length+hcases,plates=vals(Store.s.dprac).filter(x=>inWeek(x.at)).length;
+  const pins=vals(Store.s.pins).filter(p=>!p.deleted&&inWeek(p.t)).length;
+  const days=R?num(R.days):keys.filter(k=>num(Store.s.days[k])).length,items=R?num(R.items):keys.reduce((a,k)=>a+num(Store.s.days[k]),0);
+  const reviews=R?num(R.reviews):touched,minutes=R?num(R.minutes):0,newC=R?num(R.newCards):0;
+  const ret=R&&R.retention!=null&&isFinite(+R.retention)?Math.round(+R.retention*100):null,matureN=R?num(R.matureN):0;
+  const lapsed=R&&Array.isArray(R.lapsed)?R.lapsed.filter(c=>c&&c.id):[];
+  const fc=R&&Array.isArray(R.forecast)?R.forecast.map(x=>num(x)):[];
   const bySys={};(CARDS||[]).forEach(c=>{const r=Store.s.srs[c.id];if(r&&inWeek(r.last))bySys[c.sys]=(bySys[c.sys]||0)+1;});const top=Object.entries(bySys).sort((a,b)=>b[1]-a[1])[0];
-  const span=`${fmtDate(W.start.getTime())} to ${fmtDate(W.end.getTime())}`,soFar=which==="this";
-  const weak=weakCards(4),text=`Galen, ${soFar?"this week so far":"week"} ${span}: ${days}/7 days · ${items} items practised · ${touched} cards reviewed, ${learned} now held a week or more · ${cases} cases · ${plates} plates${pins?` · ${pins} photos pinned`:""}${top?` · most practised: ${SYS_NAME[top[0]]}`:""}.`;
-  root.innerHTML=`<section class="hero" style="align-items:flex-start"><span class="eyebrow">${soFar?"This week so far":"Last week"} · ${span}</span><h1>${soFar?(days>=3?"A good start.":"The week is young."):days>=5?"A strong week.":days>=3?"Steady.":"A quiet week."}</h1><p class="muted">${days} of 7 days with practice · ${items} items practised.</p>
-   <div class="counts"><div><b>${touched}</b><span>cards</span></div><div><b>${cases}</b><span>cases</span></div><div><b>${plates}</b><span>plates</span></div><div><b>${pins}</b><span>pins</span></div></div>
+  const span=`${fmtDate(W.start.getTime())} to ${fmtDate(W.end.getTime())}`;
+  const weak=lapsed.length?[]:weakCards(4);
+  const text=`Galen, ${soFar?"this week so far":"week"} ${span}: ${days}/7 days · ${items} items practised · ${reviews} reviews${minutes?` in ${minutes} min`:""} · ${newC} new cards · ${learned} cards now held a week or more${ret!=null?` · ${ret}% recall on mature cards`:""} · ${cases} cases · ${plates} plates${pins?` · ${pins} photos pinned`:""}${top?` · most practised: ${SYS_NAME[top[0]]||top[0]}`:""}.`;
+  const fmax=Math.max(1,...fc),fday=i=>{const d=new Date();d.setDate(d.getDate()+i);return i===0?"Today":WD[d.getDay()];};
+  root.innerHTML=`<section class="hero" style="align-items:flex-start"><span class="eyebrow">${soFar?"This week so far":"Last week"} · ${span}</span><h1>${soFar?(days>=3?"A good start.":"The week is young."):days>=5?"A strong week.":days>=3?"Steady.":"A quiet week."}</h1><p class="muted">${days} of 7 days with practice · ${items} items practised${minutes?` · about ${minutes} min of cards`:""}.</p>
+   <div class="counts"><div><b>${reviews}</b><span>reviews</span></div><div><b>${newC}</b><span>new cards</span></div><div><b>${cases}</b><span>cases</span></div><div><b>${plates}</b><span>plates</span></div></div>
    <div class="row-x"><button class="btn sm ${soFar?"ghost":"soft"}" ${soFar?'data-act="rc-last"':"disabled"}>Last week</button><button class="btn sm ${soFar?"soft":"ghost"}" ${soFar?"disabled":'data-act="rc-this"'}>This week so far</button></div></section>
-   <div class="grid"><div class="tile"><span class="eyebrow">Now in long-term memory</span><b class="big">${learned}</b><span class="sub">cards reviewed in these days that are now held a week or more</span></div><div class="tile"><span class="eyebrow">Most practised</span><b>${top?esc(SYS_NAME[top[0]]||top[0]):"Nothing yet"}</b><span class="sub">${top?top[1]+" cards":"Start a session"}</span></div></div>
-   ${weak.length?`<section class="section"><span class="label">Repeat next week</span><div class="chips">${weak.map(c=>`<button class="chip" data-go="${cardHome(c)}">${esc(c.label)}</button>`).join("")}</div></section>`:""}
-   <div class="card stack" style="gap:8px"><p class="small mono">${esc(text)}</p><div class="row-x"><button class="btn sm soft" id="rc-copy">Copy as text</button></div></div>`;
+   <div class="grid">
+    <div class="tile"><span class="eyebrow">Recall on mature cards</span><b class="big">${ret!=null?ret+"%":"–"}</b><span class="sub">${ret!=null?`Good, Hard or Easy on ${matureN} review${matureN===1?"":"s"} of cards held 3 weeks or more. About 85 to 90% is healthy.`:"Not enough reviews of cards held 3 weeks or more yet."}</span></div>
+    <div class="tile"><span class="eyebrow">Now in long-term memory</span><b class="big">${learned}</b><span class="sub">cards reviewed in these days that are now held a week or more</span></div>
+    <div class="tile"><span class="eyebrow">Most practised</span><b>${top?esc(SYS_NAME[top[0]]||top[0]):"Nothing yet"}</b><span class="sub">${top?top[1]+" cards":"Start a session"}${pins?` · ${pins} photo${pins===1?"":"s"} pinned`:""}</span></div></div>
+   ${lapsed.length?`<section class="section"><div class="row-x"><span class="label">Forgotten ${soFar?"this week":"last week"}</span><span class="spacer"></span><button class="btn sm" data-act="rc-relearn">${ic("repeat")}Re-learn these</button></div><div class="chips">${lapsed.map(c=>`<button class="chip" data-go="${esc(cardHome(c))}">${esc(c.label)}</button>`).join("")}</div></section>`
+     :weak.length?`<section class="section"><span class="label">Repeat next week</span><div class="chips">${weak.map(c=>`<button class="chip" data-go="${esc(cardHome(c))}">${esc(c.label)}</button>`).join("")}</div></section>`:""}
+   ${fc.length?`<section class="section"><span class="label">Coming due, next 7 days</span><div class="card"><div class="rc-fc" role="img" aria-label="Cards due: ${fc.map((x,i)=>fday(i)+" "+x).join(", ")}">${fc.map((x,i)=>`<div><b>${x}</b><i style="height:${Math.round(4+56*x/fmax)}px"></i><span>${fday(i)}</span></div>`).join("")}</div><p class="tiny muted" style="margin-top:6px">Today includes anything overdue.</p></div></section>`:""}
+   <div class="card stack" style="gap:8px"><p class="small">${esc(text)}</p><div class="row-x"><button class="btn sm soft" id="rc-copy">Copy as text</button></div></div>`;
   $("[data-act=rc-last]",root)?.addEventListener("click",()=>replace("recap"));
   $("[data-act=rc-this]",root)?.addEventListener("click",()=>replace("recap","this"));
+  $("[data-act=rc-relearn]",root)?.addEventListener("click",()=>{try{newSession("all",{cram:true,cards:lapsed});open("practice","session","all");}catch(e){toast("Couldn't start that session");}});
   $("#rc-copy").addEventListener("click",()=>{try{navigator.clipboard.writeText(text).then(()=>toast("Copied","good"),()=>toast("Couldn't copy"));}catch(e){toast("Couldn't copy");}});
 });
 function cardHome(c){
+  if(c&&c.home)return c.home;
   switch(c.type){case "think":case "verdict":case "mech":case "snsp":case "teach":return `signs/sign/${c.ref}`;case "sound":return `sounds/sound/${c.ref}`;
    case "finding":return `learn/module/${c.ref[0]}/think`;case "anat":return `learn/module/${({chest:"cvs",abdomen:"abd",neck:"hn",back:"msk"})[c.ref[0]]}/anat`;
    case "area":case "zone":return "sounds/map";case "hlr":return `learn/pres/${c.ref[0]}`;case "red":return `learn/pres/${c.ref}`;

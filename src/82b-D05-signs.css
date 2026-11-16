@@ -98,3 +98,8 @@ button.lr.ev:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .bs-line .k{font-family:var(--f-sc);text-transform:lowercase;letter-spacing:.1em;font-weight:700;font-size:max(.84rem,12px);color:var(--muted)}
 .cav-i{font:700 max(.72rem,11px)/1 var(--f-body);width:16px;height:16px}
 .fg-ax text,.fg-t text{font-family:var(--f-body)}
+/* sounds/map: long sound names in chips pushed the info card past the viewport (t02/D02 report, 400 px and 800 px) */
+.mapgrid>*{min-width:0;max-width:100%}
+#mi,#mi .sec,#mi .chips{min-width:0;max-width:100%}
+#mi .chip{white-space:normal;max-width:100%;text-align:left;height:auto}
+#mi h2,#mi dd{overflow-wrap:anywhere}

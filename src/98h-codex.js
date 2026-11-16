@@ -118,8 +118,10 @@ route("learn:lore",(id)=>(loreById(id)||{}).t||"Story",(root,id)=>{
     const acc=$$("details.acc",root).find(d=>/History, name and story/.test(($("summary",d)||{}).textContent||""));
     if(acc){const body=$(".acc-body",acc);const sec=document.createElement("div");sec.className="sec";sec.innerHTML=`<h3>From the codex</h3>${cards}`;body.prepend(sec);
       const sub=$("summary .st span",acc);if(sub)sub.textContent+=` · ${ls.length===1?"a story":ls.length+" stories"} from the codex`;}
-    else{const d=document.createElement("details");d.className="acc cx-acc";d.innerHTML=`<summary><span class="st"><b>The story behind it</b><span>${ls.length===1?esc(ls[0].t):ls.length+" stories"} · from the codex</span></span></summary><div class="acc-body">${cards}</div>`;
-      const dd=$(".card.dd",root);if(dd)dd.after(d);else root.append(d);}}
+    else{const d=document.createElement("details");d.className="acc layer cx-acc";d.id="L-story";d.innerHTML=`<summary><span class="st"><b>The story behind it</b><span>${ls.length===1?esc(ls[0].t):ls.length+" stories"} · from the codex</span></span></summary><div class="acc-body">${cards}</div>`;
+      const lay=$("#signLayers",root);if(lay){lay.append(d);/* keep the "Open all sections" label in step: the sign page listens for toggle on its own layers */
+        d.addEventListener("toggle",()=>{const o=$("#signLayers>details:not(#L-story)",root);if(o)o.dispatchEvent(new Event("toggle"));});}
+      else{const dd=$(".card.dd",root);if(dd)dd.after(d);else root.append(d);}}}
   if(h){const el=document.createElement("div");el.className="row-x";el.style.marginTop="8px";el.innerHTML=`<button class="btn ghost sm" data-go="learn/hall/${h}">${ic("door")}${esc(HALL[h].n)}</button>`;root.append(el);}};}
 {const _tech=ROUTES["learn:tech"];ROUTES["learn:tech"]=(root,id)=>{_tech(root,id);if(!id)return;const h=techHall(id);if(!h)return;
   const el=document.createElement("div");el.className="row-x";el.innerHTML=`<button class="btn ghost sm" data-go="learn/hall/${h}">${ic("door")}${esc(HALL[h].n)}</button>`;root.append(el);};}

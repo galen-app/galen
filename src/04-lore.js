@@ -190,7 +190,7 @@ const LORE=[
  body:["The Edinburgh ophthalmologist Douglas Argyll Robertson described small, irregular pupils that constricted to near vision but not to light, in patients with tabes dorsalis, a late stage of syphilis.",
  "Students learned the cruel mnemonic: like a prostitute, it accommodates but does not react. The patients were blamed as much as the disease.",
  "Syphilis was treated for four hundred years with mercury, which loosened teeth, rotted gums and drove patients mad. A night with Venus, the saying went, a lifetime with Mercury."],
- fact:"Light-near dissociation of the pupils: think neurosyphilis, diabetes and dorsal midbrain lesions. Test syphilis serology.",signs:[],galen:"The patients were treated with contempt and poison in equal measure. Medicine has not always been kind.",src:"Argyll Robertson, Edinb Med J 1869"},
+ fact:"Light-near dissociation of the pupils: think neurosyphilis, diabetes and dorsal midbrain lesions. Test syphilis serology.",signs:["argyll-robertson"],galen:"The patients were treated with contempt and poison in equal measure. Medicine has not always been kind.",src:"Argyll Robertson, Edinb Med J 1869"},
 /* ---------- CRANIAL ---------- */
 {id:"twelve",hall:"cranial",k:"theatre",t:"Seven, nine, twelve",yr:"c. 170 – 1778",who:"Galen, Thomas Willis, Samuel Soemmerring",
  sum:"How the cranial nerves were counted, and miscounted.",

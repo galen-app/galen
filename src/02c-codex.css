@@ -2,7 +2,8 @@
 :root{--cx-gilt:#7f5c18}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--cx-gilt:#d9ab52}}
 :root[data-theme="dark"]{--cx-gilt:#d9ab52}
-.kind-dark{--kc:var(--bad)}.kind-triumph{--kc:var(--good)}.kind-eponym{--kc:var(--insp)}.kind-theatre{--kc:var(--cx-gilt)}
+.kind-dark{--kc:var(--bad)}.kind-triumph{--kc:var(--good)}.kind-eponym{--kc:var(--insp)}.kind-theatre{--kc:var(--gilt-ink,var(--cx-gilt))}
+.lorecard .k.theatre,.lorecard .k.k-theatre{color:var(--gilt-ink,var(--cx-gilt))}
 /* each kind has a shape as well as a colour */
 .kmark{display:inline-block;flex:none;width:.62em;height:.62em;background:currentColor;color:var(--kc,currentColor);margin-right:.42em;vertical-align:.04em;border-radius:1px}
 .kind-triumph .kmark,.kmark.kind-triumph{border-radius:50%}
@@ -11,9 +12,9 @@
 
 .lorecard{display:flex;flex-direction:column;gap:6px;text-align:left}
 .lorecard .yr,.cx-row .yr{font-family:var(--f-fell);color:var(--accent-ink)}
-.lorecard .k,.lore-meta .k,.cx-row .k{color:var(--kc);font-family:var(--f-sc);letter-spacing:.1em;text-transform:lowercase;font-weight:700;font-size:.78rem;display:inline-flex;align-items:center}
+.lorecard .k,.lore-meta .k,.cx-row .k{color:var(--kc);font-family:var(--f-sc);letter-spacing:.1em;text-transform:lowercase;font-weight:700;font-size:max(.78rem,12px);display:inline-flex;align-items:center}
 .lc-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
-.lc-leg{font-size:.72rem;font-style:italic;color:var(--muted);border:1px dashed var(--line);border-radius:4px;padding:0 6px;line-height:1.5}
+.lc-leg{font-size:max(.78rem,12px);font-style:italic;color:var(--muted);border:1px dashed var(--line);border-radius:4px;padding:0 6px;line-height:1.5}
 .lc-foot{display:flex;align-items:center;gap:8px;min-width:0}
 .lc-read{display:inline-flex;align-items:center;gap:3px;font-size:.76rem;font-weight:700;color:var(--good);flex:none}
 .lc-read .i{width:14px;height:14px}
