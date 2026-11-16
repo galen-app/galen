@@ -109,6 +109,18 @@ window.addEventListener("popstate",e=>{
 });
 /* hash changes are ours to handle (popstate above already did); stop the boot-time hashchange handler from rebuilding the stack */
 window.addEventListener("hashchange",e=>{if(HX.ok)e.stopImmediatePropagation();});
+window.ROUTER_OWNS_HASH=true;
+/* the start link (99-boot openHash defers to this): a cold deep link opens on its own tab with the tab root underneath,
+   so the tab is highlighted and Back goes to its root. The raw hash is split before decoding, so "%2F" inside a part survives. */
+function routeFromHash(h){
+  const raw=String(location.hash||(h?"#"+h:"")).replace(/^#/,"");
+  const parts=raw.split("/").filter(Boolean).map(x=>{try{return decodeURIComponent(x);}catch(e){return x;}}).slice(0,4);
+  if(!parts.length)return false;
+  const t=parts[0];
+  if(!NAV.stacks[t]){NAV.on="today";NAV.stacks.today=[{v:ROOTV.today},{v:"missing",a:parts.join("/")}];return true;}
+  NAV.on=t;NAV.stacks[t]=[{v:ROOTV[t]}];
+  if(parts.length>1&&!(parts[1]===ROOTV[t]&&parts.length===2)){const e={v:parts[1]};if(parts[2])e.a=parts[2];if(parts[3])e.b=parts[3];NAV.stacks[t].push(e);}
+  return true;}
 function navBoot(){
   /* a reload keeps the whole stack: restore it from this history entry when the hash still matches */
   try{const st=history.state;if(HX.ok&&st&&st.g&&st.nav){const want=location.hash||"";const snap=st.nav,on=snap.on,top=(snap.st[on]||[]).slice(-1)[0];
@@ -178,7 +190,9 @@ function chrome(){
   const hi=navTab();$$("#nav button[data-tab]").forEach(b=>{if(b.dataset.tab===hi)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current");});
   const due=dueCards().length,bd=$("#navbadge");if(bd){bd.textContent=due>99?"99+":due;bd.hidden=!due;bd.setAttribute("aria-label",due+" card"+(due===1?"":"s")+" due");}
 }
-function syncChip(){const el=$("#sync");if(!el)return;el.textContent=Store.status;el.className="sync"+(Store.status==="Synced"?" ok":Store.status==="Saving…"?" busy":"");}
+function syncChip(){const el=$("#sync");if(!el)return;const st=String(Store.status==null?"":Store.status);el.textContent=st;
+  el.className="sync"+(st==="Synced"?" ok":/^Saving/.test(st)?" busy":/paused|Update|unreachable|tap|Offline|failed|error/i.test(st)?" warn":"");
+  el.title=st;el.setAttribute("aria-label","Sync: "+st);}
 /* compatibility for code written before stacks could hold other tabs' pages (applied once, at boot) */
 function shims(){
   try{revertExtraNew();}catch(e){}
@@ -222,8 +236,14 @@ document.addEventListener("click",e=>{
 const soundChip=id=>`<button class="chip" data-go="sounds/sound/${esc(id)}">${ic("sounds")}${esc(item(id).name)}</button>`;
 const signChip=id=>{const s=SIGNS[id];return s?`<button class="chip" data-go="signs/sign/${esc(id)}"><span class="v v-${s.v}">${VERDICT[s.v]}</span>${esc(s.name)}</button>`:"";};
 /* strength class, plus "neg" for ratios below 1, so "rules out" never looks like "weakly rules in" */
-const lrClass=v=>{if(v==null||isNaN(+v))return "";v=+v;const k=(v>=10||v<=0.1)?"strong":(v>=5||v<=0.2)?"mod":(v>=2||v<=0.5)?"":"weak";return (k+(v<1?" neg":"")).trim();};
-function lrChips(s){const o=[];
+const lrClass=v=>{if(v==null||v===""||isNaN(+v))return "";v=+v;const k=(v>=10||v<=0.1)?"strong":(v>=5||v<=0.2)?"mod":(v>=2||v<=0.5)?"":"weak";return ((v<1?"neg ":"pos ")+k).trim();};
+/* tappable evidence chips (82a-D05-evidence.js) when that file is present; the plain chips below otherwise */
+let _SIGNID=null;
+function lrChips(s){
+  if(s&&typeof evChips==="function"&&typeof SIGNS!=="undefined"){
+    if(!_SIGNID||_SIGNID.n!==Object.keys(SIGNS).length){_SIGNID=new Map();Object.keys(SIGNS).forEach(k=>_SIGNID.set(SIGNS[k],k));_SIGNID.n=_SIGNID.size;}
+    const id=_SIGNID.get(s);if(id)return evChips(s,id);}
+  const o=[];
   if(s.p!=null)o.push(`<span class="lr ${lrClass(s.p)}" title="Positive likelihood ratio">LR+ ${esc(s.p)}</span>`);
   if(s.n!=null)o.push(`<span class="lr ${lrClass(s.n)}" title="Negative likelihood ratio">LR− ${esc(s.n)}</span>`);
   if(s.sens!=null)o.push(`<span class="lr weak">Sn ${esc(s.sens)}%</span>`);if(s.spec!=null)o.push(`<span class="lr weak">Sp ${esc(s.spec)}%</span>`);
@@ -473,7 +493,8 @@ route("learn:home","Learn",(root)=>{
   <section class="section"><span class="label">Dermatology</span><div class="grid">
     <button class="tile" data-go="learn/datlas"><div class="t-top"><span class="icwrap">${ic("eye")}</span><span class="tag">${DCOND.length} conditions × 6 skin tones</span></div><b>Skin atlas</b><span class="sub">Drawn plates, model descriptions, look-alikes, links to real photos.</span></button>
     <button class="tile" data-go="learn/describe"><div class="t-top"><span class="icwrap">${ic("learn")}</span></div><b>Describe like a dermatologist</b><span class="sub">The order, the sentence, a builder.</span></button>
-    <button class="tile" data-go="learn/dmorph"><div class="t-top"><span class="icwrap">${ic("map")}</span></div><b>The words of the skin</b><span class="sub">Every lesion term with its picture and size rule.</span></button></div></section>
+    <button class="tile" data-go="learn/dmorph"><div class="t-top"><span class="icwrap">${ic("map")}</span></div><b>The words of the skin</b><span class="sub">Every lesion term with its picture and, where one exists, its size rule.</span></button>
+    ${ROUTES["learn:dsoc"]?`<button class="tile" data-go="learn/dsoc"><div class="t-top"><span class="icwrap">${ic("eye")}</span></div><b>Skin of colour and Saudi practice</b><span class="sub">How common conditions look on darker skin, and what is common here.</span></button>`:""}</div></section>
   <section class="section"><span class="label">Neurology toolkit</span><div class="grid">
     <button class="tile" data-go="learn/neuromap"><div class="t-top"><span class="icwrap">${ic("map")}</span><span class="tag">quiz</span></div><b>Dermatomes and nerves</b><span class="sub">Tap-to-learn body map with the 28 key sensory points.</span></button>
     <button class="tile" data-go="learn/localise"><div class="t-top"><span class="icwrap">${ic("target")}</span></div><b>Where is the lesion?</b><span class="sub">Rules, vascular territories, brainstem syndromes, cord, gait.</span></button>
@@ -505,9 +526,11 @@ route("learn:module",(id)=>(SYSTEMS.find(s=>s.id===id)||{}).short||"Module",(roo
   $$(".tabs [data-t]",root).forEach(b=>b.addEventListener("click",()=>replace("module",id,b.dataset.t)));
   const B=$("#mb");
   if(tab==="seq"){
-    B.innerHTML=s.seq.map((st,i)=>`<details class="acc" data-i="${i}"${i===0?" open":""}><summary><span class="n">${pad2(i+1)}</span><span class="st"><b>${esc(st.t)}</b><span>${esc(st.how.split(/(?<=\.)\s/)[0])}</span></span><span class="v v-${st.v}">${VERDICT[st.v]}</span></summary>
+    const TK=modTech(s),tkChip=t=>`<button class="chip" data-go="learn/tech/${esc(t.id)}">${ic("check")}${esc(t.short||t.name)}</button>`;
+    B.innerHTML=(TK.length?`<div class="card stack modtech" style="gap:8px"><div class="row-x"><span class="eyebrow">Do it properly</span><span class="spacer"></span><button class="link small" data-go="learn/tech">Technique clinic</button></div><p class="small muted" style="margin:0">Step-by-step technique, with the reason for every move, for the tests in this module.</p><div class="chips">${TK.map(tkChip).join("")}</div></div>`:"")+s.seq.map((st,i)=>`<details class="acc" data-i="${i}"${i===0?" open":""}><summary><span class="n">${pad2(i+1)}</span><span class="st"><b>${esc(st.t)}</b><span>${esc(st.how.split(/(?<=\.)\s/)[0])}</span></span><span class="v v-${st.v}">${VERDICT[st.v]}</span></summary>
       <div class="acc-body">${(()=>{const f=(st.signs||[]).map(k=>SIGNS[k]&&SIGNS[k].fig).find(f=>f&&FIG[f]);return f?fig(f,{small:true}):"";})()}<div><span class="k">How</span>${esc(st.how)}</div><div><span class="k">Why it works</span>${esc(st.why)}</div><div><span class="k">What you find</span>${esc(st.find)}</div>
       ${st.signs&&st.signs.length?`<div><span class="k">Evidence for the signs in this step</span><div class="chips">${st.signs.map(signChip).join("")}</div></div>`:""}
+      ${(()=>{const tt=TK.filter(t=>(t.signs||[]).some(k=>(st.signs||[]).includes(k)));return tt.length?`<div><span class="k">Technique</span><div class="chips">${tt.map(tkChip).join("")}</div></div>`:"";})()}
       ${st.sounds?`<div><span class="k">Listen</span><div class="sp" data-sound="${st.sounds[0]}"></div><div class="chips" style="margin-top:8px">${st.sounds.map(soundChip).join("")}</div></div>`:""}</div></details>`).join("");
     /* create players lazily when a step opens */
     const mount=d=>{const sp=$(".sp",d);if(sp&&!sp.dataset.on){sp.dataset.on=1;mk(sp,sp.dataset.sound);}};
@@ -541,24 +564,14 @@ route("learn:module",(id)=>(SYSTEMS.find(s=>s.id===id)||{}).short||"Module",(roo
 });
 
 
-/* ---------- MSK region page ---------- */
-route("learn:region",(id)=>(REGIONS.find(r=>r.id===id)||{}).name||"Region",(root,id)=>{
-  const r=REGIONS.find(x=>x.id===id);if(!r)throw new Error("Region not found");
-  const vo=v=>VERDICT_ORDER.indexOf(v);
-  const T=r.tests.map(k=>[k,SIGNS[k]]).filter(([,x])=>x).sort((a,b)=>vo(a[1].v)-vo(b[1].v)||((b[1].p||0)-(a[1].p||0)));
-  const sn=v=>v==null?"–":v+"%";
-  const m=mastery("reg:"+id);
-  root.innerHTML=`<section class="ph"><span class="eyebrow">Musculoskeletal · region</span><h1>${esc(r.name)}</h1><p class="lede">${esc(r.intro)}</p>
-    <div class="row-x"><button class="btn sm" data-go="practice/session/reg:${id}">${ic("calendar")}Review this region</button><span class="small muted">${m.seen}/${m.n} cards started</span></div></section>
-   ${fig(r.fig)}
-   <div class="card stack" style="gap:12px"><span class="eyebrow">Surface anatomy</span>${r.land.map(([a,b,c])=>`<div class="lm"><b>${esc(a)}</b><span><i>Where:</i> ${esc(b)}</span><span><i>Why:</i> ${esc(c)}</span></div>`).join("")}</div>
-   <div class="card stack" style="gap:16px"><div class="sec"><h3>Look</h3><p>${esc(r.look)}</p></div><div class="sec"><h3>Feel</h3><p>${esc(r.feel)}</p></div><div class="sec"><h3>Move</h3><p>${esc(r.move)}</p></div>
-    <div class="tscroll"><table class="ttab"><thead><tr><th>Movement</th><th>Normal range</th></tr></thead><tbody>${r.rom.map(([a,b])=>`<tr><td>${esc(a)}</td><td class="num">${esc(b)}</td></tr>`).join("")}</tbody></table></div></div>
-   <div class="card stack" style="gap:10px"><span class="eyebrow">Special tests, best first</span><div class="list">${T.map(([k,x])=>`<button class="lrow" data-go="signs/sign/${k}"><span class="txt"><b>${esc(x.name)}</b><span>${esc(x.target)}</span><span class="lrrow" style="margin-top:4px">${x.sens!=null?`<span class="lr weak">Sn ${esc(x.sens)}%</span>`:""}${x.spec!=null?`<span class="lr weak">Sp ${esc(x.spec)}%</span>`:""}${x.p!=null?`<span class="lr ${lrClass(x.p)}">LR+ ${esc(x.p)}</span>`:""}${x.n!=null?`<span class="lr ${lrClass(x.n)}">LR− ${esc(x.n)}</span>`:""}</span></span><span class="v v-${x.v}">${VERDICT[x.v]}</span></button>`).join("")}</div>
-    <p class="small muted">Tap a test for how to do it, the anatomy and why it works.</p></div>
-   <div class="section"><span class="label">What to think</span><div class="think">${r.think.map(([f,t])=>`<div class="t"><b>${esc(f)}</b><span>${esc(t)}</span></div>`).join("")}</div></div>
-   <div class="card"><div class="sec"><h3>Pitfalls</h3><ul class="prose" style="padding-left:1.1em">${r.pitfalls.map(n=>`<li>${esc(n)}</li>`).join("")}</ul></div></div>`;
-});
+/* the MSK region page (learn:region) lives in 82-ref.js (D05) */
+/* technique-clinic entries for a module: any TECH whose signs overlap the module's step signs, plus the clinic groups that
+   belong to the system (rhinoscopy has no sign of its own but belongs with head and neck) */
+const TECH_GROUP_SYS={"Ear, nose and eye":["hn","neuro"],"Peripheral nerve":["neuro","msk"],"Sensory":["neuro"],"Reflexes and tone":["neuro"],"Coordination and gait":["neuro"],"Vestibular and eye movements":["neuro"],"Meninges and functional":["neuro"],"Musculoskeletal":["msk"]};
+function modTech(s){if(typeof TECH==="undefined"||!s)return [];
+  const sg=new Set();(s.seq||[]).forEach(st=>(st.signs||[]).forEach(k=>sg.add(k)));
+  const hit=TECH.filter(t=>(t.signs||[]).some(k=>sg.has(k))),grp=TECH.filter(t=>!hit.includes(t)&&(TECH_GROUP_SYS[t.group]||[])[0]===s.id);
+  return hit.concat(grp);}
 /* surface anatomy maps (data in ANAT) */
 const OUTLINES={
  chest:()=>{const ribs=[];for(let i=0;i<7;i++){const y=82+i*24;ribs.push(`<path d="M138 ${y} C 112 ${y-4}, 78 ${y+2}, 52 ${y+26}"/><path d="M162 ${y} C 188 ${y-4}, 222 ${y+2}, 248 ${y+26}"/>`);}
@@ -586,6 +599,10 @@ route("learn:frames","History frameworks",(root)=>{
 });
 route("learn:pres",(id)=>id?(HIST.pres.find(p=>p.id===id)||{}).name:"Presentations",(root,id)=>{
   const p=id&&HIST.pres.find(x=>x.id===id);
+  if(id&&!p)throw Object.assign(new Error("No presentation called "+id),{nf:1});
+  /* D20's layout (80b-D20-hist-ui.js): honest labels for unquantified LRs, sources on touch, Do now, amber, Saudi notes, links */
+  if(!p&&typeof histPresList==="function"){root.innerHTML=histPresList();return;}
+  if(p&&typeof histPresPage==="function"){root.innerHTML=histPresPage(p)+(p.links?"":presLinks(p));return;}
   if(!p){root.innerHTML=`<section class="ph"><span class="eyebrow">History taking</span><h1>The questions that move probability</h1><p class="lede">For each complaint: what to ask, which answers shift the odds and by how much, the red flags, and the differential to keep in view.</p></section>
     <div class="list">${HIST.pres.map(x=>`<button class="lrow" data-go="learn/pres/${x.id}"><span class="icwrap n">${ic("history")}</span><span class="txt"><b>${esc(x.name)}</b><span>${x.lr.length} clues · ${x.red.length} red flags · ${x.dd.length} differentials</span></span>${ic("chev","chev")}</button>`).join("")}</div>`;return;}
   root.innerHTML=`<section class="ph"><span class="eyebrow">History · presentation</span><h1>${esc(p.name)}</h1></section>
@@ -600,8 +617,8 @@ route("learn:pres",(id)=>id?(HIST.pres.find(p=>p.id===id)||{}).name:"Presentatio
 function presClues(p){const src=p.lrSrc||{};let n=0;
   const rows=p.lr.map(([f,t,l])=>{const s=src[f],lr=l==null?`<span class="lr nolr">not quantified</span>`:`<span class="lr ${lrClass(l)}">LR ${esc(l)}</span>`;
     const inner=`<span class="cf">${esc(f)}</span><span class="ct">${esc(t)}</span><span class="cl">${lr}${s?`<span class="src-dot" aria-hidden="true">${++n}</span>`:""}</span>`;
-    return s?`<details class="clue"><summary aria-label="${esc(f)}: ${esc(t)}, ${l==null?"not quantified":"LR "+esc(l)}. Show source">${inner}</summary><div class="cs"><span class="tiny muted">Source and caveat · </span>${esc(s)}</div></details>`:`<div class="clue"><div class="row">${inner}</div></div>`;}).join("");
-  return `<div class="clues"><div class="ch" aria-hidden="true"><span>Clue</span><span>Points to</span><span>LR</span></div>${rows}</div>
+    return s?`<details class="pclue"><summary aria-label="${esc(f)}: ${esc(t)}, ${l==null?"not quantified":"LR "+esc(l)}. Show source">${inner}</summary><div class="cs"><span class="tiny muted">Source and caveat · </span>${esc(s)}</div></details>`:`<div class="pclue"><div class="row">${inner}</div></div>`;}).join("");
+  return `<div class="pclues"><div class="pch" aria-hidden="true"><span>Clue</span><span>Points to</span><span>LR</span></div>${rows}</div>
    <p class="tiny muted" style="margin-top:6px">${n?"Tap a numbered row for its source and caveats. ":""}“Not quantified” means no likelihood ratio we can stand behind, not that the clue is strong. Blue ratios below 1 make the diagnosis less likely.</p>`;}
 /* close the loop: the examination, the scores and the cases that go with a presentation (curated, ids checked at render) */
 const PRES_TOOLS={chest:["heart","wells-pe","perc","years","age-adjusted-ddimer"],dysp:["wells-pe","perc","curb65","news2"],head:["ottawa-sah","cchr","gcs"],
@@ -616,7 +633,7 @@ function presLinks(p){
   if(mod)grp.push(["Examine next",`<button class="chip" data-go="learn/module/${esc(mod.id)}">${ic("learn")}${esc(mod.name)}</button>`]);
   if(tools.length)grp.push(["Score it",tools.map(t=>`<button class="chip" data-go="tools/calc/${esc(t.id)}">${ic("scale")}${esc(t.name)}</button>`).join("")]);
   if(cases.length)grp.push(["Practise",cases.map(c=>`<button class="chip" data-go="practice/hdpe/${esc(c.id)}">${ic("target")}${esc(c.title)}</button>`).join("")]);
-  if(halls.length)grp.push(["In the theatre",halls.map(h=>`<button class="chip" data-go="learn/hall/${esc(h.id)}">${ic("door")}${esc(h.n)}</button>`).join("")]);
+  if(halls.length)grp.push(["In the theatre",halls.map(h=>`<button class="chip" data-go="today/hall/${esc(h.id)}">${ic("door")}${esc(h.n)}</button>`).join("")]);
   return grp.length?`<section class="section"><span class="label">Next</span><div class="card xlinks">${grp.map(([k,c])=>`<div><span class="xk">${k}</span><div class="chips">${c}</div></div>`).join("")}</div></section>`:"";}
 
 /* ---------- method ---------- */
