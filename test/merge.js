@@ -191,7 +191,7 @@ const sched=(D,id,n)=>{const S=D.Store;S.s.srs[id]=Object.assign(S.s.srs[id]||{i
  const B=device("B");const m=B._mergeStates(B.Store.s,raw);eq(m.xp,17,"uncommitted xp in a copy is kept");eq(m.days[B.dayKey()],2,"uncommitted day ticks kept");
  const m2=B._mergeStates(m,raw);eq(m2.xp,17,"and not counted twice");}
 /* ---------- 16. levels ---------- */
-{const A=device("A");eq(A.levelOf(0).title,"Student","level 0");eq(A.levelOf(100).l,1,"100 XP = level 1");eq(A.levelOf(4900).title,"Galen","4900 = Galen");eq(A.levelOf(6400).title,"Galen II","6400 = Galen II");ok(A.levelOf(150).pct>0&&A.levelOf(150).pct<1,"pct in range");}
+{const A=device("A");eq(A.levelOf(0).title,"Student","level 0");eq(A.levelOf(100).l,1,"100 XP = level 1");eq(A.levelOf(4900).title,"Galen","4900 = Galen");eq(A.levelOf(6400).title,"Galen","6400 stays Galen (title capped)");ok(A.levelOf(150).pct>0&&A.levelOf(150).pct<1,"pct in range");}
 
 /* ---------- 17. random convergence: many devices, random ops, any sync order ---------- */
 {let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;const drive=makeDrive();const Ds=[device("R1"),device("R2"),device("R3")];let xpSum=0;

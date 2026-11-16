@@ -14,7 +14,7 @@ async function mk(vp,scheme){const ctx=await b.newContext({viewport:vp,colorSche
 /* ---------- 1. all routes ---------- */
 const pg=await mk({width:390,height:844},'light');
 const routes=await pg.evaluate(()=>{const R=[];
-  const NEEDS_ID=['learn:module','learn:region','signs:sign','signs:imgsub','sounds:sound','practice:pocket','learn:dcond','learn:map','tools:calc','tools:lab','learn:techpocket','practice:techwalk','practice:techorder','practice:techrep','practice:techmcq','learn:hall','learn:lore'];for(const k of Object.keys(ROUTES)){if(NEEDS_ID.includes(k))continue;const [t,v]=k.split(':');R.push([t,v]);}
+  const NEEDS_ID=['learn:module','learn:region','signs:sign','signs:imgsub','sounds:sound','practice:pocket','learn:dcond','learn:map','tools:calc','tools:lab','learn:techpocket','practice:techwalk','practice:techorder','practice:techrep','practice:techmcq','learn:hall','learn:lore','today:hall'];for(const k of Object.keys(ROUTES)){if(NEEDS_ID.includes(k))continue;const [t,v]=k.split(':');R.push([t,v]);}
   TOOLS.forEach(t=>R.push(['tools','calc',t.id]));LABS.forEach(l=>R.push(['tools','lab',l.id]));
   CMAPS.forEach(m=>R.push(['learn','map',m.id]));DCOND.forEach(c=>R.push(['learn','dcond',c.id]));
   Object.keys(SIGNS).forEach(k=>R.push(['signs','sign',k]));HIST.pres.forEach(p=>R.push(['learn','pres',p.id]));
@@ -61,8 +61,8 @@ log('session graded', await f.evaluate(()=>Object.keys(Store.s.srs).length),'car
 for(const t of await f.evaluate(()=>TOOLS.filter(t=>t.kind!=='score').map(t=>({id:t.id,inputs:t.inputs})))){
   await f.evaluate(id=>open('tools','calc',id),t.id);await f.waitForTimeout(40);
   for(const inp of t.inputs){if(inp.opts){const c=await f.$(`[data-k="${inp.k}"][data-v]`);if(c)await c.click();}else{const v=inp.default!=null?inp.default:(inp.min+inp.max)/2;await f.fill(`input[data-k="${inp.k}"]`,String(v));}await f.waitForTimeout(15);}
-  const txt=await f.evaluate(()=>(document.querySelector('#view .big')||{}).textContent||document.querySelector('#view').innerText.slice(0,0));
-  if(!txt||/NaN|Infinity|–/.test(txt))add('calc',t.id+' mid-range result "'+txt+'"');
+  const txt=await f.evaluate(()=>(document.querySelector('#view .calc-res')||document.querySelector('#view .big')||{}).textContent||document.querySelector('#view').innerText.slice(0,0));
+  if(!txt||/NaN|Infinity/.test(txt)||/^Result\s*–/.test(txt))add('calc',t.id+' mid-range result "'+txt+'"');
   // input focus survives typing
   const first=t.inputs.find(i=>!i.opts);if(first){await f.focus(`input[data-k="${first.k}"]`);await f.keyboard.type('1');const foc=await f.evaluate(()=>document.activeElement&&document.activeElement.dataset.k);if(foc!==first.k)add('calc',t.id+' loses focus while typing');}
 }

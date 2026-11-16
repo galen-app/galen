@@ -443,7 +443,7 @@ function hdScore(c,S){
 }
 
 /* ================= ER CASES ================= */
-route("practice:er",(id)=>id?"ER case":"ER cases",(root,id)=>{
+route("practice:er",(id)=>id?"ER sound case":"ER sound cases",(root,id)=>{
   const s=id&&SCEN.find(x=>x.id===id);KEYS.handler=null;
   if(!s){root.innerHTML=`<section class="ph"><span class="eyebrow">Applied</span><h1>Hear it, then decide what to do</h1><p class="lede">Story and vitals, identify the sound, then choose the next step. ${Store.s.er.length}/${SCEN.length} completed.</p></section>
     <div class="list">${SCEN.map(x=>`<button class="lrow" data-go="practice/er/${x.id}"><span class="tag">${esc(x.tag)}</span><span class="txt"><b>${esc(x.title)}</b><span>${esc(x.hx)}</span></span>${Store.s.er.includes(x.id)?`<span class="pill good">${ic("check")}done</span>`:ic("chev","chev")}</button>`).join("")}</div>

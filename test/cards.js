@@ -64,7 +64,7 @@ const opt=k=>{const i=args.indexOf(k);return i>=0?args[i+1]:null;};
       Object.entries(miss).forEach(([t,n])=>{if(n===out.types[t])W("chapters",`type ${t}: none of its ${n} cards reaches a chapter`);});
       Object.entries(OUTLINE).forEach(([h,cs])=>cs.forEach((c,i)=>{if(!chapCardIds(h,i).size)W("chapters",`${h}:${i} "${c.t}" has no cards`);}));}
     /* duels compare signs with the same target */
-    const pairs=typeof duelPairs==="function"?duelPairs():[];pairs.forEach(([a,b])=>{if(String(SIGNS[a].target).toLowerCase()!==String(SIGNS[b].target).toLowerCase())H("duel",`${a} vs ${b} have different targets`);});
+    const pairs=typeof duelPairs==="function"?duelPairs():[];pairs.forEach(([a,b])=>{const tk=x=>SIGNS[x].dx||String(SIGNS[x].target).trim().toLowerCase();if(tk(a)!==tk(b))H("duel",`${a} vs ${b} have different targets`);});
     if(typeof DUELS!=="undefined")DUELS.forEach(([a,b])=>{if(SIGNS[a]&&SIGNS[b]&&SIGNS[a].target!==SIGNS[b].target)W("duel",`DUELS ${a} vs ${b}: "${SIGNS[a].target}" vs "${SIGNS[b].target}"`);});
     out.stats.duelPairs=pairs.length;
     return out;},{legacy});

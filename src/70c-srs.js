@@ -212,10 +212,13 @@ function cardScopes(c){
     if(typeof OUTLINE!=="undefined"&&typeof chapCardIds==="function")Object.entries(OUTLINE).forEach(([h,chs])=>chs.forEach((_,i)=>{const s=`chap:${h}:${i}`;srsScope(s).forEach(id=>{const a=_CHAPOF.get(id)||[];a.push(s);_CHAPOF.set(id,a);});}));}
   const out=[...(_CHAPOF.get(c.id)||[])];let h=null;try{h=typeof cardHall==="function"&&cardHall(c);}catch(e){}if(h)out.push("hall:"+h);return out;
 }
-function mstRec(scope){return Store.s.notes["mst:"+scope];}
+/* Mastery is stored by the chapter's stable id, so reordering chapters never moves anyone's mastery. */
+function mstKey(scope){const m=/^chap:([^:]+):(\d+)$/.exec(scope||"");if(m&&typeof OUTLINE!=="undefined"){const c=(OUTLINE[m[1]]||[])[+m[2]];if(c&&c.id)return "mst:cid:"+c.id;}return "mst:"+scope;}
+function mstScopeOf(key){const s=key.slice(4);if(s.startsWith("cid:")&&typeof OUTLINE!=="undefined"){const id=s.slice(4);for(const h in OUTLINE){const i=OUTLINE[h].findIndex(c=>c.id===id);if(i>=0)return "chap:"+h+":"+i;}return null;}return s;}
+function mstRec(scope){return Store.s.notes[mstKey(scope)];}
 function mstNote(c,ok){
   const t=dayNum(),gained=[];
-  cardScopes(c).forEach(s=>{const k="mst:"+s,r=Object.assign({a:[],seal:0,k:0},Store.s.notes[k]||{});r.a=[...(r.a||[]),[t,ok?1:0]].slice(-MST_N);r.t=Date.now();
+  cardScopes(c).forEach(s=>{const k=mstKey(s),r=Object.assign({a:[],seal:0,k:0},Store.s.notes[k]||{});r.a=[...(r.a||[]),[t,ok?1:0]].slice(-MST_N);r.t=Date.now();
     if(!r.seal&&r.a.length>=MST_N){const pct=r.a.reduce((x,y)=>x+y[1],0)/r.a.length,days=new Set(r.a.map(x=>x[0])).size;if(pct>=MST_PCT&&days>=MST_DAYS){r.seal=t;r.k=0;r.fade=0;gained.push(s);}}
     Store.s.notes[k]=r;});
   return gained;
@@ -238,14 +241,14 @@ function checkPlan(scope){
   const q=arrange(pickd);return {queue:q,kinds:q.map(()=>"c"),plan:dayPlan(),mood:"exam",check:true};
 }
 function checkResult(scope,right,total){
-  const k="mst:"+scope,r=Object.assign({a:[],seal:0,k:0},Store.s.notes[k]||{});const pass=right>=CHECK_PASS;
+  const k=mstKey(scope),r=Object.assign({a:[],seal:0,k:0},Store.s.notes[k]||{});const pass=right>=CHECK_PASS;
   r.chk=[...(r.chk||[]),{d:dayNum(),ok:right,n:total}].slice(-10);r.t=Date.now();
   if(pass){r.k=(r.k||0)+1;if(dayNum()>mstNext(Object.assign({},r,{k:r.k-1}))+3){/* late but passed: restart the ladder from today */r.seal=dayNum();r.k=0;}}
   else{r.seal=0;r.k=0;r.fade=1;r.a=(r.a||[]).slice(-10);}
   Store.s.notes[k]=r;Store.save();return pass;
 }
 /* every scope with a re-check due today, for Today and the hall pages */
-function checksDue(){const out=[];for(const k in Store.s.notes){if(!k.startsWith("mst:"))continue;const s=k.slice(4),m=scopeMastery(s);if(m.state==="check"||m.state==="fading")out.push([s,m]);}return out;}
+function checksDue(){const out=[];for(const k in Store.s.notes){if(!k.startsWith("mst:"))continue;const s=mstScopeOf(k);if(!s)continue;const m=scopeMastery(s);if(m.state==="check"||m.state==="fading")out.push([s,m]);}return out;}
 
 /* ---------- weekly recap: the last full week. ISO week, Monday to Sunday, unless settings.weekStart (0 Sun … 6 Sat) is set ---------- */
 function weekStartOf(d){const ws=Store.s.settings.weekStart;const first=Number.isInteger(ws)&&ws>=0&&ws<=6?ws:1;const x=new Date(d);x.setHours(12,0,0,0);x.setDate(x.getDate()-((x.getDay()-first+7)%7));return x;}

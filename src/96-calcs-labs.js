@@ -66,8 +66,10 @@ function calcNoteLine(t,st,res){
     const b=res.settled;
     return `${t.name}${t.rule?"":" "+fmtNum(res.total)}${parts?` (${parts})`:""}${b?`: ${b.label}`:""}. ${d}`;
   }
-  const ins=t.inputs.map(inp=>{const v=st[inp.k];if(inp.opts){const o=inp.opts.find(o=>o[1]===+v);return o?o[0].toLowerCase():"";}const u=st["_u_"+inp.k]&&inp.alt?inp.alt.unit:inp.unit;return `${itemShort(inp).toLowerCase()} ${v}${u?" "+u:""}`;}).filter(Boolean).join(", ");
-  const ex=(res.extra||[]).map(x=>`${x.label.toLowerCase()} ${x.v}${x.unit?" "+x.unit:""}`).join("; ");
+  /* lower-case only a plain first word, so PaO₂, mmHg and ABPI keep their case */
+  const lcFirst=w=>{w=String(w);const f=w.split(/[\s(]/)[0];return /^[A-Z][a-z]*$/.test(f)&&!/^[A-Z][a-z]?$/.test(f)?w[0].toLowerCase()+w.slice(1):w;};
+  const ins=t.inputs.map(inp=>{const v=st[inp.k];if(inp.opts){const o=inp.opts.find(o=>o[1]===+v);return o?o[0].toLowerCase():"";}const u=st["_u_"+inp.k]&&inp.alt?inp.alt.unit:inp.unit;return `${lcFirst(itemShort(inp))} ${v}${u?" "+u:""}`;}).filter(Boolean).join(", ");
+  const ex=(res.extra||[]).map(x=>`${lcFirst(x.label)} ${x.v}${x.unit?" "+x.unit:""}`).join("; ");
   return `${t.name} ${res.shown}${t.unit?" "+t.unit:""} (${ins})${res.band?`: ${res.band.label}`:""}${ex?`. ${ex}`:""}. ${d}`;
 }
 route("tools:calcs","Scores",(root,group)=>{

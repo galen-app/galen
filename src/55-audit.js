@@ -238,9 +238,13 @@ const SIGN_AKA={
 })();
 /* use and best are derived after every data layer has run, so they always match the displayed LRs */
 function signUse(s){
-  const hasP=s.p!=null,hasN=s.n!=null,sensOut=!hasN&&s.sens!=null&&s.sens>=99;
-  if(!hasP&&!hasN&&!sensOut)return null;
-  const inn=hasP&&s.p>=5,out=(hasN&&s.n<=0.2)||sensOut||(hasP&&s.p<=0.2);
+  /* published LRs first; otherwise derive them from sensitivity and specificity (spec 100 means an unbounded LR+) */
+  const ss=s.sens!=null&&s.spec!=null;let p=s.p,n=s.n,inf=false;
+  if(p==null&&ss&&s.sens>0){if(s.spec<100)p=s.sens/(100-s.spec);else inf=true;}
+  if(n==null&&ss&&s.spec>0)n=(100-s.sens)/s.spec;
+  const sensOut=n==null&&s.sens!=null&&s.sens>=99;
+  if(p==null&&!inf&&n==null&&!sensOut)return null;
+  const inn=inf||(p!=null&&p>=5),out=(n!=null&&n<=0.2)||sensOut||(s.p!=null&&s.p<=0.2);
   return inn&&out?"both":inn?"in":out?"out":"neither";
 }
 function signBest(s){

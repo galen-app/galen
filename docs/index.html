@@ -15,7 +15,7 @@
 <link rel="icon" href="icons/icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 
-<link rel="stylesheet" href="app.css?v=04a45ac4c1">
+<link rel="stylesheet" href="app.css?v=44f13ab05a">
 </head>
 <body>
 
@@ -24,26 +24,32 @@
   <header class="top"><div class="top-in">
     <button class="iconbtn" id="backbtn" aria-label="Back" hidden></button>
     <div class="top-title"><span class="brandmark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.5v19"/><path d="M9.5 5.5c3.5-1 5.5 1 3 3s-5 2.5-2 4.5 5.5 1 3 3.5-4 1.5-2 3"/><circle cx="12" cy="2.6" r=".6"/></svg></span><b id="toptitle">Galen</b></div>
-    <span class="sync" id="sync">This device</span>
+    <span class="sync" id="sync" title="Sync status">This device</span>
     <button class="iconbtn" id="soundbtn" aria-label="Theatre sound" aria-pressed="false"></button>
     <button class="iconbtn" id="searchbtn" aria-label="Search (press /)"></button>
   </div></header>
   <main class="wrap" id="view"></main>
   <aside class="refpane" id="refpane" aria-label="Reference"></aside>
 </div>
-<div class="stage" aria-hidden="true"><i class="glow"></i><i class="vig"></i></div>
+<div class="stage" aria-hidden="true"><i class="glow"></i><i class="flick"></i><i class="vig"></i></div>
 <nav class="nav" aria-label="Sections"><div class="nav-in" id="nav"></div></nav>
 
-<script src="app.js?v=04a45ac4c1"></script>
+<script src="app.js?v=44f13ab05a"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').then(reg => {
-    window.GALEN_SW = reg;
-    reg.addEventListener('updatefound', () => { const w = reg.installing; w && w.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) document.dispatchEvent(new CustomEvent('galen:update', { detail: reg })); }); });
+  /* The update banner follows reg.waiting, so it comes back on every start until the user updates.
+     The app also checks for an update when it comes back into view (Android keeps the PWA alive for days), when it comes online, and hourly. */
+  const tell = reg => { if (reg && reg.waiting && navigator.serviceWorker.controller) document.dispatchEvent(new CustomEvent('galen:update', { detail: reg })); };
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
+    if (!reg) return; window.GALEN_SW = reg; tell(reg);
+    reg.addEventListener('updatefound', () => { const w = reg.installing; w && w.addEventListener('statechange', () => { if (w.state === 'installed') tell(reg); }); });
+    let last = Date.now(); const check = () => { if (Date.now() - last < 60000 || navigator.onLine === false) return; last = Date.now(); reg.update().catch(() => {}); };
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+    window.addEventListener('online', check); setInterval(check, 3600000);
   }).catch(e => console.warn('sw', e)));
   /* reload only when an update replaces a worker that was already in control (the user tapped Update), never on the first install */
   let refreshing = false; const hadController = !!navigator.serviceWorker.controller;
-  navigator.serviceWorker.addEventListener('controllerchange', () => { if (refreshing || !hadController) return; refreshing = true; location.reload(); });
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (refreshing || !hadController) return; refreshing = true; try { if (typeof Store !== 'undefined' && Store.cache) Store.cache(); } catch (e) {} location.reload(); });
 }
 </script>
 </body>
