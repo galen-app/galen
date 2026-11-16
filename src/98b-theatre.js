@@ -115,7 +115,7 @@ function setPlace(h,i){const p=place();if(p&&p.h===h&&p.i===i&&Date.now()-p.t<6e
 function mstOf(scope){try{return typeof scopeMastery==="function"?scopeMastery(scope):null;}catch(e){return null;}}
 function mstHTML(scope,what){const m=mstOf(scope);if(!m||m.state==="none")return "";const dn=typeof dayNum==="function"?dayNum():0;
   const rc=`<button class="btn sm${m.state==="fading"?"":" soft"}" data-go="practice/session/chk:${scope}">${ic("check")}Re-check (5 questions)</button>`;
-  if(m.state==="building")return `<div class="mst mst-building"><span class="mst-k">Building mastery</span><span class="small muted">${Math.min(m.n,m.need)} of ${m.need} recent answers${m.needDays?` · over ${m.needDays} days`:""} · ${Math.round(m.pct*100)}% right</span></div>`;
+  if(m.state==="building")return `<div class="mst mst-building"><span class="mst-k">Building mastery</span><span class="small muted">${Math.min(m.n,m.need)} of ${m.need} answers so far${m.needDays?`, on ${Math.min(m.days||0,m.needDays)} of ${m.needDays} separate days`:""} · ${Math.round(m.pct*100)}% right</span></div>`;
   if(m.state==="mastered"){const d=Math.max(0,(m.next||dn)-dn);return `<div class="mst mst-mastered"><span class="mst-k">Mastered</span><span class="small muted">${d?`Next re-check in ${d} day${d===1?"":"s"}`:"Re-check from tomorrow"}</span></div>`;}
   return `<div class="mst mst-${m.state}"><span class="mst-k">${m.state==="fading"?"Fading":"Re-check due"}</span><span class="small muted">${m.state==="fading"?`This ${what} is slipping. Five questions; get 4 right to keep it mastered.`:`Five questions; get 4 right to keep this ${what} mastered.`}</span>${rc}</div>`;}
 /* the next chapter to study in a hall: where you were, else the first chapter not yet sealed */
@@ -151,7 +151,7 @@ function theatreDraw(opt={}){
   const tm=hallMastery("table"),tst=hallStage(tm),first=!!opt.first;
   s+=`<ellipse class="pit" cx="${cx}" cy="${cy}" rx="46" ry="27"/>`;
   s+=`<g class="door table st${tst}${first?" beckon":""}" tabindex="0" role="link" aria-label="The Table: the whole patient, ${Math.round(tm.pct*100)}% mastered" data-go="today/hall/table">
-   <rect class="hit" x="${cx-50}" y="${cy-10}" width="100" height="66" fill="transparent"/>
+   <rect class="hit" x="${cx-50}" y="${cy-9}" width="100" height="65" fill="transparent"/>
    <rect x="${cx-30}" y="${cy-9}" width="60" height="16" rx="2" fill="var(--surface)" stroke="var(--ink-engr)" stroke-width="1.2"/>
    <path d="M${cx-22} ${cy-1}c6-6 14-6 22-4s14 2 20 4c-6 6-14 6-22 4s-14-2-20-4z" fill="var(--surface2)" stroke="var(--ink-engr)" stroke-width=".8"/>
    <path d="M${cx-26} ${cy+7}v7M${cx+26} ${cy+7}v7" stroke="var(--ink-engr)"/>

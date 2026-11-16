@@ -93,7 +93,7 @@ html.candles .theatre .flame{filter:none}
 html.candles .theatre .th-fx .flame{stroke:color-mix(in srgb,var(--accent) 45%,transparent);stroke-width:2.2;paint-order:stroke}
 /* on the theatre home the room behind the engraving holds still: its full-screen flicker (02-theatre .stage) cost a frame
    rate of 58 down to about 5 in software rendering, and it re-runs the bars' backdrop blur on every frame */
-html.on-theatre .stage .glow,html.on-theatre .stage::before,html.on-theatre .stage::after{animation-play-state:paused}
+html.on-theatre .stage .glow,html.on-theatre .stage::before,html.on-theatre .stage::after{animation-play-state:paused!important}
 .th-cap{text-align:center;margin:-6px auto 0;max-width:60ch;font-size:.9rem;line-height:1.4}
 .th-today .techday .td-cta{font-weight:700;color:var(--accent-ink)}
 .today-old{display:flex;flex-direction:column;gap:var(--gap,18px)}
