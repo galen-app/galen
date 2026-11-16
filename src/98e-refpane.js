@@ -31,7 +31,7 @@ const rpTechFor=id=>typeof TECH==="undefined"?[]:TECH.filter(t=>(t.signs||[]).in
 const rpSignBtn=id=>{const s=SIGNS[id];return s?`<button class="chip" data-rp-sign="${esc(id)}"><span class="v v-${s.v}">${VERDICT[s.v]}</span>${esc(s.name)}</button>`:"";};
 const rpTechBtn=t=>`<button class="chip" data-rp-tech="${esc(t.id)}">${ic("check")}${esc(t.name)}</button>`;
 const rpHallRow=h=>typeof hallRow==="function"?hallRow(h):`<button class="rp-hall" data-go="learn/hall/${h.id}"><span class="emb" aria-hidden="true"><svg viewBox="0 0 64 64">${EMB[h.id]||""}</svg></span><span class="tx"><span class="tiny muted">${h.id==="table"?"The centre":"Hall "+esc(h.rn)}</span><b>${esc(h.n)}</b></span>${ic("chev","chev")}</button>`;
-function rpStories(id,hid){const own=LORE_BY_SIGN[id]||[];const more=hid?LORE.filter(l=>l.hall===hid&&!own.includes(l)):[];return own.concat(more).slice(0,own.length?own.length:1);}
+function rpStories(id,hid){const own=LORE_BY_SIGN[id]||[];const more=hid?LORE.filter(l=>l.hall===hid&&!own.includes(l)):[];return own.concat(more.slice(0,1));}
 function rpRecentHTML(skip){const r=RP.recent.filter(x=>!(skip&&x[0]===skip[0]&&x[1]===skip[1])).filter(x=>x[0]==="sign"?SIGNS[x[1]]:typeof TECH!=="undefined"&&TECH.find(t=>t.id===x[1])).slice(0,5);
   if(!r.length)return "";
   return `<section class="rp-sec"><span class="label">Recently opened here</span><div class="chips">${r.map(x=>x[0]==="sign"?rpSignBtn(x[1]):rpTechBtn(TECH.find(t=>t.id===x[1]))).join("")}</div></section>`;}
@@ -74,7 +74,7 @@ function rpDrill(){const d=DRILLS.find(x=>x.id===DR.id);if(!d)return "";const ca
    <p class="tiny muted" style="margin:0">${m} of ${cats.length} mastered${DR.n?` · ${DR.n} trials, ${Math.round(DR.right/DR.n*100)}% correct`:""} · answer within ${target} s to count</p></section>${fb}
    <p class="tiny muted rp-keys">Keys: <kbd>Space</kbd> play or pause · <kbd>1</kbd>–<kbd>9</kbd> answer · <kbd>Enter</kbd> next</p>`;}
 function rpHall(hid){const chs=OUTLINE[hid]||[];let due=0;try{due=typeof hallDue==="function"?hallDue(hid):dueCards().filter(c=>cardHall(c)===hid).length;}catch(e){}
-  return `${rpQuip(GALEN.hall[hid])}<section class="rp-sec"><span class="label">The outline · where you are</span><nav class="rp-toc" aria-label="Chapters of this hall">${chs.map((c,i)=>`<button class="rp-chap${i===RP.chap?" on":""}" data-rp-chap="${i}"${i===RP.chap?' aria-current="true"':""}><span class="cn">${ROMAN[i]||i+1}</span><span>${esc(c.t)}</span></button>`).join("")}</nav></section>
+  return `${rpQuip(typeof galenSay==="function"?galenSay(hid):GALEN.hall[hid])}<section class="rp-sec"><span class="label">The outline · where you are</span><nav class="rp-toc" aria-label="Chapters of this hall">${chs.map((c,i)=>`<button class="rp-chap${i===RP.chap?" on":""}" data-rp-chap="${i}"${i===RP.chap?' aria-current="true"':""}><span class="cn">${ROMAN[i]||i+1}</span><span>${esc(c.t)}</span></button>`).join("")}</nav></section>
    <div class="card stack" style="gap:8px"><span class="label">This hall</span><b class="rp-big">${due?`${due} card${due>1?"s":""} due here`:"Nothing due in this hall"}</b><button class="btn sm soft" data-go="practice/session/hall:${hid}">${ic("play")}${due?"Review this hall":"Learn from this hall"}</button></div>${rpRecentHTML()}`;}
 function rpSignCtx(id){const hid=signHall(id),h=hid&&HALL[hid],tech=rpTechFor(id),ls=rpStories(id,hid);
   return `${tech.length?`<section class="rp-sec"><span class="label">Do it properly</span><div class="chips">${tech.map(rpTechBtn).join("")}</div></section>`:""}
@@ -92,7 +92,7 @@ function rpHome(){let rows=[];try{if(typeof hallDue==="function")rows=HALLS.map(
    ${rpRecentHTML()||`<section class="rp-sec"><span class="label">Recently opened here</span><p class="small muted" style="margin:0">Signs and techniques you open beside a lesson, drill or case collect here.</p></section>`}
    ${typeof EGGS!=="undefined"?`<section class="rp-sec"><span class="label">Marginalia</span><button class="link small" style="align-self:flex-start" data-go="learn/codex">${found} of ${EGGS.length} secrets found</button></section>`:""}`;}
 function rpGeneric(){const rk=rpRouteKey();let due=0;try{due=dueCards().length;}catch(e){}const l=loreOfDay();
-  return `${rpQuip(galenPick(GALEN.idle,rpHash(rk)))}<div class="card stack" style="gap:8px"><span class="label">Today</span><b class="rp-big">${due?`${due} card${due>1?"s":""} due`:"Nothing due"}</b><button class="btn sm" data-go="practice/session/all">${ic("play")}${due?"Start the session":"Learn something new"}</button></div>
+  return `${rpQuip(typeof galenSay==="function"?galenSay("idle",rk):galenPick(GALEN.idle,rpHash(rk)))}<div class="card stack" style="gap:8px"><span class="label">Today</span><b class="rp-big">${due?`${due} card${due>1?"s":""} due`:"Nothing due"}</b><button class="btn sm" data-go="practice/session/all">${ic("play")}${due?"Start the session":"Learn something new"}</button></div>
    ${rpRecentHTML()}<section class="rp-sec"><span class="label">From the codex</span>${loreCard(l,{hall:1})}</section>`;}
 function rpContext(){const r=cur(),key=NAV.tab+":"+r.v;
   if(key==="practice:session"&&typeof SES!=="undefined"&&SES&&!SES.finished&&SES.queue[SES.i])return ["Beside this card",rpSession()];

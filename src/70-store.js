@@ -182,25 +182,29 @@ function stFieldwise(c,x,y){
 }
 function stUnionBy(a,b,key,sortKey,cap){const m=new Map();for(const e of [...(Array.isArray(a)?a:[]),...(Array.isArray(b)?b:[])]){const k=key(e);if(!m.has(k))m.set(k,e);}return [...m.values()].sort((p,q)=>(sortKey(p)||0)-(sortKey(q)||0)).slice(-cap);}
 /* technique record: best scores take the max, confidence ratings and reps are unions, the rest field by field */
-function stMergeTech(x,y){const o=stFieldwise("notes",x,y);
+function stMergeTech(x0,y0){
+  /* techSave writes ft:{field:time}; use the later of ft and _ft for each field */
+  const lift=r=>{if(!stObj(r.ft))return r;const f=Object.assign({},stObj(r._ft)?r._ft:{});for(const k of Object.keys(r.ft)){const t=+r.ft[k]||0;if(t>(f[k]||0))f[k]=t;}return Object.assign({},r,{_ft:f});};
+  const x=lift(x0),y=lift(y0);const o=stFieldwise("notes",x,y);
+  if(stObj(x.ft)||stObj(y.ft)){const ft={};for(const r of [x,y])for(const k of Object.keys(r.ft||{}))ft[k]=Math.max(ft[k]||0,+r.ft[k]||0);o.ft=ft;}
   const fx=stObj(x._ft)?x._ft:{},fy=stObj(y._ft)?y._ft:{},bx=stRecTime("notes",x),by=stRecTime("notes",y);
   const first=f=>((fy[f]||by)>(fx[f]||bx))?[y,x]:[x,y];   /* the side that changed this list last goes first */
   for(const f of ["walk","order","mcq","why"])if(x[f]!=null||y[f]!=null)o[f]=Math.max(+x[f]||0,+y[f]||0);
   if(x.read||y.read)o.read=o.read||x.read||y.read;
   if(x.mcqOk||y.mcqOk)o.mcqOk=stUni(Array.isArray(x.mcqOk)?x.mcqOk:[],Array.isArray(y.mcqOk)?y.mcqOk:[]);
   if(x.conf||y.conf){const [p,q]=first("conf");o.conf=stUnionBy(p.conf,q.conf,e=>Array.isArray(e)?String(e[0]):JSON.stringify(e),e=>Array.isArray(e)?e[0]:0,20);}
-  if(x.reps||y.reps){const [p,q]=first("reps");o.reps=stUnionBy(p.reps,q.reps,e=>e&&e.t!=null?String(e.t):JSON.stringify(e),e=>e&&e.t,100);}
+  if(x.reps||y.reps){const [p,q]=first("reps");o.reps=stUnionBy(p.reps,q.reps,e=>e&&e.t!=null?String(e.t):JSON.stringify(e),e=>e&&e.t,30);}
   o.t=Math.max(x.t||0,y.t||0)||o.t;return o;}
 /* daily round: each tick keeps its first time */
 function stMergeRound(x,y){const o={};for(const f of stUni(Object.keys(x),Object.keys(y))){if(f==="_ft")continue;const a=x[f],b=y[f];
   if(f==="t"||f==="_m")o[f]=Math.max(+a||0,+b||0);else if(typeof a==="number"&&typeof b==="number")o[f]=Math.min(a,b);else o[f]=a!=null&&a!==false?a:b;}return o;}
 function stMergeRec(c,id,x,y){
-  if(c==="snd"){if(!x._m&&!y._m)return {m:x.m||y.m,n:Math.max(x.n||0,y.n||0),r:Math.max(x.r||0,y.r||0)};return stLater(c,x,y);}
+  if(c==="snd"){if(!x._m&&!y._m){const o=Object.assign({},x,y,{m:x.m||y.m,n:Math.max(x.n||0,y.n||0),r:Math.max(x.r||0,y.r||0)});const mt=Math.max(x.mt||0,y.mt||0);if(mt)o.mt=mt;else delete o.mt;return o;}return stLater(c,x,y);}
   if(c==="hd"||c==="rehearse"||c==="loc"||c==="dprac"){const late=stLater(c,x,y);return Object.assign({},x,y,late,{best:Math.max(x.best||0,y.best||0),n:Math.max(x.n||0,y.n||0)});}
   if(c==="notes"){const p=String(id).split(":")[0];if(p==="tech")return stMergeTech(x,y);if(p==="round")return stMergeRound(x,y);}
   return stLater(c,x,y);
 }
-const stLegacyLog=(p,x)=>((x.verAt||0)>(p.verAt||0)||(!p.ver&&x.ver))?x:p;
+const stLegacyLog=(p,x)=>(x.verAt||0)>(p.verAt||0)?x:p;   /* later verAt wins (undo and delete set a newer verAt) */
 /* drop what an epoch or a tombstone has removed (in place) */
 function stPrune(o){
   const tomb=o.tomb||{},cut=GClock.now()-400*DAY_MS;
@@ -326,17 +330,48 @@ const Store={
     try{const raw=localStorage.getItem(LS);if(!raw)return false;const o=stParse(raw);if(!stLooksLikeState(o)||stIsNewer(o))return false;
       this._s=sanitizeState(o);stCtrEnsure(this._s);stCtrApply(this._s);this.rebase();this._lastRaw=raw;this.emit();return true;}catch(e){return false;}
   },
+  /* Hub hook: merge a (cleaned) Drive or backup copy into this device's state; true if anything changed */
+  absorb(remote){
+    if(!stObj(remote)||this.passive)return false;
+    if(stIsNewer(remote)){this.blocked="newer";this.signal("problem");return false;}
+    this.commit();const m=_mergeStates(this._s,remote);
+    if(JSON.stringify(m)===JSON.stringify(this._s))return false;
+    this._s=m;this.rebase();this.applyAliases();this._lastRaw=null;this.cache();this.emit();return true;
+  },
+  /* retired card ids (CARD_ALIAS, 70b-cards): copy the old record to the new id when the new one has none; the old stays for older builds */
+  applyAliases(){
+    if(typeof CARD_ALIAS!=="object"||!CARD_ALIAS)return false;let ch=false;const S=this._s.srs;
+    for(const old of Object.keys(CARD_ALIAS)){const nu=CARD_ALIAS[old];if(S[old]&&nu&&!S[nu]&&ST_ID.test(nu)){S[nu]=JSON.parse(JSON.stringify(S[old]));ch=true;}}
+    return ch;
+  },
+  /* "Use Galen here": take this device's newest copy, then re-apply what was changed in this window while it was read only */
+  carryOver(){
+    const mine=this._s,snap=this._snap,setSnap=this._setSnap||{},base=this._ctrBase||{xp:0,days:{},lists:{}},had=this.pendingCarry;
+    this.pendingCarry=false;this.passive=false;
+    if(!this.reloadFromDisk()&&!had)return false;
+    if(!had)return true;
+    const s=this._s;let n=0;
+    for(const c of ST_REC){const M=mine[c]||{};for(const id of Object.keys(M)){const k=c+ST_SEP+id;if(snap.get(k)!==JSON.stringify(M[id])){s[c][id]=M[id];n++;}}
+      for(const k of snap.keys()){const i=k.indexOf(ST_SEP);if(k.slice(0,i)===c&&!(k.slice(i+1) in M)){delete s[c][k.slice(i+1)];n++;}}}
+    const L=new Map(s.log.map(e=>[e.id,e]));for(const e of mine.log||[]){if(snap.get("log"+ST_SEP+e.id)!==JSON.stringify(e)){L.set(e.id,e);n++;}}
+    s.log=[...L.values()].sort((x,y)=>(x.t||x.at||0)-(y.t||y.at||0)).slice(-400);
+    for(const k of ST_LISTS){const add=(mine[k]||[]).filter(x=>!(base.lists[k]||[]).includes(x));if(add.length){s[k]=stUni(s[k],add);n++;}}
+    for(const k of Object.keys(mine.settings||{}))if(JSON.stringify(mine.settings[k])!==JSON.stringify(setSnap[k])){s.settings[k]=mine.settings[k];n++;}
+    const dx=(mine.xp||0)-(base.xp||0);if(dx){s.xp=(s.xp||0)+dx;n++;}
+    const days=Object.assign({},s.days);for(const k of stUni(Object.keys(mine.days||{}),Object.keys(base.days||{}))){const dv=((mine.days||{})[k]||0)-((base.days||{})[k]||0);if(dv){days[k]=Math.max(0,(days[k]||0)+dv);n++;}}s.days=days;
+    this.save(true);this.emit();return n;
+  },
   /* ---------- change tracking ---------- */
   _recStr(r){return JSON.stringify(r);},
   rebase(){
     const m=new Map(),s=this._s;
     for(const c of ST_REC){const C=s[c];if(!stObj(C))continue;for(const id of Object.keys(C))if(stObj(C[id]))m.set(c+ST_SEP+id,this._recStr(C[id]));}
     for(const e of s.log||[])if(stObj(e)&&e.id)m.set("log"+ST_SEP+e.id,this._recStr(e));
-    this._snap=m;this._setSnap=JSON.parse(JSON.stringify(s.settings||{}));
+    this._snap=m;this._setSnap=JSON.parse(JSON.stringify(s.settings||{}));this._ctrBase={xp:s.xp||0,days:Object.assign({},s.days||{}),lists:Object.fromEntries(ST_LISTS.map(k=>[k,(s[k]||[]).slice()]))};
   },
   /* stamp every record that changed since the last save, tombstone what disappeared, absorb XP and day counts */
   commit(){
-    const s=this._s;if(!s)return;let t=0;const T=()=>t||(t=GClock.stamp());const live=new Set();
+    const s=this._s;if(!s||this.passive)return;let t=0;const T=()=>t||(t=GClock.stamp());const live=new Set();
     const tomb=(c,id)=>{const tb=stObj(s.tomb)?s.tomb:(s.tomb={});(tb[c]||(tb[c]={}))[id]=T();};
     const untomb=(c,id)=>{if(s.tomb&&s.tomb[c]&&s.tomb[c][id]){delete s.tomb[c][id];if(!Object.keys(s.tomb[c]).length)delete s.tomb[c];}};
     const fieldwise=(c,id)=>c==="log"||(c==="notes"&&String(id).startsWith("tech:"));
@@ -384,7 +419,8 @@ const Store={
   },
   /* save(): written to this device within 250 ms (calls in a burst are coalesced; page hide and save(true) write at once) */
   save(now){
-    if(this.readOnly||this.passive)return;
+    if(this.passive){this.pendingCarry=true;this.signal("passive-save");return;}
+    if(this.readOnly){this.signal("readonly-save");return;}
     this._s.updated=Math.round(GClock.now());
     if(this._s.log.length>400)this._s.log=this._s.log.slice(-400);
     clearTimeout(this._w);if(now){this._dirty=false;this.cache();}else{this._dirty=true;this._w=setTimeout(()=>{this._dirty=false;this.cache();},250);}
@@ -461,7 +497,7 @@ const Store={
   /* A provider is {name, label, available():bool, load():Promise<state|null>, save(state):Promise<void>}. The first one that works carries the sync. */
   register(p){this.providers.push(p);},
   async connect(){
-    if(this.passive)return;
+    if(this.passive)return;let failed=false;
     for(const p of this.providers){
       try{
         if(!(await p.available()))continue;
@@ -469,9 +505,9 @@ const Store={
         this.provider=p;this.mode=p.name;
         if(await this.exchange(remote,true)){this.status="Synced";this.lastSync=Date.now();this._retry=0;}
         this.emit("status");return;
-      }catch(e){this.syncFailed(e,p);}
+      }catch(e){this.syncFailed(e,p);failed=true;}
     }
-    if(!this.provider){this.mode="local";this.status=this.saveProblem?this.status:this.providers.some(p=>p.hint&&p.hint())?"Sign in to sync":"This device";this.emit("status");}
+    if(!this.provider&&!failed){this.mode="local";this.status=this.saveProblem?this.status:this.providers.some(p=>p.hint&&p.hint())?"Sign in to sync":"This device";this.emit("status");}
   },
   /* merge a copy from the provider and write back if ours has something it lacks; false if blocked */
   async exchange(remote,force){
@@ -537,12 +573,11 @@ function tick(n=1,key){const k=dayKey();Store.s.days[k]=(Store.s.days[k]||0)+n;i
 const ROUND=[["session","Review session","Due and new cards, mixed","practice/session/all","calendar"],["case","A case","Hypothesis-driven, ER, or localiser","practice/hdpe","target"],["eye","A plate or photo","Describe it, or spot diagnosis","practice/describe","eye"],["read","One deep dive or map","ER essentials or a concept map","signs/er","learn"],["hands","Hands-on","Rehearse, narrate or sketch","practice/rehearse","mind"]];
 function roundMark(key){const now=Date.now(),k="round:"+dayKey(now);const r=Store.s.notes[k]||{t:now};if(!r[key]){r[key]=now;r.t=now;Store.s.notes[k]=r;}}
 function roundToday(){return Store.s.notes["round:"+dayKey()]||{};}
-/* Levels: 100·level² XP (about ten weeks of steady daily study to reach "Galen"); past that, Galen II, III… */
+/* Levels: level l needs 100·l² XP; the title stops at "Galen" (level 7, 4,900 XP) */
 const XP_LEVELS=["Student","House officer","Senior house officer","Registrar","Senior registrar","Consultant","Professor","Galen"];
 const XP_STEP=100;
-function stRoman(n){const r=[[10,"X"],[9,"IX"],[5,"V"],[4,"IV"],[1,"I"]];let s="";for(const [v,c] of r)while(n>=v){s+=c;n-=v;}return s;}
 function levelOf(xp){xp=Math.max(0,Number.isFinite(+xp)?+xp:0);const l=Math.floor(Math.sqrt(xp/XP_STEP));const lo=l*l*XP_STEP,next=Math.pow(l+1,2)*XP_STEP;
-  const top=XP_LEVELS.length-1;return {l,title:l<=top?XP_LEVELS[l]:XP_LEVELS[top]+" "+stRoman(l-top+1),next,pct:Math.min(1,Math.max(0,(xp-lo)/(next-lo)))};}
+  const top=XP_LEVELS.length-1;return {l,title:XP_LEVELS[Math.min(l,top)],next,pct:Math.min(1,Math.max(0,(xp-lo)/(next-lo)))};}
 function streak(){
   const d=Store.s.days;let n=0,t=Date.now();
   if(!d[dayKey(t)])t-=DAY_MS;          // today not done yet: the streak still counts up to yesterday

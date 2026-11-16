@@ -40,6 +40,8 @@ function galenSay(ctx,key){
 let _qT=null,_qSig="";
 function _live(text){let el=$("#galen-live");if(!el){el=document.createElement("div");el.id="galen-live";el.className="galen-sr";el.setAttribute("role","status");el.setAttribute("aria-live","polite");document.body.append(el);}
   el.textContent="";setTimeout(()=>{el.textContent="Galen: "+text;},30);}
+/* practice sessions keep their name in #toptitle (D10, t05#31): quips go beside it or to the ribbon, never in its place */
+function _keepTitle(){return _routeKey()==="practice:session";}
 function quipEnd(){clearTimeout(_qT);_qT=null;$$(".quip-bar,.quip-ribbon").forEach(x=>x.remove());$$(".top-title.quipping").forEach(x=>x.classList.remove("quipping"));}
 function quip(kind,opt={}){
   const line=Array.isArray(kind)?kind:galenPick(GALEN[kind]);if(!line||!line[1])return;
@@ -49,10 +51,11 @@ function quip(kind,opt={}){
   const tt=$("#toptitle"),host=tt&&tt.parentElement,top=$(".top");
   let shown=false;
   if(!opt.long&&host&&innerWidth>=600){
-    const b=document.createElement("span");b.className="quip-bar";b.setAttribute("aria-hidden","true");b.textContent=short;
+    let b=document.createElement("span");b.className="quip-bar";b.setAttribute("aria-hidden","true");b.textContent=short;
     tt.after(b);const cut=el=>el.scrollWidth>el.clientWidth+1;
-    if(cut(b)||cut(tt)){host.classList.add("quipping");}            /* beside the title if both fit, else in its place */
-    if(cut(b)){b.remove();host.classList.remove("quipping");}else shown=true;}
+    const keep=_keepTitle();                                     /* in a session the title (session name) is never replaced */
+    if(cut(b)||cut(tt)){if(keep){b.remove();b=null;}else host.classList.add("quipping");}  /* beside the title if both fit, else in its place */
+    if(b&&cut(b)){b.remove();host.classList.remove("quipping");}else if(b)shown=true;}
   if(!shown&&top){
     const r=document.createElement("div");r.className="quip-ribbon"+(opt.ms?" ms":"");r.setAttribute("aria-hidden","true");
     const txt=opt.long||en.length<=96?en:short;
@@ -271,7 +274,9 @@ function decorateTheatre(){const svg=$("svg.th");if(!svg||!svg.isConnected)retur
 /* ---------- after every render: end a stale quip, decorate the theatre, date eggs, milestones ---------- */
 let _boot=false;
 {const _ch=chrome;chrome=function(){const r=_ch.apply(this,arguments);try{_afterChrome();}catch(e){console.warn(e);}return r;};}
+function _medalText(){$$("svg textPath").forEach(t=>{const x=t.textContent;if(/^\s*CL\s*·\s*/.test(x))t.textContent=x.replace(/^\s*CL\s*·\s*/,"");});}
 function _afterChrome(){
+  _medalText();
   if(!_boot){_boot=true;if(_lsGet("galen.candles")==="1"&&eggFound("konami"))setCandles(true);}
   if(_qT&&_routeSig()!==_qSig)quipEnd();
   if(_routeKey()==="today:home"){

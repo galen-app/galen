@@ -29,7 +29,7 @@ route("tools:settings","Settings",(root)=>{
    <div class="fld"><span>Maximum reviews per session · <b id="v-max">${S.maxReviews}</b></span><input type="range" class="rng" id="s-max" min="10" max="150" step="10" value="${S.maxReviews}"></div>
    <div class="fld"><span>Daily goal · <b id="v-goal">${S.goalMin}</b> min</span><input type="range" class="rng" id="s-goal" min="5" max="60" step="5" value="${S.goalMin||15}" data-hint="Daily goal|Roughly how long a normal day's session should take. Galen sizes the session to it, and asks for less on shift days and after a night shift."></div>
    <div class="fld"><span>Default skin tone for drawn plates</span>${toneBar("s-tone")}</div>
-   <div class="fld"><span>Sound output</span><div class="seg" id="s-out"><button data-o="speaker" aria-pressed="${S.out!=="headphones"}">Phone speaker</button><button data-o="headphones" aria-pressed="${S.out==="headphones"}">Headphones</button></div></div>
+   <div class="fld"><span>Sound output</span><div class="seg" id="s-out"><button data-o="speaker" aria-pressed="${S.out!=="headphones"}">Speaker</button><button data-o="headphones" aria-pressed="${S.out==="headphones"}">Headphones</button></div></div>
    <div class="fld"><span>Theme</span><div class="seg" id="s-theme">${[["","System"],["light","Light"],["dark","Dark"]].map(([k,l])=>`<button data-t="${k}" aria-pressed="${(S.theme||"")===k}">${l}</button>`).join("")}</div></div>
   </div>`;
   const save=()=>{Store.save();};
@@ -57,6 +57,7 @@ route("tools:google","Google",(root)=>{
           today+=plan.blocks.length?plan.blocks.map(b=>`<p>Planned: <b>${esc(b.title)}</b> at ${esc(b.start)} (${b.minutes} min)</p>`).join(""):`<p class="small muted">Citrus has not planned a Galen block today. It will once it reads Galen's status.</p>`;
         }else today=`<p class="small muted">No plan read yet. Sync to read Citrus's plan.</p>`;
         body+=`<div class="card stack" style="gap:10px"><span class="eyebrow">Today, from Citrus</span>${today}</div>`;
+        body+=`<div class="list"><button class="lrow" data-go="tools/backups"><span class="icwrap">${ic("calendar")}</span><span class="txt"><b>Drive backups</b><span>7 days and 4 weeks of copies; bring one back</span></span>${ic("chev","chev")}</button></div>`;
       }
       body+=`<details class="acc"><summary><span class="st"><b>Advanced</b><span>Client ID and Drive folder</span></span></summary><div class="acc-body"><label class="fld">OAuth client ID<input class="inp" id="g-cid" value="${esc(G.cfg.clientId||"")}"></label><label class="fld">Drive root folder<input class="inp" id="g-root" value="${esc(G.root())}"></label><button class="btn sm soft" id="g-save">Save</button></div></details>`;
     }
@@ -80,32 +81,19 @@ route("tools:data","Backup and export",(root)=>{
   const s=Store.s,pl=(n,a,b)=>`${n} ${n===1?a:b}`,counts=`${pl(Object.keys(s.srs).length,"card","cards")} · ${pl(s.log.length,"log entry","log entries")} · ${pl(Object.keys(s.pins).length,"pinned photo","pinned photos")}`;
   root.innerHTML=`<section class="ph"><span class="eyebrow">Your data</span><h1>Backup, export, repair</h1><p class="lede">${esc(counts)}. A file you can keep, cards you can take to Yuzu, and a repair button that never touches your progress.</p></section>
    <div class="card stack" style="gap:12px"><span class="eyebrow">Backup</span><div class="row-x"><button class="btn" id="bk">${ic("log")}Download backup</button><label class="btn soft">Restore from file<input type="file" accept="application/json,.json" id="rs" hidden></label></div>
-    <div id="rs-box"></div>
-    <p class="small muted">Restoring shows what the file holds first. A merge keeps everything on this device and adds the file's records; where both have the same card, the more recently changed copy wins. Your settings stay as they are unless you choose the file's settings. A copy of your current progress is kept, and Undo puts it back.</p></div>
+    <p class="small muted">Restore asks first: merge (the more recent change of each record wins) or replace. A copy of your progress is kept, and you can undo.</p>
+    <button class="lrow" data-go="tools/backups"><span class="icwrap">${ic("calendar")}</span><span class="txt"><b>Drive backups</b><span>7 days and 4 weeks of copies on your Drive: bring one back</span></span>${ic("chev","chev")}</button></div>
    <div class="card stack" style="gap:12px"><span class="eyebrow">Yuzu</span><p class="small">Export the signs you have opened as a Yuzu card pack (one fact per card: what to think, the likelihood ratios, how to do it).</p><div class="row-x"><button class="btn soft" id="yz">Copy Yuzu pack</button><button class="btn ghost" id="yzd">Download .yuzu.json</button></div></div>
    <div class="card stack" style="gap:12px"><span class="eyebrow">Diagnostics</span><p class="small mono" style="overflow-wrap:anywhere">Galen ${esc(window.GALEN_VERSION||"")} · ${esc(window.GALEN_PLATFORM||"")} ${window.GALEN_BUILD?"· build "+esc(window.GALEN_BUILD):""}<br>Sync: ${esc(Store.mode)} · ${esc(Store.status)}${Store.lastSync?" · last "+esc(fmtDate(Store.lastSync)+" "+new Date(Store.lastSync).toLocaleTimeString("en-GB")):""}<br>Service worker: ${navigator.serviceWorker&&navigator.serviceWorker.controller?"active":"none"} · ${navigator.onLine?"online":"offline"}<br>Storage: ${(()=>{try{return kb(JSON.stringify(s).length);}catch(e){return "unknown";}})()}</p>
     ${DIAG.errors.length?`<div class="note"><b>Recent errors this session</b><br>${DIAG.errors.map(e=>`${esc(new Date(e.t).toLocaleTimeString("en-GB"))}: ${esc(e.m)}`).join("<br>")}</div>`:`<p class="small muted">No errors this session.</p>`}
     <div class="row-x"><button class="btn ghost" id="repair">Repair app (clear caches, keep data)</button></div>
     <p class="small muted" id="repair-msg">Repair removes the saved copy of the app and downloads it again. It needs a connection.</p></div>
-   <div class="card stack" style="gap:12px;border:1px solid var(--bad)"><span class="eyebrow" style="color:var(--bad)">Start again</span><p class="small">Reset clears your cards, log and progress on every device that syncs. A copy is kept on this device and Undo brings it back.</p><div class="row-x"><button class="btn danger" id="reset">Reset all progress</button></div></div>`;
-  $("#bk").addEventListener("click",()=>{if(window.GALEN_PLATFORM==="artifact"){navigator.clipboard.writeText(JSON.stringify(Store.s)).then(()=>toast("Backup copied: paste it into a note or file","good"),()=>toast("Copy failed"));return;}const blob=new Blob([JSON.stringify(Store.s)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`galen-backup-${dayKey()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);});
-  /* restore: preview first, then merge or replace; settings only if chosen */
-  $("#rs").addEventListener("change",async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;const box=$("#rs-box",root);let txt;
-    try{txt=await f.text();}catch(x){toast("Couldn't read that file","bad");return;}
-    const pv=typeof Store.preview==="function"?Store.preview(txt):null;
-    if(!pv){box.innerHTML=`<div class="note">This file is damaged or is not a Galen backup. Nothing was changed.</div>`;return;}
-    if(pv.newer){box.innerHTML=`<div class="note">This backup was made by a newer version of Galen. Update this device first. Nothing was changed.</div>`;return;}
-    box.innerHTML=`<div class="note stack" style="gap:10px"><b>${esc(f.name)}</b><span>${pv.cards} card${pv.cards===1?"":"s"} · ${pv.log} log entr${pv.log===1?"y":"ies"} · ${pv.days} study day${pv.days===1?"":"s"}${pv.updated?` · saved ${esc(fmtDate(pv.updated))}`:""}</span>
-      <div class="seg" id="rs-mode" role="group" aria-label="How to restore"><button data-m="merge" aria-pressed="true">Merge with this device</button><button data-m="replace" aria-pressed="false">Replace my progress</button></div>
-      <label class="row-x" style="gap:8px;flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="rs-set" style="accent-color:var(--accent);margin-top:3px"><span class="small">Use the backup's settings too</span></label>
-      <div class="row-x"><button class="btn" id="rs-go">Restore</button><button class="btn ghost" id="rs-no">Cancel</button></div></div>`;
-    let mode="merge";$("#rs-mode",box).addEventListener("click",ev=>{const b=ev.target.closest("[data-m]");if(!b)return;mode=b.dataset.m;$$("#rs-mode button",box).forEach(x=>x.setAttribute("aria-pressed",x===b));});
-    $("#rs-no",box).addEventListener("click",()=>{box.innerHTML="";});
-    $("#rs-go",box).addEventListener("click",()=>{try{const undo=Store.restore(txt,{mode,settings:$("#rs-set",box).checked});
-      const msg=mode==="replace"?"Backup restored in place of your progress":"Backup merged";
-      render(false,true);if(typeof Hands!=="undefined"&&Hands.undo&&typeof undo==="function")Hands.undo(msg,()=>{undo();toast("Restore undone","good");render(false,true);});else toast(msg,"good");}
-      catch(x){box.innerHTML=`<div class="note">${esc(x&&x.message&&/Nothing was changed/.test(x.message)?x.message:"This file could not be restored. Nothing was changed.")}</div>`;}});
-  });
+   <div class="card stack" style="gap:12px;border:1px solid var(--bad)"><span class="eyebrow" style="color:var(--bad)">Start again</span><p class="small">Reset lets you choose what to clear, on every device that syncs. It asks you to hold the button, offers a backup first, keeps a copy on this device, and Undo brings it back.</p><div class="row-x"><button class="btn danger" id="reset">Reset all progress</button></div></div>`;
+  $("#bk").addEventListener("click",()=>{if(typeof Safety!=="undefined"&&Safety.downloadBackup&&window.GALEN_PLATFORM!=="artifact"){Safety.downloadBackup();return;}try{Store.commit();}catch(x){}
+    if(window.GALEN_PLATFORM==="artifact"){navigator.clipboard.writeText(JSON.stringify(Store.s)).then(()=>toast("Backup copied: paste it into a note or file","good"),()=>toast("Copy failed"));return;}const blob=new Blob([JSON.stringify(Store.s)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`galen-backup-${dayKey()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);});
+  /* restore: D08's dialog previews the file, asks merge or replace, settings opt-in, keeps a copy, offers Undo */
+  $("#rs").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;let txt;try{txt=await f.text();}catch(x){toast("Couldn't read that file","bad");e.target.value="";return;}e.target.value="";
+    try{Store.restoreDialog(txt);}catch(x){toast("This file could not be restored. Nothing was changed.","bad");}});
   const pack=()=>yuzuPack();
   $("#yz").addEventListener("click",()=>{const t=JSON.stringify(pack(),null,1);try{navigator.clipboard.writeText(t).then(()=>toast("Copied: paste into Yuzu's import","good"),()=>toast("Couldn't copy"));}catch(x){toast("Couldn't copy");}});
   $("#yzd").addEventListener("click",()=>{if(window.GALEN_PLATFORM==="artifact"){navigator.clipboard.writeText(JSON.stringify(pack(),null,1)).then(()=>toast("Yuzu pack copied","good"),()=>toast("Copy failed"));return;}const blob=new Blob([JSON.stringify(pack(),null,1)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`galen-${dayKey()}.yuzu.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);});
@@ -115,9 +103,7 @@ route("tools:data","Backup and export",(root)=>{
     const now=Date.now();if(!rp.dataset.arm||now-(+rp.dataset.arm)<700){if(!rp.dataset.arm){rp.dataset.arm=now;rp.textContent="Tap again to repair and reload";setTimeout(()=>{delete rp.dataset.arm;rp.textContent="Repair app (clear caches, keep data)";},5000);}return;}
     try{if(typeof Store.commit==="function")Store.commit();Store.save(true);}catch(x){}
     try{if(navigator.serviceWorker){const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.unregister();}if(window.caches){for(const k of await caches.keys())await caches.delete(k);}toast("Caches cleared, reloading");setTimeout(()=>location.reload(),600);}catch(x){toast("Repair failed: "+x.message,"bad");}});
-  const rb=$("#reset");rb.addEventListener("click",()=>{const now=Date.now();
-    if(rb.dataset.arm&&now-(+rb.dataset.arm)>700){const undo=Store.reset();Hands.undo("All progress reset (a backup is kept)",()=>{undo();toast("Progress restored","good");render(false,true);});open("today");}
-    else if(!rb.dataset.arm){rb.dataset.arm=now;rb.textContent="Tap again to reset everything";setTimeout(()=>{delete rb.dataset.arm;rb.textContent="Reset all progress";},5000);}});
+  $("#reset").addEventListener("click",()=>Store.resetDialog());
 });
 function yuzuPack(){
   const ids=Store.s.signs.filter(k=>SIGNS[k]);const cards=[];

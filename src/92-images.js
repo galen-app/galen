@@ -48,7 +48,7 @@ const Img=(()=>{
     const m=String(e&&e.message||"");const http=m.match(/Commons (\d{3})/);
     if(m==="timeout")return "Wikimedia Commons is taking too long to answer. Try again later; everything else on this page works without photos.";
     if(http)return `Wikimedia Commons is not answering just now (error ${http[1]}). Try again later; everything else on this page works without photos.`;
-    return online()?"Photos could not be loaded: Wikimedia Commons cannot be reached from this network. Everything else on this page works without them.":"Photos need a connection. Everything else on this page works offline; Galen will load photos when you are back online.";
+    return online()?"Photos could not be loaded: Wikimedia Commons cannot be reached from this network. Everything else on this page works without them.":"Photos need a connection. Your pinned photos are saved on this device, everything else on this page works offline, and Galen will load photos when you are back online.";
   }
   function galleryHTML(subject,terms,opt={}){
     const pins=pinsOf(subject);
@@ -75,8 +75,8 @@ const Img=(()=>{
       more.addEventListener("click",()=>{if(!loaded)return load();if(items.length>(+g.dataset.n||18)){g.dataset.n=(+g.dataset.n||18)+18;draw();}else window.open(`https://commons.wikimedia.org/w/index.php?search=${encodeURIComponent(terms[0])}&title=Special:MediaSearch&type=image`,"_blank","noopener");});
       const up=$(".gal-up",g);if(up)up.addEventListener("change",async()=>{const f=up.files[0];if(!f)return;more.textContent="Uploading…";try{await Hub.uploadPhoto(f,{subject});toast("Photo saved to your Drive","good");drawOwn();}catch(e){toast("Upload failed: "+e.message,"bad");}more.textContent=loaded?"Show more":"Load photos";});
       const drawOwn=()=>{const own=Object.entries(Store.s.photos).filter(([id,p])=>p.subject===subject&&!p.deleted);if(!own.length)return;let box=$(".gal-own",g);if(!box){box=document.createElement("div");box.className="gal-grid gal-own";grid.after(box);}
-        box.innerHTML=own.map(([id,p])=>`<figure class="gal-t own" data-id="${id}"><div class="ph-sk"></div><figcaption>my photo</figcaption></figure>`).join("");
-        own.forEach(async([id,p])=>{const f=$(`[data-id="${id}"]`,box);try{const u=await Hub.photoUrl(id);f.innerHTML=`<img src="${u}" alt="${esc(p.caption||p.name)}"><figcaption>my photo</figcaption>`;f.addEventListener("click",()=>lightbox(subject,{file:id,title:p.caption||"My photo",thumb:u,url:u,lic:"Private (your Drive)",author:"You",desc:p.caption||"",own:true},g));}catch(e){f.innerHTML=`<div class="ph-sk"></div><figcaption>offline</figcaption>`;}});};
+        box.innerHTML=own.map(([id,p])=>`<figure class="gal-t own" data-id="${esc(id)}"><div class="ph-sk"></div><figcaption>my photo</figcaption></figure>`).join("");
+        own.forEach(async([id,p])=>{const f=box.querySelector('[data-id="'+(window.CSS&&CSS.escape?CSS.escape(id):String(id).replace(/["\\]/g,"\\$&"))+'"]');if(!f)return;try{const u=await Hub.photoUrl(id);f.innerHTML=`<img src="${u}" alt="${esc(p.caption||p.name)}"><figcaption>my photo</figcaption>`;f.addEventListener("click",()=>lightbox(subject,{file:id,title:p.caption||"My photo",thumb:u,url:u,lic:"Private (your Drive)",author:"You",desc:p.caption||"",own:true},g));}catch(e){f.innerHTML=`<div class="ph-sk"></div><figcaption>offline</figcaption>`;}});};
       draw();drawOwn();
       if(pinsOf(subject).length===0&&canUse()&&!online()){note.hidden=false;note.textContent=failText(null);more.textContent="Try again";g.classList.add("gal-offline");
         const back=()=>{window.removeEventListener("online",back);if(document.body.contains(g)&&!loaded)load();};window.addEventListener("online",back);}

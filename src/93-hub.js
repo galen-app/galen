@@ -121,6 +121,8 @@ const Hub=(()=>{
     if(tagOf(f)){rawCache={md5:tagOf(f),raw:r.raw};}
     return sanitize(r.data);
   }
+  /* newest reset of any kind: the full reset's epoch or a partial reset's epochs[group] */
+  const ep=s=>s&&typeof s==="object"?Math.max(+s.epoch||0,...Object.values(s.epochs&&typeof s.epochs==="object"?s.epochs:{}).map(x=>+x||0)):0;
   const oldestFirst=fs=>fs.slice().sort((a,b)=>String(a.createdTime||a.modifiedTime||"").localeCompare(String(b.createdTime||b.modifiedTime||""))||String(a.id).localeCompare(String(b.id)));
   function switchedStop(){if(G.auth.switched){setBlock({kind:"switched",from:G.auth.switched.from,to:G.auth.switched.to});throw SyncStop("switched","Signed in to a different Google account: choose what to do with this device's progress.");}}
 
@@ -164,7 +166,7 @@ const Hub=(()=>{
       const rn=remote?count(remote):(+app.n||0);
       /* 3. safety stop: far fewer records here than on Drive */
       if(prim&&rn>=40&&pn<rn*0.5){
-        const resetHere=(+payload.epoch||0)>Math.max(+app.epoch||0,(remote&&+remote.epoch)||0);
+        const resetHere=ep(payload)>Math.max(+app.epoch||0,ep(remote));
         if(!resetHere&&!allowShrink){setBlock({kind:"shrink",here:pn,drive:rn});throw SyncStop("shrink",`This device has ${pn} records and Drive has ${rn}. Sync paused so nothing is lost.`);}
         await safetyCopy(prim,folder);
       }
@@ -172,7 +174,7 @@ const Hub=(()=>{
       if(prim&&app.h===h&&tagOf(prim)&&!dupes.length){setKnown({email:G.email(),root:G.root(),id:prim.id,md5:tagOf(prim),rev:+app.rev||0,h,n:pn,at:Date.now()});allowShrink=false;allowUnreadable="";return prim;}
       /* 4. re-list just before the upload: if it moved, merge again */
       if(prim){const now=await G.list(folder,{name:FILE,order:"createdTime"});const m=now.find(f=>f.id===prim.id);if(!m||tagOf(m)!==tagOf(prim)||now.length!==files.length)continue;}
-      const props={rev:String(rev),h,v:String(payload.v||SUPPORTED()),n:String(pn),dev:deviceId,b:String(window.GALEN_BUILD||window.GALEN_VERSION||""),at:String(Date.now()),epoch:String(payload.epoch||0)};
+      const props={rev:String(rev),h,v:String(payload.v||SUPPORTED()),n:String(pn),dev:deviceId,b:String(window.GALEN_BUILD||window.GALEN_VERSION||""),at:String(Date.now()),epoch:String(ep(payload))};
       const up=await G.writeJsonIn(folder,FILE,text,prim?prim.id:null,props);
       /* 5. re-list after: the file must be ours, and alone */
       const after=oldestFirst(await G.list(folder,{name:FILE,order:"createdTime"}));
@@ -207,7 +209,7 @@ const Hub=(()=>{
   let bkTimer=null;
   function backupSoon(){clearTimeout(bkTimer);bkTimer=setTimeout(()=>backupDaily().catch(e=>console.warn("backup",e.message)),4000);}
   async function backupDaily(force){
-    if(!G.canUse()||!G.wasSignedIn()||Store.mode!=="drive"||block)return false;
+    if(!G.canUse()||!G.wasSignedIn()||Store.mode!=="drive"||block||Store.passive)return false;
     const tag=dayKey()+"|"+G.email();if(!force&&ls.get(BK_KEY,"")===tag)return false;
     if(!count(Store.s))return false;
     const folder=await G.ensurePath(bkPath());const have=new Set((await G.list(folder,{pageSize:200})).map(f=>f.name));
@@ -273,7 +275,7 @@ const Hub=(()=>{
   let statusTimer=null;
   function writeStatusSoon(){clearTimeout(statusTimer);statusTimer=setTimeout(()=>writeStatus(false),3000);}
   async function writeStatus(force){
-    if(!G.canUse()||!G.wasSignedIn()||navigator.onLine===false||G.auth.switched)return false;
+    if(!G.canUse()||!G.wasSignedIn()||navigator.onLine===false||G.auth.switched||Store.passive)return false;
     let st;try{st=hubStatus();}catch(e){console.warn("status",e);return false;}
     const fp=JSON.stringify(Object.assign({},st,{updatedAt:0}));
     if(!force&&(fp===lastFp||Date.now()-lastStatusAt<5*60*1000))return false;
@@ -324,7 +326,7 @@ const Hub=(()=>{
   /* ---- daily checks: renew quietly, pull, read the plan, write status ---- */
   let lastCheck=0;
   async function daily(reason){
-    if(!G.canUse()||!G.wasSignedIn())return;
+    if(!G.canUse()||!G.wasSignedIn()||Store.passive)return; /* another window is the writer */
     const urgent=reason==="force"||reason==="retry"||reason==="online"||reason==="resolve";
     if(!urgent&&Date.now()-lastCheck<5*60*1000)return;lastCheck=Date.now();
     await Store.sync();fixStatus();

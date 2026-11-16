@@ -53,7 +53,7 @@ function openHash(h){
   try{render(false);}catch(e){console.error(e);diag("Start: "+e.message);}
   try{syncChip();}catch(e){}
   Store.connect().then(()=>Hub.daily("start")).catch(e=>diag("Sync start: "+(e&&e.message)));
-  if(window.GALEN_PLATFORM==="pages"&&!window.ROUTER_OWNS_HASH)window.addEventListener("hashchange",()=>{const hh=readHash();if(hh&&hh.includes("/")&&openHash(hh))render(true);});
+  /* hash links, back and forward belong to the router (80-app.js: pushState + popstate) */
   if(window.GALEN_SW)showUpdate(window.GALEN_SW);
   setTimeout(askPersist,20000);
 })();

@@ -36,8 +36,9 @@ const Hands=(()=>{
   function closeSheet(){if(sheet){sheet.remove();sheet=null;}}
   function menuFor(el){
     const row=el.closest("[data-go]");
-    if(row&&!el.closest(".fc")){const go=row.dataset.go,label=(row.querySelector("b")||row).textContent.trim().slice(0,60);const items=[{label:"Open",icon:"chev",run:()=>{const [t,v,a,b]=go.split("/");open(t,v,a,b);}}];
-      const link=`${Hub.URL_PAGES}#${go}`;items.push({label:"Copy link",icon:"search",run:()=>{try{navigator.clipboard.writeText(link).then(()=>toast("Link copied","good"),()=>toast("Couldn't copy"));}catch(e){toast("Couldn't copy");}}});
+    if(row&&!el.closest(".fc")){const tm=row.dataset.go.match(/^learn\/tech\/([^/]+)$/);if(tm&&typeof techHoldMenu==="function"){const m=techHoldMenu(tm[1]);if(m)return m;}
+      const go=row.dataset.go,label=(row.querySelector("b")||row).textContent.trim().slice(0,60);const items=[{label:"Open",icon:"chev",run:()=>{const [t,v,a,b]=go.split("/");open(t,v,a,b);}}];
+      const link=`${Hub.URL_PAGES}#${go}`;items.push({label:"Copy link",icon:"card",run:()=>{try{navigator.clipboard.writeText(link).then(()=>toast("Link copied","good"),()=>toast("Couldn't copy"));}catch(e){toast("Couldn't copy");}}});
       const m=go.match(/^signs\/sign\/(.+)$/);if(m&&SIGNS[m[1]]){const id=m[1];items.push({label:"Try in the LR calculator",icon:"scale",run:()=>open("signs","calc",id)});
         const allDone=["t:","v:","m:","ss:"].every(p=>{const r=Store.s.srs[p+id];return !r||r.iv>=30;});
         items.push({label:allDone?"Reset this sign's cards":"Mark as mastered (3 months)",icon:"check",sub:"Its cards move far ahead",run:()=>{["t:","v:","m:","ss:"].forEach(p=>{const cid=p+id;if(!CARDS.some(c=>c.id===cid))return;if(allDone)delete Store.s.srs[cid];else Store.s.srs[cid]={iv:90,ef:2.5,n:5,l:0,due:dayNum()+90,first:dayNum(),mk:1,last:Date.now()};});Store.save();toast(allDone?"Cards reset":"Marked as mastered","good");render(false,true);}});}

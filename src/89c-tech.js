@@ -25,6 +25,7 @@ function techSave(id,patch){const old=techRec(id),now=Date.now(),ft=Object.assig
 function techConf(id){const c=techRec(id).conf||[];return c.length?c[c.length-1][1]:null;}
 function techFirstConf(id){const c=techRec(id).conf||[];return c.length?c[0][1]:null;}
 const techRepClean=x=>x.clean!=null?!!x.clean:x.n>=x.of;
+function techAnswer(right,detail){if(typeof galenAnswer==="function")try{galenAnswer(!!right,Object.assign({from:"tech"},detail||{}));}catch(e){}}
 function techHideToast(){const t=document.getElementById("toast");if(t)t.hidden=true;}
 function techAutoShort(d){let s=String(d||"").split(/[.;:(]/)[0].trim();const w=s.split(/\s+/);if(w.length>8)s=w.slice(0,7).join(" ")+"…";return s.replace(/,$/,"");}
 
@@ -107,7 +108,7 @@ function techListView(root){
 function techPage(root,id){
   const t=techById(id);if(!t)throw new Error("Technique not found");techHideToast();
   const r=techRec(id);if(!r.read)techSave(id,{read:Date.now()});
-  const figId=TECH_FIG[id];const imgSign=(t.signs||[]).find(s=>typeof IMG_SUBJECTS!=="undefined"&&IMG_SUBJECTS[s]);
+  const figId=t.fig||TECH_FIG[id];const imgSign=(t.signs||[]).find(s=>typeof IMG_SUBJECTS!=="undefined"&&IMG_SUBJECTS[s]);
   const items=techItems(t),M=techMilestones(id),nx=techNextDrill(id);
   const doc=techDocParts(t);
   root.innerHTML=`<section class="ph"><span class="eyebrow">${esc(t.group)} · technique</span><h1>${esc(t.name)}</h1><p class="lede">${esc(t.purpose)}</p>${t.hook?`<p class="quote">${esc(t.hook)}</p>`:""}</section>
@@ -152,7 +153,7 @@ const techFirstSentence=s=>{const m=String(s||"").match(/^[\s\S]*?[.!?](\s|$)/);
 /* ---------- pocket card: one screen, prints cleanly ---------- */
 route("learn:techpocket",(id)=>{const t=id&&techById(id);return t?"Pocket card: "+t.name:"Pocket card";},(root,id)=>{
   const t=techById(id);if(!t)throw new Error("Technique not found");techHideToast();
-  const items=techItems(t),doc=techDocParts(t),figId=TECH_FIG[id];
+  const items=techItems(t),doc=techDocParts(t),figId=t.fig||TECH_FIG[id];
   const byPh=items.phases.map(p=>[p,items.filter(x=>x.phase===p)]).filter(x=>x[1].length);let n=0;
   root.innerHTML=`<article class="tk-pocket" aria-label="Pocket card">
     <header class="tk-ph"><div><span class="eyebrow">Pocket card · ${esc(t.group)}</span><h1>${esc(t.name)}</h1>${t.hook?`<p class="tk-hook">${esc(t.hook)}</p>`:""}</div>${figId?`<div class="tk-thumb">${fig(figId,{small:true,nocap:true})}</div>`:""}</header>
@@ -166,9 +167,13 @@ route("learn:techpocket",(id)=>{const t=id&&techById(id);return t?"Pocket card: 
 });
 
 /* ---------- spaced cards for missed reasons ---------- */
-function techQueueCard(cid){if(typeof CARDS==="undefined"||!Store.s.srs)return false;if(!CARDS&&typeof buildCards==="function")buildCards();if(!CARDS||!CARDS.some(c=>c.id===cid))return false;
+function techQueueCard(id,step){if(!Store.s.srs)return false;
+  const cid=typeof cardIdFor==="function"?cardIdFor("twhy",id,step):`tw:${id}:${step}`;if(!cid)return false;
+  if(typeof cardIdFor!=="function"){if(typeof CARDS==="undefined")return false;if(!CARDS&&typeof buildCards==="function")buildCards();if(!CARDS||!CARDS.some(c=>c.id===cid))return false;}
   const today=typeof dayNum==="function"?dayNum():Math.floor(Date.now()/864e5);const r=Store.s.srs[cid];
-  if(r){r.due=Math.min(r.due,today);r.last=Date.now();}else Store.s.srs[cid]={iv:0,ef:2.5,n:0,l:1,due:today,first:today,last:Date.now()};return true;}
+  if(r){r.due=Math.min(r.due,today);r.last=Date.now();}
+  else if(typeof schedule==="function")schedule(cid,0);
+  else Store.s.srs[cid]={iv:0,ef:2.5,n:0,l:1,due:today,first:today,last:Date.now()};return true;}
 
 /* keyboard and controller: keep focus on the drill after each redraw */
 function techRefocus(root,sel,idx){const L=$$(sel,root).filter(b=>!b.disabled);if(!L.length)return;const b=L[Math.min(Math.max(idx||0,0),L.length-1)];try{b.focus({preventScroll:true});}catch(e){}}
@@ -180,19 +185,19 @@ route("practice:techwalk",(id)=>{const t=id&&techById(id);return t?"Walk-through
   const S={i:0,known:0,shown:false,missed:[]};const steps=techItems(t);
   const draw=()=>{const hadFocus=techFocusedIn(root);
     if(S.i>=steps.length){const pct=S.known/steps.length;const best=Math.max(techRec(id).walk||0,pct);techSave(id,{walk:best});Store.s.xp=(Store.s.xp||0)+Math.round(steps.length/2);tick(2,"hands");
-      let queued=0;S.missed.forEach(x=>{if(!x.setup&&!x.nocard&&techQueueCard(`tw:${id}:${x.i}`))queued++;});Store.save();
+      let queued=0;S.missed.forEach(x=>{if(!x.setup&&!x.nocard&&techQueueCard(id,x.i))queued++;});Store.save();
       root.innerHTML=`<section class="ph"><span class="eyebrow">Walk-through · done</span><h1>${S.known} of ${steps.length} reasons recalled</h1><p class="lede">${!S.missed.length?"Every reason recalled. That is the understanding that makes the technique stick. Now do it at the bedside and log the rep.":queued?`${queued} missed reason${queued>1?"s are":" is"} now due as ${queued>1?"cards":"a card"} in your next session.${S.missed.some(x=>x.setup)?" Set-up reasons have no cards: read them again below.":""}`:"Read the reasons you missed again below."}</p></section>
        ${S.missed.length?`<section class="section"><span class="label">The ones to read again</span><div class="stack" style="gap:8px">${S.missed.map(x=>`<div class="card pad-s stack" style="gap:4px"><b style="font-weight:600">${esc(x.short)}</b><span class="small"><span class="muted">Why:</span> ${esc(x.why)}</span></div>`).join("")}</div></section>`:""}
        ${techConfHTML(id,"Rate your confidence again")}
        <div class="row-x"><button class="btn" data-go="practice/techrep/${id}">${ic("check")}Bedside checklist</button><button class="btn ghost" data-go="practice/techorder/${id}">${ic("shuffle")}Put it in order</button><button class="btn ghost" data-go="learn/tech/${id}" data-rp-full>Back to the technique</button></div>`;techBindConf(root);if(hadFocus)techRefocus(root,".btn",0);return;}
     const s=steps[S.i];
     root.innerHTML=`<div class="progress-top"><button class="iconbtn" data-go="learn/tech/${id}" data-rp-full aria-label="Leave">${ic("close")}</button><div class="meter"><i style="width:${Math.round(S.i/steps.length*100)}%"></i></div><span class="mono small muted">${S.i+1}/${steps.length}</span></div>
-     <article class="fc tk-fc"><div class="row-x"><span class="tag">${s.setup?"Set up":"Step "+(s.i+1)} · ${esc(s.phase)}</span><span class="pill">${esc(t.name)}</span></div>
+     <article class="fc tk-fc"><div class="row-x"><span class="tag">${s.setup?"Set up":"Step "+(s.i+1)} · ${esc(s.phase)}</span><span class="pill">${esc(t.short||t.name)}</span></div>
       <div class="q">${esc(s.do)}<small>Why exactly this way? Say the reason out loud, then reveal.</small></div>
       <div id="wa">${S.shown?`<div class="ans"><p><b>Why:</b> ${esc(s.why)}</p>${s.cue?`<div class="note good small"><b>You know it's right when</b> ${esc(s.cue)}</div>`:""}<div class="row-x"><button class="btn soft" data-k="0">I didn't have it</button><button class="btn" data-k="1">I had it</button></div></div>`:`<button class="btn block" id="wr">Reveal the reason</button>`}</div></article>
      <p class="tiny muted" style="text-align:center">Space reveals · 1 missed · 2 had it</p>`;
     const rv=$("#wr",root);if(rv)rv.addEventListener("click",()=>{S.shown=true;draw();techRefocus(root,"[data-k]",1);});
-    $$("[data-k]",root).forEach(b=>b.addEventListener("click",()=>{if(+b.dataset.k)S.known++;else S.missed.push(s);S.i++;S.shown=false;draw();window.scrollTo(0,0);techRefocus(root,"#wr,.btn",0);}));
+    $$("[data-k]",root).forEach(b=>b.addEventListener("click",()=>{techAnswer(!!+b.dataset.k,{self:true});if(+b.dataset.k)S.known++;else S.missed.push(s);S.i++;S.shown=false;draw();window.scrollTo(0,0);techRefocus(root,"#wr,.btn",0);}));
     if(hadFocus)techRefocus(root,S.shown?"[data-k]":"#wr",S.shown?1:0);
   };
   KEYS.handler=e=>{if(!document.body.contains(root))return;if(e.key===" "&&!S.shown&&S.i<steps.length){e.preventDefault();S.shown=true;draw();techRefocus(root,"[data-k]",1);}else if(S.shown&&(e.key==="1"||e.key==="2")){const b=$(`[data-k="${e.key==="2"?1:0}"]`,root);b&&b.click();}};
@@ -226,9 +231,9 @@ route("practice:techorder",(id)=>{const t=id&&techById(id);return t?"Put it in o
     if(hadFocus)techRefocus(root,done?".btn":".opt",0);
   };
   const tap=n=>{const x=items.find(y=>y.n===n);if(!x||S.set.has(n))return;
-    if(techCanPlace(x,items,S.set)){S.placed.push(x);S.set.add(n);S.fb={ok:true,html:`${ic("check")} ${esc(x.short)}`};
+    if(techCanPlace(x,items,S.set)){techAnswer(true);S.placed.push(x);S.set.add(n);S.fb={ok:true,html:`${ic("check")} ${esc(x.short)}`};
       if(S.placed.length>=items.length){S.fb=null;const score=S.miss?Math.max(0,1-S.miss/items.length):1;techSave(id,{order:Math.max(techRec(id).order||0,score)});Store.s.xp=(Store.s.xp||0)+(S.miss?2:5);tick(1,"hands");}}
-    else{S.miss++;const pos=S.placed.length;S.missAt[pos]=(S.missAt[pos]||0)+1;
+    else{techAnswer(false);S.miss++;const pos=S.placed.length;S.missAt[pos]=(S.missAt[pos]||0)+1;
       const left=items.filter(y=>!S.set.has(y.n));const curPh=left.reduce((a,y)=>Math.min(a,y._pr),99);
       let html;if(x._pr>curPh){const rest=left.filter(y=>y._pr===curPh);html=`<b>${esc(x.short)}</b> belongs to <b>${esc(x.phase)}</b>. Finish <b>${esc(items.phases[curPh])}</b> first: ${rest.slice(0,2).map(y=>esc(y.short)).join("; ")}${rest.length>2?"…":"."}`;}
       else{const before=left.filter(y=>y!==x&&y._pr===x._pr&&y.chain===x.chain&&y._slot<x._slot).sort((a,b)=>a._slot-b._slot)[0];
@@ -256,12 +261,12 @@ route("practice:techwhy",(id)=>{const t=id&&id!=="all"&&techById(id);return t?"W
       $("#again",root).addEventListener("click",()=>{S.i=0;S.right=0;S.ans=null;Q=shuf(Q).map(q=>Object.assign(q,{opts:shuf(q.opts)}));draw();});if(!mixed)techBindConf(root);if(hadFocus)techRefocus(root,".btn",0);return;}
     const q=Q[S.i];
     root.innerHTML=`<div class="progress-top"><button class="iconbtn" data-go="${mixed?"learn/tech":"learn/tech/"+id}" data-rp-full aria-label="Leave">${ic("close")}</button><div class="meter"><i style="width:${Math.round(S.i/Q.length*100)}%"></i></div><span class="mono small muted">${S.i+1}/${Q.length}</span></div>
-     <article class="fc tk-fc"><div class="row-x"><span class="tag">Which step is this reason for?</span><span class="pill">${esc(q.t.name)}</span></div>
+     <article class="fc tk-fc"><div class="row-x"><span class="tag">Which step is this reason for?</span><span class="pill">${esc(q.t.short||q.t.name)}</span></div>
       <div class="q tk-whyq">“${esc(q.x.why)}”</div>
       <div class="opts">${q.opts.map((o,j)=>`<button class="opt${S.ans!=null?(o===q.x?" right":j===S.ans?" wrong":""):""}" data-k="${j}" ${S.ans!=null?"disabled":""}><span class="kn">${j+1}</span><span>${esc(o.short)}</span></button>`).join("")}</div>
       ${S.ans!=null?`<div class="ans"><div class="verdict-line ${q.opts[S.ans]===q.x?"ok":"no"}">${ic(q.opts[S.ans]===q.x?"check":"close")}${q.opts[S.ans]===q.x?"Right":"Not quite"}</div><p class="small"><b>${q.x.setup?"Set up":"Step "+(q.x.i+1)}:</b> ${esc(q.x.do)}</p>${q.opts[S.ans]!==q.x?`<p class="small muted">${esc(q.opts[S.ans].short)}: ${esc(q.opts[S.ans].why||"")}</p>`:""}<button class="btn" id="nx">Continue</button></div>`:""}</article>
      <p class="tiny muted" style="text-align:center">1 to 4 choose · Enter continues</p>`;
-    $$("[data-k]",root).forEach(b=>b.addEventListener("click",()=>{if(S.ans!=null)return;S.ans=+b.dataset.k;if(q.opts[S.ans]===q.x)S.right++;draw();}));
+    $$("[data-k]",root).forEach(b=>b.addEventListener("click",()=>{if(S.ans!=null)return;S.ans=+b.dataset.k;if(q.opts[S.ans]===q.x)S.right++;techAnswer(q.opts[S.ans]===q.x);draw();}));
     const nx=$("#nx",root);if(nx){nx.addEventListener("click",()=>{S.i++;S.ans=null;draw();window.scrollTo(0,0);});nx.focus({preventScroll:true});}
     else if(hadFocus)techRefocus(root,".opt",0);
   };
@@ -272,8 +277,8 @@ route("practice:techwhy",(id)=>{const t=id&&id!=="all"&&techById(id);return t?"W
 /* ---------- spot the error ---------- */
 route("practice:techmcq",(id)=>{const t=id&&id!=="all"&&techById(id);return t?"Spot the error: "+t.name:"Spot the error";},(root,id)=>{
   techHideToast();const mixed=id==="all"||!id;
-  let Q;if(mixed){Q=shuf(techList().flatMap(t=>(t.mcq||[]).map((q,k)=>Object.assign({tid:t.id,tname:t.name,k},q)))).slice(0,10);}
-  else{const t=techById(id);if(!t)throw new Error("Technique not found");Q=shuf((t.mcq||[]).map((q,k)=>Object.assign({tid:t.id,tname:t.name,k},q)));}
+  let Q;if(mixed){Q=shuf(techList().flatMap(t=>(t.mcq||[]).map((q,k)=>Object.assign({tid:t.id,tname:t.name,tshort:t.short||t.name,k},q)))).slice(0,10);}
+  else{const t=techById(id);if(!t)throw new Error("Technique not found");Q=shuf((t.mcq||[]).map((q,k)=>Object.assign({tid:t.id,tname:t.name,tshort:t.short||t.name,k},q)));}
   if(!Q.length)throw new Error("No scenarios for this technique yet");
   Q.forEach(q=>q._o=shuf(q.opts.map((_,k)=>k)));
   const S={i:0,right:0,ans:null,ok:{}};
@@ -286,11 +291,11 @@ route("practice:techmcq",(id)=>{const t=id&&id!=="all"&&techById(id);return t?"S
       $("#again",root).addEventListener("click",()=>{S.i=0;S.right=0;S.ans=null;S.ok={};Q=shuf(Q);Q.forEach(q=>q._o=shuf(q._o));draw();});if(!mixed)techBindConf(root);if(hadFocus)techRefocus(root,".btn",0);return;}
     const q=Q[S.i],order=q._o;
     root.innerHTML=`<div class="progress-top"><button class="iconbtn" data-go="${mixed?"learn/tech":"learn/tech/"+id}" data-rp-full aria-label="Leave">${ic("close")}</button><div class="meter"><i style="width:${Math.round(S.i/Q.length*100)}%"></i></div><span class="mono small muted">${S.i+1}/${Q.length}</span></div>
-     <article class="fc tk-fc"><div class="row-x"><span class="tag">Spot the error</span><span class="pill">${esc(q.tname)}</span></div><div class="q" style="font-size:1.12rem">${esc(q.q)}</div>
+     <article class="fc tk-fc"><div class="row-x"><span class="tag">Spot the error</span><span class="pill">${esc(q.tshort)}</span></div><div class="q" style="font-size:1.12rem">${esc(q.q)}</div>
       <div class="opts tk-mcq">${order.map((k,j)=>`<button class="opt${S.ans!=null?(k===q.a?" right":k===S.ans?" wrong":""):""}" data-k="${k}" ${S.ans!=null?"disabled":""}><span class="kn">${j+1}</span><span>${esc(q.opts[k])}</span></button>`).join("")}</div>
       ${S.ans!=null?`<div class="ans"><div class="verdict-line ${S.ans===q.a?"ok":"no"}">${ic(S.ans===q.a?"check":"close")}${S.ans===q.a?"Right":"Not quite"}</div><p>${esc(q.why)}</p>${mixed?`<button class="link small" data-go="learn/tech/${q.tid}" data-rp-full style="align-self:flex-start">Open ${esc(q.tname)}</button>`:""}<button class="btn" id="nx">Continue</button></div>`:""}</article>
      <p class="tiny muted" style="text-align:center">1 to ${order.length} choose · Enter continues</p>`;
-    $$("[data-k]",root).forEach(b=>b.addEventListener("click",()=>{if(S.ans!=null)return;S.ans=+b.dataset.k;if(S.ans===q.a){S.right++;(S.ok[q.tid]||(S.ok[q.tid]=[])).push(q.k);}draw();}));
+    $$("[data-k]",root).forEach(b=>b.addEventListener("click",()=>{if(S.ans!=null)return;S.ans=+b.dataset.k;if(S.ans===q.a){S.right++;(S.ok[q.tid]||(S.ok[q.tid]=[])).push(q.k);}techAnswer(S.ans===q.a);draw();}));
     const nx=$("#nx",root);if(nx){nx.addEventListener("click",()=>{S.i++;S.ans=null;draw();window.scrollTo(0,0);});nx.focus({preventScroll:true});}
     else if(hadFocus)techRefocus(root,".opt",0);
   };
@@ -396,7 +401,7 @@ function techOptOrder(cid,n){let h=2166136261;const s=cid+"|"+(typeof dayNum==="
   const o=[...Array(n).keys()];for(let i=n-1;i>0;i--){h=Math.imul(h^(h>>>13),1103515245)+12345|0;const j=Math.abs(h)%(i+1);[o[i],o[j]]=[o[j],o[i]];}return o;}
 (()=>{const orig=cardBody;window.cardBody=function(c){
   if(c.type==="twhy"){const t=techById(c.ref[0]);const s=t&&t.steps[c.ref[1]];if(!s)return orig(c);const x=techItems(t).find(y=>!y.setup&&y.i===c.ref[1])||{short:s.do};const shortQ=x.short&&x.short!==s.do;
-    return {q:`${esc(shortQ?x.short:s.do)}<small>${esc(t.name)}, step ${c.ref[1]+1}. Why is it done exactly this way?</small>`,a:`${shortQ?`<p class="small muted">${esc(s.do)}</p>`:""}<p>${esc(s.why)}</p>${s.cue?`<div class="note good small"><b>You know it's right when</b> ${esc(s.cue)}</div>`:""}${TECH_FIG[t.id]&&c.ref[1]<2?fig(TECH_FIG[t.id],{small:true,nocap:true}):""}<button class="link small" data-go="learn/tech/${t.id}" style="align-self:flex-start">Open the technique</button>`};}
+    return {q:`${esc(shortQ?x.short:s.do)}<small>${esc(t.name)}, step ${c.ref[1]+1}. Why is it done exactly this way?</small>`,a:`${shortQ?`<p class="small muted">${esc(s.do)}</p>`:""}<p>${esc(s.why)}</p>${s.cue?`<div class="note good small"><b>You know it's right when</b> ${esc(s.cue)}</div>`:""}${(t.fig||TECH_FIG[t.id])&&c.ref[1]<2?fig(t.fig||TECH_FIG[t.id],{small:true,nocap:true}):""}<button class="link small" data-go="learn/tech/${t.id}" style="align-self:flex-start">Open the technique</button>`};}
   if(c.type==="terr"){const t=techById(c.ref[0]);const q=t&&(t.mcq||[])[c.ref[1]];if(!q)return orig(c);const o=techOptOrder(c.id,q.opts.length);
     return {q:`${esc(q.q)}<small>${esc(t.name)}</small>`,opts:o.map(k=>({l:q.opts[k],ok:k===q.a})),explain:`<p class="small">${esc(q.why)}</p><button class="link small" data-go="learn/tech/${t.id}" style="align-self:flex-start">Open the technique</button>`};}
   return orig(c);};})();

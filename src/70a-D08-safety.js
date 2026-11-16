@@ -27,6 +27,9 @@ const Safety=(()=>{
 .st-bar .st-row{display:flex;flex-wrap:wrap;gap:6px}
 .st-snack{position:fixed;z-index:9300;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 84px);width:max-content;max-width:calc(100vw - 32px);display:flex;gap:12px;align-items:center;background:var(--ink,#2a1c11);color:var(--bg,#efe6d4);border-radius:var(--r,8px);padding:10px 12px 10px 16px;box-shadow:var(--shadow)}
 .st-snack button{background:transparent;border:1px solid currentColor;color:inherit;border-radius:var(--r-sm,6px);padding:6px 12px;font:inherit;font-weight:700;cursor:pointer;min-height:36px}
+.st-pend{border:2px solid var(--bad,#9c2a1d)}.st-pend h2{color:var(--bad,#9c2a1d)}
+@keyframes stNudge{0%,100%{transform:none}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+@media (prefers-reduced-motion:no-preference){.st-nudge{animation:stNudge .3s}}
 .st-pre{font-family:var(--f-mono,monospace);font-size:.85rem;background:var(--surface2,#ece2cd);border-radius:var(--r-sm,6px);padding:8px 10px;margin:0}
 @media (prefers-reduced-motion:no-preference){.st-hold i{transition:width .05s linear}}`;document.head.append(st);}
   const el=(html)=>{const d=document.createElement("div");d.innerHTML=html.trim();return d.firstChild;};
@@ -126,13 +129,16 @@ const Safety=(()=>{
   async function updateNow(){try{const r=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();if(r){await r.update();if(r.waiting){r.waiting.postMessage("skipWaiting");return;}}}catch(x){}location.reload();}
   /* ---------- one writing window ---------- */
   function veil(kind){css();if(overlay)overlay.remove();
-    overlay=el(`<div class="st-veil" role="dialog" aria-modal="true" aria-labelledby="st-tab-h"><div class="st-card"><h2 id="st-tab-h">${kind==="moved"?"Galen moved to another window":"Galen is open in another window"}</h2>
-      <p>Only one window saves your progress at a time, so nothing is overwritten.</p><div class="st-row"><button type="button" class="btn" id="st-here">Use Galen here</button></div></div></div>`);
+    const pend=kind==="pending";
+    const h=pend?"Not saved yet":kind==="moved"?"Galen moved to another window":"Galen is open in another window";
+    const p=pend?"Galen is open in another window, and only one window saves your progress. Your last answer is held here: tap Use Galen here to keep it.":"Only one window saves your progress at a time, so nothing is overwritten. This window is read only until you use it.";
+    overlay=el(`<div class="st-veil" role="alertdialog" aria-modal="true" aria-labelledby="st-tab-h" aria-describedby="st-tab-p"><div class="st-card${pend?" st-pend":""}"><h2 id="st-tab-h">${h}</h2>
+      <p id="st-tab-p">${p}</p><div class="st-row"><button type="button" class="btn" id="st-here">Use Galen here</button></div></div></div>`);
     overlay.querySelector("#st-here").addEventListener("click",()=>takeOver(false));document.body.append(overlay);setTimeout(()=>{const b=overlay&&overlay.querySelector("#st-here");if(b)b.focus();},30);}
   function unveil(){if(overlay){overlay.remove();overlay=null;}}
   function holdLock(){Store.lockHeld=true;return new Promise(res=>{held=()=>{Store.lockHeld=false;res();};});}
-  function writer(reload){Store.passive=false;unveil();if(reload){Store.reloadFromDisk();rerender();try{Store.sync().catch(()=>{});}catch(x){}}Store.status=Store.provider?Store.status:"This device";Store.emit("status");}
-  function passive(kind,later){try{Store.flush();}catch(x){}Store.passive=true;Store.lockHeld=false;Store.status="Open in another window";Store.emit("status");
+  function writer(reload){const pend=Store.pendingCarry;unveil();if(reload){const n=Store.carryOver();if(pend&&n)say("Saved here. Your answers in this window were kept.","good");rerender();}Store.passive=false;if(reload){try{Store.sync().catch(()=>{});}catch(x){}}Store.status=Store.provider?Store.status:"This device";Store.emit("status");}
+  function passive(kind,later){try{Store.flush();}catch(x){}Store.passive=true;Store.lockHeld=false;Store.status="Read only · open in another window";Store.emit("status");
     if(later)setTimeout(()=>{if(Store.passive)veil(kind);},1200);else veil(kind);queue();}
   /* wait in line: when the writing window closes, this one takes over by itself */
   function queue(){if(queued)return;const ac=typeof AbortController==="function"?new AbortController():null;queued=ac||{};
@@ -157,8 +163,13 @@ const Safety=(()=>{
     document.addEventListener("visibilitychange",()=>{if(!document.hidden&&Store.passive&&overlay)takeOver(true);});
   }
   if(typeof window!=="undefined"&&window.addEventListener){
-    window.addEventListener("galen:store",()=>{try{banner();}catch(x){}});
-    const boot=()=>{try{start();}catch(x){}try{banner();}catch(x){}};
+    window.addEventListener("galen:store",ev=>{const k=ev.detail;
+      /* every save attempt in a read-only window says so, at once, and keeps the change for "Use Galen here" */
+      if(k==="passive-save"){if(!overlay||!overlay.querySelector(".st-pend"))veil("pending");else{const c=overlay.querySelector(".st-card");c.classList.remove("st-nudge");void c.offsetWidth;c.classList.add("st-nudge");}say("Not saved: Galen is open in another window","bad");return;}
+      if(k==="readonly-save"){const t=Date.now();if(t-(window.__stRo||0)>4000){window.__stRo=t;say("Not saved: this window is read only until Galen is updated","bad");}return;}
+      try{banner();}catch(x){}});
+    window.addEventListener("beforeunload",ev=>{if(Store.passive&&Store.pendingCarry){ev.preventDefault();ev.returnValue="";}});
+    const boot=()=>{try{if(Store.applyAliases()&&!Store.passive)Store.save(true);}catch(x){}try{start();}catch(x){}try{banner();}catch(x){}};
     if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else setTimeout(boot,0);
   }
   return {resetDialog,restoreDialog,undoSnack,banner,downloadBackup,download,takeOver};

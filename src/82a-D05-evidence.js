@@ -17,20 +17,31 @@ function fmtPct(v){if(v==null||!isFinite(v))return "–";if(v>99.5)return ">99%"
 function fmtLR(v){return v==null?"not reported":String(v);}
 const lrStrength=v=>{if(v==null)return 0;const x=Math.abs(Math.log(v));return x;};
 function lrWord(v){if(v==null)return "";const big=v>=1?v:1/v;return big>=10?"decisive":big>=5?"moderate":big>=2?"small":"negligible";}
+/* a rule-out test with sensitivity >= 99% and no estimable LR− (or a rule-in test with specificity >= 99% and no LR+)
+   is decided by that figure, not by an LR; D04's s.best carries the same logic */
+function snOut(s){return !!s&&s.n==null&&s.sens!=null&&s.sens>=99;}
+function spIn(s){return !!s&&s.p==null&&s.spec!=null&&s.spec>=99;}
 function decisiveLR(s){
+  if(snOut(s))return {k:"sens",v:s.sens};
+  if(spIn(s))return {k:"spec",v:s.spec};
   const P=s.p!=null&&s.p>1?s.p:null,N=s.n!=null&&s.n<1?s.n:null;
   if(P==null&&N==null)return null;
   if(N==null||(P!=null&&lrStrength(P)>=lrStrength(N)))return {k:"p",v:P};
   return {k:"n",v:N};
 }
+/* sort strength: a 100%-sensitive rule ranks with decisive LRs (as if LR 0.1) */
+function decisiveStrength(s){const d=decisiveLR(s);if(!d)return -1;return d.k==="sens"||d.k==="spec"?Math.log(10):lrStrength(d.v);}
 /* one plain sentence about what the decisive result does */
 function decisiveLine(s){
   const d=decisiveLR(s);if(!d)return "";
+  if(d.k==="sens")return `Sensitivity ${d.v}%: a negative result rules it out (in the population studied).${s.spec!=null&&s.spec<80?` A positive result proves little (specificity ${s.spec}%): investigate further.`:""}`;
+  if(d.k==="spec")return `Specificity ${d.v}%: a positive result rules it in (in the population studied).${s.sens!=null&&s.sens<80?` A negative result proves little (sensitivity ${s.sens}%).`:""}`;
   const w=lrWord(d.v);
   if(w==="negligible")return "Neither a positive nor a negative result moves probability much.";
   if(d.k==="p")return {decisive:"A positive result rules it in.",moderate:"A positive result makes it clearly more likely.",small:"A positive result nudges probability up a little."}[w];
   return {decisive:"A negative result rules it out.",moderate:"A negative result makes it clearly less likely.",small:"A negative result nudges probability down a little."}[w];
 }
+const decisiveLabel=d=>d.k==="p"?`LR+ ${d.v}`:d.k==="n"?`LR− ${d.v}`:d.k==="sens"?`Sn ${d.v}%`:`Sp ${d.v}%`;
 
 /* ---------- caveats ---------- */
 const SINGLE_RE=/\b(one|single|a small|one small|only one)\s+(small\s+)?(study|series|derivation|cohort|trial)\b|\bderivation (study|cohort)( only)?\b|\b(never|not yet|not)( been)? (externally )?validated\b|\bsingle[- ]study\b/i;
@@ -47,10 +58,10 @@ function evChips(s,id,opt={}){
   const chip=(k,cls,label,title)=>`<button type="button" class="lr ev ${cls}" data-ev="${k}" data-sid="${sid}" aria-expanded="false" title="${esc(title)}">${label}</button>`;
   if(s.p!=null)o.push(chip("p",lrClass(s.p),`LR+ ${esc(s.p)}`,"Positive likelihood ratio: tap for what it means"));
   if(s.n!=null)o.push(chip("n",lrClass(s.n),`LR− ${esc(s.n)}`,"Negative likelihood ratio: tap for what it means"));
-  if(!opt.noSnSp){if(s.sens!=null)o.push(chip("sens","weak",`Sn ${esc(s.sens)}%`,"Sensitivity"));if(s.spec!=null)o.push(chip("spec","weak",`Sp ${esc(s.spec)}%`,"Specificity"));}
+  if(!opt.noSnSp){if(s.sens!=null)o.push(chip("sens",snOut(s)?"strong":"weak",`Sn ${esc(s.sens)}%`,"Sensitivity"));if(s.spec!=null)o.push(chip("spec",spIn(s)?"strong":"weak",`Sp ${esc(s.spec)}%`,"Specificity"));}
   const same=(a)=>a&&a.p===s.p&&a.n===s.n;
   if(s.ed&&(s.ed.sens!=null||s.ed.p!=null)&&!same(s.ed))o.push(chip("ed","cav",`<span class="cav-i" aria-hidden="true">!</span>In ED hands`,"Accuracy in ordinary emergency-department hands"));
-  if(s.trained&&(s.trained.sens!=null||s.trained.p!=null)&&!same(s.trained))o.push(chip("trained","weak","Trained examiners","Accuracy when done by examiners trained in the test"));
+  if(s.trained&&(s.trained.sens!=null||s.trained.p!=null)&&!same(s.trained))o.push(chip("trained","weak",`Trained examiners${s.trained.p!=null?`: LR+ ${esc(s.trained.p)}`:""}${s.trained.n!=null?`, LR− ${esc(s.trained.n)}`:""}`,"Accuracy when done by examiners trained in the test"));
   if(isSingleStudy(s))o.push(chip("single","cav",`<span class="cav-i" aria-hidden="true">!</span>Single study`,"The headline figure rests on one study: tap for the caveat"));
   else if(s.note&&!opt.noNote)o.push(chip("note","cav",`<span class="cav-i" aria-hidden="true">!</span>Evidence note`,"Tap for the evidence caveat"));
   if(!o.length){
@@ -66,8 +77,8 @@ function evExplain(s,k){
   const tail=`${src?`<span class="evsrc">Source: ${esc(src)}.</span>`:""}${isSingleStudy(s)&&k!=="single"?`<span class="evsrc"><span class="cav-i" aria-hidden="true">!</span>Rests on a single study: treat the number as provisional.</span>`:""}`;
   if(k==="p")return `<b>LR+ ${esc(s.p)}</b>: a positive result multiplies the odds of ${tgt} by ${esc(s.p)}, a ${lrWord(s.p)} shift.${ci(s.pci)} From a ${pre}% pre-test probability a positive result gives about <b>${fmtPct(postProb(pre,s.p))}</b>.${tail}`;
   if(k==="n")return `<b>LR− ${esc(s.n)}</b>: a negative result multiplies the odds by ${esc(s.n)}, a ${lrWord(s.n)} shift.${ci(s.nci)} From a ${pre}% pre-test probability a negative result gives about <b>${fmtPct(postProb(pre,s.n))}</b>.${tail}`;
-  if(k==="sens")return `<b>Sensitivity ${esc(s.sens)}%</b>: of 100 patients who have the target condition, about ${Math.round(s.sens)} test positive and ${100-Math.round(s.sens)} are missed. ${s.sens>=90?"High: a negative result helps rule out (SnNout).":"Not high enough for a negative result to rule out on its own."}${tail}`;
-  if(k==="spec")return `<b>Specificity ${esc(s.spec)}%</b>: of 100 patients without it, about ${Math.round(s.spec)} test negative and ${100-Math.round(s.spec)} are false positives. ${s.spec>=90?"High: a positive result helps rule in (SpPin).":"Not high enough for a positive result to rule in on its own."}${tail}`;
+  if(k==="sens")return `<b>Sensitivity ${esc(s.sens)}%</b>: of 100 patients who have the target condition, about ${Math.round(s.sens)} test positive and ${100-Math.round(s.sens)} are missed. ${s.sens>=99?"So high that a negative result rules it out in the population studied (no LR− can be estimated when no case is missed)":s.sens>=90?"High: a negative result helps rule out (SnNout).":"Not high enough for a negative result to rule out on its own."}${s.sens>=99?".":""}${tail}`;
+  if(k==="spec")return `<b>Specificity ${esc(s.spec)}%</b>: of 100 patients without it, about ${Math.round(s.spec)} test negative and ${100-Math.round(s.spec)} are false positives. ${s.spec>=99?"So high that a positive result rules it in, in the population studied.":s.spec>=90?"High: a positive result helps rule in (SpPin).":"Not high enough for a positive result to rule in on its own."}${tail}`;
   if(k==="ed"||k==="trained"){const e=s[k];const nums=[e.sens!=null?`sensitivity ${esc(e.sens)}%`:"",e.spec!=null?`specificity ${esc(e.spec)}%`:"",e.p!=null?`LR+ ${esc(e.p)}`:"",e.n!=null?`LR− ${esc(e.n)}`:""].filter(Boolean).join(", ");
     return `<b>${k==="ed"?"In ordinary emergency-department hands":"In trained hands"}</b>${e.who?` (${esc(e.who)})`:""}: ${nums}.${e.p!=null?` From a ${pre}% pre-test probability a positive result gives about <b>${fmtPct(postProb(pre,e.p))}</b>`:""}${e.n!=null?`${e.p!=null?" and":" From a "+pre+"% pre-test probability"} a negative result about <b>${fmtPct(postProb(pre,e.n))}</b>.`:"."} The headline chips show LR+ ${fmtLR(s.p)} and LR− ${fmtLR(s.n)}: use the figures that match who is examining.`;}
   if(k==="single"||k==="note")return `${k==="single"?"<b>Single-study evidence.</b> ":"<b>Evidence note.</b> "}${esc(s.note||"The headline figure comes from one study and has not been confirmed elsewhere.")}`;
@@ -138,13 +149,8 @@ const DX_FALL={fremitus:"pleural effusion","chest-expansion":"pleural effusion",
  phalen:"carpal tunnel syndrome","tinel-wrist":"carpal tunnel syndrome",flick:"carpal tunnel syndrome","cts-hypalgesia":"carpal tunnel syndrome",
  hawkins:"subacromial pain",neer:"subacromial pain","painful-arc":"subacromial pain","drop-arm":"rotator cuff tear","er-lag":"rotator cuff tear","empty-can":"rotator cuff tear","lift-off":"rotator cuff tear",
  chvostek:"hypocalcaemia",trousseau:"hypocalcaemia",cremasteric:"testicular torsion",qsofa:"sepsis",news2:"deterioration"};
-function dxKey(s,id){
-  if(!s)return "";if(s.dx)return String(s.dx).toLowerCase();if(id&&DX_FALL[id])return DX_FALL[id];
-  let t=(s.target||"").toLowerCase().replace(/\(.*?\)/g," ");
-  t=t.split(/;|,| \/ | in (?:a|the|known) | after | from | vs /)[0];
-  t=t.replace(/^(?:\s*(?:acute|severe|full-thickness|large|occult|small-volume|retrocaecal|pelvic|clinically important|need for|significant|suspected)\s+)+/,"");
-  return t.trim();
-}
+/* s.dx (D04) first; DX_FALL only covers calculator warnings for signs without dx. No guessing from the target text. */
+function dxKey(s,id){if(!s)return "";if(s.dx)return String(s.dx).toLowerCase();return (id&&DX_FALL[id])||"";}
 /* findings that measure the same mechanism: multiplying their LRs double-counts */
 const OVERLAP=[
  {ids:["jvp","ajr","kussmaul-sign"],why:"Both read right atrial pressure."},

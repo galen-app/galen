@@ -29,6 +29,7 @@ route("practice:home","Practice",(root)=>{
   <section class="section"><span class="label">Cases and reasoning</span><div class="grid g2">
    ${T("practice/hdpe","target","predict first","Hypothesis-driven exam","Commit to hypotheses, choose a few manoeuvres, predict each finding, then see how far the evidence moved you.",`${hdDone}/${HDPE.length} cases done`)}
    ${T("practice/localiser","target","clue by clue","Localiser","Pinpoint the lesion in brain, brainstem, cord or nerve from a story told one clue at a time.",`${LCASES.filter(c=>(Store.s.loc[c.id]||{}).best>=85).length}/${LCASES.length} cases mastered`)}
+   ${typeof HCASES!=="undefined"&&HCASES.length?T("practice/hcase","history","take the history","History-first cases","OSCE-style ER and occupational stations: choose your questions, hit the red flags in 7 minutes, then commit.",`${HCASES.filter(c=>(Store.s.notes||{})["hc:"+c.id]).length}/${HCASES.length} cases done`):""}
    ${T("practice/er","case","applied","ER sound cases","Story and vitals, identify the sound, then choose the next step.",`${erDone}/${SCEN.length} done`)}
    ${T("practice/duel","shuffle","contrast","Evidence duel","Two signs, one target: which carries more weight?","")}
   </div></section>
@@ -69,7 +70,8 @@ function newSession(sys,opts){
   return SES;
 }
 route("practice:session",(sys)=>sessionTitle(sys),(root,sys)=>{
-  sys=sys||"all";const check=sys.startsWith("chk:"),scope=check?sys.slice(4):sys;
+  sys=sys||"all";if(typeof normScope==="function")sys=sys.startsWith("chk:")?"chk:"+normScope(sys.slice(4)):normScope(sys);
+  const check=sys.startsWith("chk:"),scope=check?sys.slice(4):sys;
   if(!scopeValid(scope)){KEYS.handler=null;root.innerHTML=`<section class="hero" style="align-items:flex-start"><span class="eyebrow">Not in the theatre</span><h1>No such ${scope.startsWith("chap:")?"chapter":scope.startsWith("hall:")?"hall":"session"}.</h1><p class="muted">The link may be old. Choose a hall, or run today's session.</p><div class="row-x"><button class="btn" data-go="practice/session/all">Today's session</button><button class="btn ghost" data-act="home">Back to the theatre</button></div></section>`;return;}
   if(/^(hall|chap):/.test(scope)&&!srsScope(scope).size){KEYS.handler=null;const h=scope.split(":")[1];
     root.innerHTML=`<section class="hero" style="align-items:flex-start"><span class="eyebrow">${esc(sessionTitle(scope))}</span><h1>No cards here yet.</h1><p class="muted">This ${scope.startsWith("chap:")?"chapter":"hall"} is taught through its pages rather than cards for now. Read its items on the hall page; the daily session covers the rest.</p><div class="row-x"><button class="btn" data-go="learn/hall/${esc(h)}">Open the hall</button><button class="btn ghost" data-go="practice/session/all">Today's session</button></div></section>`;return;}
@@ -112,7 +114,7 @@ function drawSession(root){
   if(auto){
     A.innerHTML=`<div class="opts${body.opts.length===4&&body.opts.every(o=>o.l.length<40)?" two":""}">${body.opts.map((o,i)=>`<button class="opt" data-i="${i}"><span class="kn">${i+1}</span><span>${esc(o.l)}</span></button>`).join("")}</div><div id="fb"></div>`;
     const thr=slowAfter(c,body);
-    const choose=i=>{if(S.answered!=null||!body.opts[i])return;const btn=$$(".opt",A)[i];if(btn&&btn.disabled)return;S.answered=i;const ok=body.opts[i].ok,dt=(performance.now()-S.t0)/1000,slow=dt>thr;
+    const choose=i=>{if(S.answered!=null||!body.opts[i])return;const btn=$$(".opt",A)[i];if(btn&&btn.disabled)return;S.answered=i;const ok=body.opts[i].ok,dt=(performance.now()-S.t0)/1000,slow=dt>thr;if(typeof galenAnswer==="function")galenAnswer(ok);
       $$(".opt",A).forEach((b,j)=>{b.disabled=true;if(body.opts[j].ok)b.classList.add("right");else if(j===i)b.classList.add("wrong");});$("#hintb")?.remove();$("#fcp")?.classList.remove("trace-hidden");
       S.wrongAuto=!ok;const def=!ok?0:(slow||S.hinted)?1:2;S.autoDefault=def;
       const strict=S.mood==="exam"||S.check||S.cram;
@@ -273,7 +275,7 @@ function drillCats(d){
   if(d.real){const dx=[...new Set(Object.values(REAL).filter(r=>r.body===d.real).map(r=>r.dx))];
     return dx.map(x=>({key:"rx-"+x.toLowerCase().replace(/[^a-z]+/g,"-"),label:x,ex:Object.keys(REAL).filter(k=>REAL[k].body===d.real&&REAL[k].dx===x)}));}
   /* recordings that mix two findings (e.g. wheeze + crackles) would have two right answers in a single-label drill */
-  return d.cats.map(k=>({key:k,label:SOUNDS[k].name,ex:[k,...Object.keys(REAL).filter(r=>REAL[r].teach===k&&!/\+|\band\b/i.test(REAL[r].name||""))]}));
+  return d.cats.map(k=>({key:k,label:SOUNDS[k].name,ex:[k,...Object.keys(REAL).filter(r=>REAL[r].teach===k&&!REAL[r].mixed&&!/\+|\band\b/i.test(REAL[r].name||""))]}));
 }
 let DR=null;
 route("practice:drill",(id)=>id?"Drill":"Sound drill",(root,id)=>{
@@ -285,6 +287,9 @@ route("practice:drill",(id)=>id?"Drill":"Sound drill",(root,id)=>{
   if(!DR||DR.id!==d.id)DR={id:d.id,cats:drillCats(d),stat:{},trial:0,cur:null,phase:"intro",n:0,right:0,review:false};
   drawDrill(root);
 });
+/* the bedside sign that goes with a drill sound, when there is one */
+const SOUND_SIGN={"fine-crackles":"crackles","coarse-crackles":"crackles",stridor:"stridor-sign",bronchial:"bronchial-breathing","pleural-rub":"pericardial-rub",rub:"pericardial-rub",ar:"ar-murmur",mr:"mr-murmur","acute-mr":"mr-murmur",as:"a2-soft",hocm:"valsalva-murmur"};
+function soundSign(k){if(!k)return null;if(REAL[k]&&REAL[k].teach)k=REAL[k].teach;const s=SOUND_SIGN[k]||k;return SIGNS[s]&&!SIGNS[s].hide?s:null;}
 function drStat(k){const key=DR.id+":"+k;return Store.s.snd[key]||(Store.s.snd[key]={m:false,n:0,r:0});}
 /* drill mastery fades: a sound mastered more than 60 days ago comes back into the drill until you name it fast three times again */
 const DR_KEEP_DAYS=60;
@@ -328,17 +333,17 @@ function drawDrill(root){
   startBox(p);
   const answer=i=>{
     if(DR.phase!=="q")return;DR.phase="fb";clearInterval(tm);stopAll();/* the loop stops on answer, so the feedback tone is heard */
-    const dt=t0==null?99:(performance.now()-t0)/1000,o=opts[i],ok=o.key===T.cat.key,fast=dt<=target;
+    const dt=t0==null?99:(performance.now()-t0)/1000,o=opts[i],ok=o.key===T.cat.key,fast=dt<=target;if(typeof galenAnswer==="function")galenAnswer(ok);
     const st=DR.stat[T.cat.key],ps=drStat(T.cat.key);DR.n++;ps.n++;
     st.last=DR.trial;st.wrong=!ok;st.slow=ok&&!fast;
     if(ok){DR.right++;ps.r++;st.streak=fast?st.streak+1:Math.max(0,st.streak);if(st.streak>=3&&!drMastered(DR.id,T.cat.key)){ps.m=true;ps.mt=Date.now();toast(`${T.cat.label}: mastered`,"good");}}else{st.streak=0;}
     const wrongCat=!ok&&DR.cats.find(c=>c.key===o.key);
     tick(1,"hands");Store.save();
     $$("#dopts .opt").forEach((b,j)=>{b.disabled=true;if(opts[j].key===T.cat.key)b.classList.add("right");else if(j===i)b.classList.add("wrong");});
-    const clue=SOUNDS[T.cat.key]?SOUNDS[T.cat.key].clue:LISTEN[T.cat.label]||"";
+    const clue=SOUNDS[T.cat.key]?SOUNDS[T.cat.key].clue:LISTEN[T.cat.label]||"",sg=soundSign(T.cat.key)||soundSign(T.ex);
     $("#dfb").innerHTML=`<div class="ans"><div class="verdict-line ${ok?"ok":"no"}">${ic(ok?"check":"close")}${ok?(fast?`Correct in ${dt.toFixed(1)} s`:`Correct, but ${dt.toFixed(0)} s: doesn't count toward mastery yet`):`It was ${esc(T.cat.label)}`}</div>
       <p class="small">${clue}</p>${wrongCat?`<div class="row-x"><button class="btn sm ghost" data-hear="${esc(T.ex)}">${ic("play")}Hear it again</button><button class="btn sm ghost" data-hear="${esc(wrongCat.ex[0])}">${ic("play")}Hear ${esc(wrongCat.label)}</button></div>`:""}
-      <button class="btn" id="dnext">Next sound</button></div>`;
+      ${sg?`<div class="chips">${signChip(sg)}</div>`:""}<button class="btn" id="dnext">Next sound</button></div>`;
     $$("[data-hear]").forEach(b=>b.addEventListener("click",()=>{p.set(b.dataset.hear,"open");startBox(p);}));
     $("#dnext").addEventListener("click",nextTrial);$("#dnext").focus({preventScroll:true});
     $$(".mastery").forEach(m=>m.outerHTML=`<div class="mastery">${DR.cats.map(c=>{const s2=DR.stat[c.key]||{streak:0},m2=drMastered(DR.id,c.key);return `<span class="mc${m2?" done":""}${c.key===T.cat.key?" cur":""}">${esc(c.label)}<span class="mdots">${[0,1,2].map(k=>`<i class="${m2||s2.streak>k?"on":""}"></i>`).join("")}</span></span>`;}).join("")}</div>`);
@@ -371,7 +376,7 @@ function drawHdpe(root,c,S){
   root=root||V;KEYS.handler=null;
   const steps=["Story","Plan","Examine","Commit","Debrief"];
   const bad=(k,v)=>{const n=parseFloat(String(v).replace(/^[^0-9]*/,""));return k==="HR"?n>100||n<50:k==="BP"?n<90||n>160:k==="RR"?n>22:k==="SpO2"?n<94:k==="T"?n>=38:false;};
-  const head=`<section class="ph"><span class="eyebrow">${SYS_SHORT[c.sys]} · hypothesis-driven</span><h1>${esc(c.title)}</h1><div class="stepper">${steps.map((s,i)=>`<span class="${i===S.step?"on":i<S.step?"done":""}">${i+1} ${s}</span>`).join("")}</div></section>
+  const head=`<section class="ph"><span class="eyebrow">${SYS_SHORT[c.sys]} · hypothesis-driven</span><h1>${esc(c.title)}</h1><div class="stepper">${steps.map((s,i)=>`<span class="${i===S.step?"on":i<S.step?"done":""}" title="${s}">${i+1}<span class="sw"> ${s}</span></span>`).join("")}</div></section>
    <div class="card stack"><p>${esc(c.stem)}</p><div class="vitals">${Object.entries(c.vit).map(([k,v])=>`<div class="vit${bad(k,v)?" alert":""}"><span class="label">${k==="T"?"Temp °C":k==="BP"?"BP":k}</span><b>${v}</b></div>`).join("")}</div></div>`;
   const leadName=S.lead||"your leading hypothesis";
   let body="";
@@ -395,13 +400,16 @@ function drawHdpe(root,c,S){
      <div class="row-x"><span class="spacer"></span><button class="btn" id="nx" ${S.final?"":"disabled"}>See the debrief</button></div>`;
   }else{
     const fin=c.ddx.find(d=>d.final).dx,R=hdScore(c,S);
-    const path=(idx)=>{let p=c.pre;const pts=[["start",p]];idx.forEach(i=>{const m=c.moves[i];if(m.lr){const o=p/(100-p)*m.lr;p=o/(1+o)*100;p=Math.min(99,Math.max(1,p));pts.push([SIGNS[m.s].name.replace(/\s*\(.*?\)/g,""),p]);}});return pts;};
+    const path=(idx)=>{let p=c.pre;const pts=[["start",p]],used={};idx.forEach(i=>{const m=c.moves[i];if(!m.lr)return;let lr=m.lr;
+      /* within a mechanism group only the strongest LR counts: a later, stronger sign adds only its excess over the earlier one */
+      if(m.grp){const prev=used[m.grp];const str=x=>Math.abs(Math.log(x));if(prev){lr=str(m.lr)>str(prev)&&Math.sign(Math.log(m.lr))===Math.sign(Math.log(prev))?m.lr/prev:1;}if(!prev||str(m.lr)>str(prev))used[m.grp]=m.lr;}
+      const o=p/(100-p)*lr;p=Math.min(99,Math.max(1,o/(1+o)*100));pts.push([SIGNS[m.s].name.replace(/\s*\(.*?\)/g,""),p]);});return pts;};
     const mine=path(S.picks),expert=path(R.best);
     const bars=pts=>`<div class="ppath">${pts.map(([l,p])=>`<div><span>${Math.round(p)}%</span><i style="height:${Math.max(4,p)}%"></i><span class="pl" title="${esc(l)}">${esc(l.length>22?l.slice(0,21)+"…":l)}</span></div>`).join("")}</div>`;
     body=`<div class="card stack"><div class="row-x" style="gap:16px">${ring(R.total/100,76,8,R.total)}<div class="stack" style="gap:4px;flex:1;min-width:200px"><span class="eyebrow">Diagnosis</span><h2>${esc(fin)}</h2><span class="pill ${S.final===fin?"good":"bad"}">${S.final===fin?"You got it":"You said "+esc(S.final)} · ${S.conf}% sure</span></div></div>
       <div class="lrrow small"><span>Plan ${R.plan}/40</span><span>Predictions ${R.predict}/20</span><span>Diagnosis ${R.dx}/30</span><span>Judgement ${R.judge}/10</span></div></div>
      <div class="grid g2"><div class="card stack" style="gap:6px"><span class="eyebrow">Probability of ${esc(fin)}: your examination</span>${bars(mine)}<p class="tiny muted">${mine.length>1?`From ${c.pre}% to ${Math.round(mine[mine.length-1][1])}%.`:"None of your manoeuvres had a usable likelihood ratio for the diagnosis."}</p></div>
-      <div class="card stack" style="gap:6px"><span class="eyebrow">An expert's ${c.budget} manoeuvres</span>${bars(expert)}<p class="tiny muted">From ${c.pre}% to ${Math.round(expert[expert.length-1][1])}%. Signs that share a mechanism are not truly independent, so the real certainty is lower.</p></div></div>
+      <div class="card stack" style="gap:6px"><span class="eyebrow">An expert's ${c.budget} manoeuvres</span>${bars(expert)}<p class="tiny muted">From ${c.pre}% to ${Math.round(expert[expert.length-1][1])}%. Signs that share a mechanism count once here, and the bar stops at 99%: the bedside never gives certainty.</p></div></div>
      <div class="note acc">${esc(c.teach)}</div>
      <div class="section"><span class="label">Every manoeuvre on offer</span><div class="list">${c.moves.map((m,i)=>{const s=SIGNS[m.s],y=YIELD[m.y],me=S.picks.includes(i);return `<button class="lrow" data-go="signs/sign/${m.s}"><span class="dot${me?" on":""}" title="${me?"You chose this":""}"></span><span class="txt"><b>${esc(s.name)}</b><span>${esc(m.f)}</span></span><span class="stack" style="gap:4px;align-items:flex-end"><span class="pill ${y[1]}">${y[0]}</span>${m.lr?`<span class="lr ${lrClass(m.lr)}">LR ${m.lr}</span>`:""}</span></button>`;}).join("")}</div><p class="tiny muted">Orange dot: you chose it. LR = the likelihood ratio this finding carries for ${esc(fin)}.</p></div>
      <div class="row-x"><button class="btn" id="again">Try again</button><button class="btn ghost" id="nextcase">Next case</button></div>`;
@@ -448,11 +456,11 @@ route("practice:er",(id)=>id?"ER case":"ER cases",(root,id)=>{
    <div class="section"><span class="label">1 · What do you hear?</span><div class="opts two" id="q1">${o1.map((k,i)=>`<button class="opt" data-k="${k}"><span class="kn">${i+1}</span><span>${esc(SOUNDS[k].name)}</span></button>`).join("")}</div><div id="f1"></div></div>
    <div class="section" id="s2" hidden><span class="label">2 · ${esc(s.q2)}</span><div class="opts" id="q2">${o2.map((o,i)=>`<button class="opt" data-i="${i}"><span class="kn">${i+1}</span><span>${esc(o.t)}<span class="why" hidden>${esc(o.why)}</span></span></button>`).join("")}</div><div id="f2"></div></div>`;
   const p=mk($("#erp"),s.sound,{title:false,piece:false,labels:false});p.set(s.sound,"open",s.hr||undefined);
-  const a1=b=>{if(st.a1)return;st.a1=b.dataset.k;const ok=st.a1===s.sound;
+  const a1=b=>{if(st.a1)return;st.a1=b.dataset.k;const ok=st.a1===s.sound;if(typeof galenAnswer==="function")galenAnswer(ok);
     $$("#q1 .opt").forEach(x=>{x.disabled=true;if(x.dataset.k===s.sound)x.classList.add("right");else if(x===b)x.classList.add("wrong");});
     $("#f1").innerHTML=`<div class="ans"><div class="verdict-line ${ok?"ok":"no"}">${ic(ok?"check":"close")}${ok?"Correct":"It was "+esc(SOUNDS[s.sound].name)}</div><p class="small">${SOUNDS[s.sound].clue}</p></div>`;
     $("#s2").hidden=false;setTimeout(()=>$("#s2").scrollIntoView({behavior:"smooth",block:"start"}),60);};
-  const a2=b=>{if(st.a2!=null)return;st.a2=+b.dataset.i;
+  const a2=b=>{if(st.a2!=null)return;st.a2=+b.dataset.i;{const ok=!!o2[st.a2].ok;if(typeof galenAnswer==="function")galenAnswer(ok);}
     $$("#q2 .opt").forEach((x,i)=>{x.disabled=true;$(".why",x).hidden=false;if(o2[i].ok)x.classList.add("right");else if(x===b)x.classList.add("wrong");});
     addTo("er",s.id);tick(2,"case");Store.s.xp=(Store.s.xp||0)+8;Store.save();
     const n=SCEN[(SCEN.indexOf(s)+1)%SCEN.length];
@@ -510,14 +518,14 @@ function duelSet(){if(_DP)return _DP;const by={};
 route("practice:duel","Evidence duel",(root)=>{
   const next=()=>{
     KEYS.handler=null;
-    const P=duelSet();if(!P.length){root.innerHTML=`<div class="empty">No pairs of signs share a target yet.</div>`;return;}
+    const P=[...(typeof duelPairs==="function"?duelPairs().map(x=>[x[0],x[1],x[2],"pos"]):[]),...duelSet().filter(x=>x[3]==="neg"||typeof duelPairs!=="function")].filter(([a,b,,m])=>SIGNS[a]&&SIGNS[b]&&(m==="neg"?SIGNS[a].n!==SIGNS[b].n:SIGNS[a].p!==SIGNS[b].p));if(!P.length){root.innerHTML=`<div class="empty">No pairs of signs share a target yet.</div>`;return;}
     let [a,b,t,mode]=pick(P);if(P.length>3&&DQ.last===a+b+mode)[a,b,t,mode]=pick(P);DQ.last=a+b+mode;const A=SIGNS[a],B=SIGNS[b],pos=mode==="pos";
     const pair=shuf([a,b]),correct=pos?(A.p>B.p?a:b):(A.n<B.n?a:b);let done=false;
     root.innerHTML=`<section class="ph"><span class="eyebrow">Contrast</span><h1>Evidence duel</h1><p class="lede">Two signs studied for the same diagnosis: which carries more weight? Knowing the order of magnitude is what makes an examination efficient.</p></section>
      <div class="row-x"><span class="pill acc">Score ${DQ.right}/${DQ.n}</span><span class="pill">${ic("flame")}Streak ${DQ.streak}</span></div>
      <article class="fc"><div class="q">For <span style="color:var(--accent-ink)">${esc(t)}</span>, which finding moves you more <b>when ${pos?"positive":"negative"}</b>?<small>${pos?"The larger LR+ raises the probability more.":"The smaller LR− lowers the probability more."}</small></div>
       <div class="opts two">${pair.map((k,i)=>`<button class="opt" data-k="${k}"><span class="kn">${i+1}</span><span>${esc(SIGNS[k].name)}</span></button>`).join("")}</div><div id="dfb"></div></article>`;
-    const ans=bt=>{if(done)return;done=true;const ok=bt.dataset.k===correct;DQ.n++;if(ok){DQ.right++;DQ.streak++;}else DQ.streak=0;
+    const ans=bt=>{if(done)return;done=true;const ok=bt.dataset.k===correct;if(typeof galenAnswer==="function")galenAnswer(ok);DQ.n++;if(ok){DQ.right++;DQ.streak++;}else DQ.streak=0;
       $$(".opt",root).forEach(x=>{x.disabled=true;if(x.dataset.k===correct)x.classList.add("right");else if(x===bt)x.classList.add("wrong");});
       $("#dfb").innerHTML=`<div class="ans"><div class="verdict-line ${ok?"ok":"no"}">${ic(ok?"check":"close")}${ok?"Correct":"Not quite"}</div>
        ${[a,b].map(k=>`<div class="lrrow"><b style="min-width:0;flex:1 1 200px">${esc(SIGNS[k].name)}</b>${lrChips(SIGNS[k])}</div>`).join("")}

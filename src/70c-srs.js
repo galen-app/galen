@@ -6,22 +6,25 @@
 const _SCOPE={};
 /* the card ids of a hall or chapter scope, cached; uses the theatre's scopeIds (98b-theatre.js) when it is there */
 function srsScope(sys){
-  if(!CARDS)buildCards();const k=sys+"|"+CARDS.length;if(_SCOPE[k])return _SCOPE[k];
+  if(!CARDS)buildCards();sys=normScope(sys);const k=sys+"|"+CARDS.length;if(_SCOPE[k])return _SCOPE[k];
   let ids=null;const s=String(sys);try{if(typeof scopeIds==="function")ids=scopeIds(s);}catch(e){ids=null;}
   if(!ids){ids=new Set();
     if(s.startsWith("chap:")){const [,h,i]=s.split(":");if(typeof chapCardIds==="function")ids=chapCardIds(h,+i);}
     else if(s.startsWith("hall:")){const h=s.slice(5);if(typeof cardHall==="function")CARDS.forEach(c=>{try{if(cardHall(c)===h)ids.add(c.id);}catch(e){}});}}
   return _SCOPE[k]=ids;
 }
+/* "chap:<chapterId>" (D13 ids) is accepted as well as "chap:<hall>:<index>" */
+function normScope(sys){const s=String(sys||"all");if(!s.startsWith("chap:")||s.split(":").length===3||typeof OUTLINE==="undefined")return s;
+  const id=s.slice(5);for(const [h,cs] of Object.entries(OUTLINE)){const i=(cs||[]).findIndex(c=>c&&c.id===id);if(i>=0)return `chap:${h}:${i}`;}return s;}
 function inScope(c,sys){
-  if(!sys||sys==="all")return true;const s=String(sys);
+  if(!sys||sys==="all")return true;const s=normScope(sys);
   if(s.startsWith("reg:"))return c.reg===s.slice(4);
   if(s.startsWith("hall:")||s.startsWith("chap:"))return srsScope(s).has(c.id);
   return c.sys===s;
 }
 /* is this a scope the app knows? (bad deep links get a calm "no such" page instead of "All caught up") */
 function scopeValid(sys){
-  if(!sys||sys==="all")return true;const s=String(sys);
+  if(!sys||sys==="all")return true;const s=normScope(sys);
   if(s.startsWith("reg:"))return typeof REGIONS!=="undefined"&&REGIONS.some(r=>r.id===s.slice(4));
   if(s.startsWith("hall:"))return typeof HALL!=="undefined"&&!!HALL[s.slice(5)];
   if(s.startsWith("chap:")){const [,h,i]=s.split(":");return typeof OUTLINE!=="undefined"&&!!(OUTLINE[h]||[])[+i];}
@@ -70,9 +73,12 @@ function previewIv(id,g){if(g===0)return "again";const r=nextState(id,Store.s.sr
 function fmtIv(d){return d>=60?Math.round(d/30)+"mo":d+"d";}
 
 /* ---------- due and new ---------- */
+let _ALIASED=false;
+function applyCardAlias(){if(_ALIASED||typeof CARD_ALIAS==="undefined"||!Store||!Store.s)return;if(!CARDS)buildCards();_ALIASED=true;let n=0;
+  Object.entries(CARD_ALIAS).forEach(([o,k])=>{const r=Store.s.srs[o];if(r&&!Store.s.srs[k]){Store.s.srs[k]=JSON.parse(JSON.stringify(r));n++;}});if(n)Store.save();}
 const isBuried=(id,t)=>{const b=Store.s.notes["bury:"+id];return !!(b&&!b.deleted&&b.d>=t);};
 function dueCards(sys){
-  if(!CARDS)buildCards();const t=dayNum();
+  if(!CARDS)buildCards();applyCardAlias();const t=dayNum();
   return CARDS.filter(c=>{const r=Store.s.srs[c.id];return r&&!r.sus&&r.due<=t&&inScope(c,sys)&&!isBuried(c.id,t);})
    .sort((a,b)=>Store.s.srs[a.id].due-Store.s.srs[b.id].due);
 }
@@ -83,8 +89,12 @@ function newCards(sys){
 /* new cards introduced today (cards marked mastered or suspended from a menu do not use up the allowance) */
 function newToday(){const t=dayNum();return Object.values(Store.s.srs).filter(r=>r&&r.first===t&&!r.mk).length;}
 /* "Learn 10 more" is a one-day extra, never a change to the setting */
-function extraNewToday(){const r=Store.s.notes["xn:"+dayKey()];return r&&!r.deleted?(r.n||0):0;}
-function addExtraNew(n){const k="xn:"+dayKey(),r=Store.s.notes[k]||{n:0};Store.s.notes[k]={t:Date.now(),n:(r.n||0)+(n||10)};Store.save();}
+/* the extra granted today through grantExtraNew (80-app.js, already inside settings.newPerDay) */
+function grantedToday(){const x=Store.s.settings.extraNew;return x&&x.d===dayNum()?Math.max(0,+x.n||0):0;}
+/* the daily limit without today's extra */
+function baseNew(){return Math.max(0,(+Store.s.settings.newPerDay||0)-grantedToday());}
+function extraNewToday(){const r=Store.s.notes["xn:"+dayKey()];return (r&&!r.deleted?(r.n||0):0)+grantedToday();}
+function addExtraNew(n){n=n||10;if(typeof grantExtraNew==="function")return grantExtraNew(n);const k="xn:"+dayKey(),r=Store.s.notes[k]||{n:0};Store.s.notes[k]={t:Date.now(),n:(r.n||0)+n};Store.save();return n;}
 
 /* ---------- review log: one record per day per device, so two devices add up after a sync ---------- */
 function rvRec(dk){const k="rv:"+(dk||dayKey())+":"+devId();return Store.s.notes[k]||(Store.s.notes[k]={t:Date.now(),n:0,g:[0,0,0,0],ms:0,mo:0,mn:0,nw:0});}
@@ -110,7 +120,7 @@ function dayPlan(){
   const S=Store.s.settings,mood=sessionMood();let plan=null;try{plan=Hub.todayFromPlan();}catch(e){}
   const afterNight=!!(plan&&plan.afterNight),shift=!!(plan&&plan.shift)&&!afterNight;
   const goal=clamp(+S.goalMin||15,5,120),spc=secPerCard();
-  let minutes=goal,newCap=Math.max(0,+S.newPerDay||0);const why=[];
+  let minutes=goal,newCap=baseNew();const why=[];
   if(afterNight){minutes=Math.min(goal,10);newCap=0;why.push("After a night shift: reviews only, about 10 minutes.");}
   else if(shift){minutes=Math.min(goal,Math.max(8,Math.round(goal*.6)));newCap=Math.floor(newCap/2);why.push(`Shift day: about ${minutes} minutes.`);}
   if(mood==="tired"){minutes=Math.min(minutes,10);newCap=0;}
@@ -127,11 +137,13 @@ function newRoom(){return dayPlan().room;}
 
 /* ---------- order: reviews first, then new; never the same sign twice in a row, types mixed ---------- */
 function arrange(list,prev){
-  const out=[],pool=shuf(list);let last=prev||null;
+  const out=[],pool=shuf(list);const recent=prev?[prev]:[];
+  const near=c=>recent.slice(-3).some(x=>sibKey(x)===sibKey(c)),last=()=>recent[recent.length-1];
   while(pool.length){
-    let i=pool.findIndex(c=>!last||(sibKey(c)!==sibKey(last)&&c.type!==last.type));
-    if(i<0)i=pool.findIndex(c=>!last||sibKey(c)!==sibKey(last));if(i<0)i=0;
-    last=pool.splice(i,1)[0];out.push(last);
+    let i=pool.findIndex(c=>!near(c)&&(!last()||c.type!==last().type));
+    if(i<0)i=pool.findIndex(c=>!near(c));
+    if(i<0)i=pool.findIndex(c=>!last()||sibKey(c)!==sibKey(last()));if(i<0)i=0;
+    const c=pool.splice(i,1)[0];out.push(c);recent.push(c);
   }
   return out;
 }
@@ -167,7 +179,7 @@ function buildSessionPlan(sys,opts){
   due=due.slice(0,cap);
   let extra=[];
   if(mood==="exam"){const ids=new Set(due.map(c=>c.id));extra=weakCards(10,sys).filter(c=>!ids.has(c.id)&&!Store.s.srs[c.id].sus).slice(0,10);}
-  let room=scoped?Math.max(0,(+S.newPerDay||0)+extraNewToday()-newToday()):P.room;
+  let room=scoped?Math.max(0,baseNew()+extraNewToday()-newToday()):P.room;
   if(mood==="tired")room=scoped?Math.min(room,5):0;
   if(opts.more&&!scoped&&room<=0)room=0;
   const fresh=pickNew(sys,room,{scoped,perKey:scoped?2:1,taken:due});

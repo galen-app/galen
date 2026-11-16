@@ -56,8 +56,8 @@ const CARD_FINDING_PLUS={
  "f:derm:8":["Necrotising fasciitis","Do not wait for imaging: resuscitate, start broad-spectrum intravenous antibiotics (with clindamycin to suppress toxin) and get emergency surgical debridement. A low LRINEC score does not exclude it."],
  "f:msk:8":["X-ray by Ottawa","X-ray if there is malleolar pain with bone tenderness at the posterior edge or tip of either malleolus (distal 6 cm), or inability to bear weight for four steps both immediately and in the department. Otherwise treat as a sprain with early mobilisation."]
 };
-/* outline chapters: the why of each trap, and a question whose answer is the pearl. Keyed by hall and chapter title; tf/pf fingerprint the
-   trap and pearl text so a reworded chapter falls back to a plain prompt instead of a mismatched one. */
+/* outline chapters: [the why of each trap, a question whose answer is the pearl], keyed by hall and chapter-title slug. A chapter with
+   no entry (a new or renamed title) falls back to plain prompts. When a chapter's trap or pearl is reworded, re-check its entry here. */
 const CARD_OUTLINE_PLUS={
  "table:the-end-of-the-bed":["Saturation stays normal while the patient compensates by breathing faster; the rate rises first. Count it for 30 seconds and treat tachypnoea as a warning.","Which vital sign is most often guessed, and why does that matter?"],
  "table:vital-signs-read-together":["Young patients compensate with tachycardia and vasoconstriction, and systolic pressure falls late. Read the heart rate, shock index, perfusion and mechanism instead.","Tachycardia without fever or pain: which four causes must you assume until shown otherwise?"],
@@ -127,7 +127,30 @@ const CARD_OUTLINE_PLUS={
  "skin:describing-a-lesion":["'Erythematous rash' says nothing that narrows the diagnosis. Describe the primary lesion, size, colour, surface, shape, arrangement and distribution.","What should you do before you try to name a rash?"],
  "skin:signs-that-help-name-it":["Hard rubbing can shear normal skin and fake a positive Nikolsky sign. Use gentle sideways pressure with a finger next to an active blister.","A positive Nikolsky sign with mucosal involvement: which diagnoses?"],
  "skin:pigmented-lesions":["Small melanomas exist, and change is the strongest warning. Any changing lesion needs dermoscopy and referral on the suspected cancer pathway.","In a pigmented lesion, what is the single most important feature?"],
- "skin:skin-that-can-kill":["Pain out of proportion to the skin is the early sign of necrotising fasciitis. Look for rapid spread, systemic toxicity, crepitus or numbness, and call the surgeons.","Severe pain, rapid spread and systemic illness with a red leg: what is it, and who do you call?"]
+ "skin:skin-that-can-kill":["Pain out of proportion to the skin is the early sign of necrotising fasciitis. Look for rapid spread, systemic toxicity, crepitus or numbness, and call the surgeons.","Severe pain, rapid spread and systemic illness with a red leg: what is it, and who do you call?"],
+ "table:the-injured-patient":["An obvious limb injury draws the eye while the life threats sit in the chest, abdomen and pelvis. Follow xABCDE every time and look for blood on the floor and four more: chest, abdomen, pelvis and long bones.", "In a bleeding trauma patient, which signs come before hypotension, and in whom may they be absent?"],
+ "table:the-confused-patient":["Hypoactive delirium is quiet and sleepy, so it is taken for depression or tiredness, and new confusion in dementia is blamed on the dementia. Screen with the 4AT, get the baseline from someone who knows the patient, and look for the cause.", "A patient with dementia is suddenly worse: what is it until proved otherwise?"],
+ "heart:the-failing-heart":["Crackles with a raised JVP in an older patient are usually pulmonary oedema. Weigh the JVP, S3, oedema and the history (orthopnoea, previous MI), and check a natriuretic peptide or chest film before treating it as pneumonia alone.", "What does an S3 tell you about filling pressure, and what does its absence tell you?"],
+ "heart:chest-pain-collapse-and-palpitations":["Chest-wall tenderness lowers the likelihood of ACS but does not exclude it: some patients with myocardial infarction have it too. Still get the ECG and troponin, and use the HEART score.", "Syncope on exertion: what is it until proved otherwise, and which three causes?"],
+ "vessels:the-cold-leg":["Acute limb ischaemia passes for sciatica or DVT when nobody examines the foot. Feel the pulses and compare temperature, colour and capillary refill on both sides in every painful leg.", "Acute limb ischaemia with paralysis or sensory loss: how urgent is it, and what do you do now?"],
+ "lungs:pneumonia-effusion-and-the-pe-question":["PERC is validated only when your clinical probability is already low; in a patient you think has a PE, a negative PERC falsely reassures. Use Wells or YEARS with a D-dimer, or go straight to imaging.", "A breathless, hypoxic patient with a normal chest examination: what should it make you think of?"],
+ "belly:abdominal-pain-in-women-and-early-pregnancy":["Patients can be pregnant despite contraception, a reported period or certainty that they are not, and ectopic bleeding can mimic a period. Test hCG in every woman of reproductive age with abdominal pain, collapse or unexplained vomiting.", "Shoulder-tip pain or fainting in early pregnancy: what does it mean?"],
+ "belly:the-bleeding-gut":["In acute bleeding the haemoglobin stays near normal until fluid shifts dilute the blood over hours. Judge the loss from the pulse, blood pressure, postural change and the story, and repeat the haemoglobin.", "Melaena on the glove: which source does it suggest, and what else can blacken the stool?"],
+ "cranial:twelve-roads-in-five-minutes":["Anosmia is common after head injury and may be the only sign of a frontal injury or lesion. Ask about smell and test each nostril with a familiar, non-irritant smell.", "Several adjacent cranial nerves are affected together: what does that tell you?"],
+ "cranial:the-face-v-and-vii":["Facial weakness can come from a stroke, a parotid tumour, Ramsay Hunt syndrome or a cerebellopontine angle lesion. Check the forehead, the ear for vesicles, the parotid and the other cranial nerves before calling it Bell's palsy.", "Numbness confined to the chin: what can it be the first sign of?"],
+ "mind:speech-mood-and-the-mental-state":["Risk scores and checklists predict suicide poorly and should not decide care (NICE NG225). Ask directly about thoughts, plans, intent and means, and agree a safety plan with the person.", "Does asking directly about suicide put the idea into someone's head?"],
+ "mind:tremor-and-parkinsonism":["Tremor alone is not parkinsonism: the diagnosis needs bradykinesia (slowing with decrement on repetition) with rest tremor or rigidity. Test finger tapping and feel for rigidity before naming it.", "How do you tell essential tremor from parkinsonian tremor?"],
+ "mind:functional-signs":["Functional weakness is a positive diagnosis made from signs such as Hoover's sign, and patients told that nothing is wrong feel dismissed and do worse. Show the positive signs, name the diagnosis and explain that it is real and treatable.", "How can Hoover's sign help you explain functional weakness to the patient?"],
+ "leg:the-walk":["A few steps in a cramped cubicle miss turning, arm swing and subtle asymmetry. Watch the patient walk at least 10 metres, turn and come back, with legs and arms visible.", "In Trendelenburg's sign, which side of the pelvis drops, and which side is weak?"],
+ "leg:the-tight-compartment":["Compartment pressure stops capillary and muscle perfusion long before it occludes the artery, so pulses are usually present until late. Act on pain out of proportion and pain on passive stretch.", "After a fracture, what does a rising need for analgesia mean until shown otherwise?"],
+ "skin:the-red-leg":["Bilateral red legs are rarely cellulitis: they are usually venous stasis dermatitis, lipodermatosclerosis or contact dermatitis, and repeated antibiotics do not help. Treat the cause with emollients, topical steroid and compression once arterial disease is excluded.", "What share of patients admitted with cellulitis have something else, and what is the commonest mimic?"],
+ "vessels:shock-and-fluid-responsiveness":["Many hypotensive patients do not raise their cardiac output with fluid, and excess fluid harms. Test responsiveness first, for example with a passive leg raise and a real-time output measure.","Why is the passive leg raise a useful fluid challenge?"],
+ "lungs:the-breathless-emergency":["Tension pneumothorax is a clinical diagnosis, and the patient can arrest while you wait for the film. Decompress on clinical signs, then image.","Hypotension, raised JVP, absent breath sounds and hyperresonance on one side: what do you do?"],
+ "senses:the-red-or-painful-eye":["Acuity is the vital sign of the eye: keratitis, uveitis and acute angle closure reduce it, while conjunctivitis does not. Check the acuity in every red eye, and look for pain, photophobia, a hazy cornea and an abnormal pupil.", "Red eye with which features is not conjunctivitis?"],
+ "cranial:the-lower-roads-ix-to-xii-and-the-bulbar-patient":["The gag reflex is absent in many healthy people and present in many who aspirate. Use a formal bedside swallow screen and refer to speech and language therapy.","What does the gag reflex tell you about the risk of aspiration?"],
+ "mind:coordination-and-balance":["Romberg's test removes vision to test proprioception. A cerebellar patient is unsteady with the eyes open too, so a positive Romberg points to sensory ataxia.","What does Romberg's test examine, and how does a cerebellar patient stand with the eyes open?"],
+ "mind:headache-and-the-meninges":["Kernig's and Brudzinski's signs have very low sensitivity (about 5% in a modern series), so a negative result excludes nothing. Act on fever, headache, altered mental state or a rash.","You suspect meningitis: which comes first, treatment or investigation?"],
+ "arm:the-tendons-and-the-infected-finger":["A finger can still flex with a partly divided tendon, which may rupture later. Test FDS and FDP separately against resistance; pain or weakness after a cut needs exploration.","After a cut, pain on resisted finger flexion means what until explored?"]
 };
 const cardChapSlug=t=>String(t).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,48);
 
@@ -137,10 +160,13 @@ function buildCards(){
   visible.forEach(([k,s])=>{
     const reg=s.reg||null,b={sys:s.sys,reg,ref:k,label:s.name,sib:"sign:"+k,topic:"sign:"+k};
     add({id:"t:"+k,type:"think",...b});
-    add({id:"v:"+k,type:"verdict",...b});
-    add({id:"m:"+k,type:"mech",...b});
-    if(s.sens!=null&&s.spec!=null||CARD_LEGACY_SIGN.ss.has(k)&&(s.p!=null||s.n!=null))add({id:"ss:"+k,type:"snsp",...b});
-    else if(CARD_LEGACY_SIGN.ss.has(k))CARD_ALIAS["ss:"+k]="v:"+k;/* no accuracy data left: its history moves to the verdict card */
+    /* D04: no verdict or mechanism cards for rules and scores (a score has no mechanism, and its verdict is editorial); their history moves to t: */
+    if(s.type==="rule"){CARD_ALIAS["v:"+k]="t:"+k;CARD_ALIAS["m:"+k]="t:"+k;}
+    else{add({id:"v:"+k,type:"verdict",...b});add({id:"m:"+k,type:"mech",...b});}
+    /* rule in or out: keyed on D04's s.use (derived from the final LRs); no card when s.use is null */
+    const use=cardUse(s),home=s.type==="rule"?"t:"+k:"v:"+k;
+    if(use&&(s.sens!=null&&s.spec!=null||CARD_LEGACY_SIGN.ss.has(k)))add({id:"ss:"+k,type:"snsp",...b});
+    else if(CARD_LEGACY_SIGN.ss.has(k))CARD_ALIAS["ss:"+k]=home;/* no accuracy data left: its history moves to the verdict (or think) card */
     if(typeof ANGLES!=="undefined"&&ANGLES[k]&&ANGLES[k].teachback)add({id:"tb:"+k,type:"teach",...b});
   });
   if(typeof TECH!=="undefined")TECH.forEach(t=>{const sys=t.group==="Ear, nose and eye"?"hn":"neuro",sib="tech:"+t.id;
@@ -212,12 +238,15 @@ function cardSignLRs(s){let p=s.p,n=s.n,derived=false,inf=false;
     if(p==null){if(sp<1){p=+(se/(1-sp)).toFixed(1);derived=true;}else if(se>0)inf=true;}
     if(n==null&&sp>0){n=+((1-se)/sp).toFixed(2);derived=true;}}
   return {p,n,derived,inf};}
-function cardSnspKey(s){const {p,n,inf}=cardSignLRs(s),i=inf||p!=null&&p>=CARD_LR_IN,o=n!=null&&n<=CARD_LR_OUT;return i&&o?"both":i?"in":o?"out":"neither";}
+function cardSnspKeyLocal(s){const {p,n,inf}=cardSignLRs(s),i=inf||p!=null&&p>=CARD_LR_IN,o=n!=null&&n<=CARD_LR_OUT;return i&&o?"both":i?"in":o?"out":"neither";}
+/* D04's s.use (55-audit.js) is the single source; signs added after 55 run signUse(s); the local rule is only a last resort */
+function cardUse(s){if(s.use!==undefined)return s.use;if(typeof signUse==="function")return signUse(s);return cardSnspKeyLocal(s);}
+function cardSnspKey(s){return cardUse(s)||"neither";}
 const cardLrWordP=p=>p==null?"not known":p>=10?"a large rise":p>=5?"a moderate rise":p>=2?"a small rise":"little change";
 const cardLrWordN=n=>n==null?"not known":n<=0.1?"a large fall":n<=0.2?"a moderate fall":n<=0.5?"a small fall":"little change";
 
 /* ================= evidence duel pairs: only signs with the same target condition ================= */
-function duelPairs(){const by={};Object.entries(SIGNS).forEach(([k,s])=>{if(s.hide||s.type==="treatment"||s.p==null)return;const t=String(s.target||"").trim().toLowerCase();if(t)(by[t]=by[t]||[]).push(k);});
+function duelPairs(){const by={};Object.entries(SIGNS).forEach(([k,s])=>{if(s.hide||s.type==="treatment"||s.p==null)return;const t=s.dx||String(s.target||"").trim().toLowerCase();if(t)(by[t]=by[t]||[]).push(k);});
   const P=[];Object.entries(by).forEach(([t,ks])=>{for(let i=0;i<ks.length;i++)for(let j=i+1;j<ks.length;j++){const a=SIGNS[ks[i]],b=SIGNS[ks[j]];if(Math.abs(a.p-b.p)<0.5||Math.max(a.p,b.p)/Math.min(a.p,b.p)<1.25)continue;P.push([ks[i],ks[j],SIGNS[ks[i]].target]);}});return P;}
 
 /* ================= card faces ================= */

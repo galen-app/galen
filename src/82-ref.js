@@ -7,10 +7,10 @@ const regOf=(k,s)=>s&&s.reg&&REG_NAME[s.reg]?s.reg:((REGIONS.find(r=>r.tests.inc
 const inReg=(k,s,reg)=>(s&&s.reg===reg)||(REGIONS.find(r=>r.id===reg)||{tests:[]}).tests.includes(k);
 const seenSigns=()=>{const a=Store&&Store.s&&Store.s.signs;return new Set(Array.isArray(a)?a:[]);};
 const vRank=v=>{const i=VERDICT_ORDER.indexOf(v);return i<0?9:i;};
-const strengthOf=s=>{const d=decisiveLR(s);return d?lrStrength(d.v):-1;};
+const strengthOf=s=>decisiveStrength(s);
 function decisiveChip(s){
   const d=decisiveLR(s);
-  if(d)return `<span class="lr ${lrClass(d.v)}">${d.k==="p"?"LR+":"LR−"} ${esc(d.v)}</span>`;
+  if(d)return `<span class="lr ${d.k==="sens"||d.k==="spec"?"strong":lrClass(d.v)}">${esc(decisiveLabel(d))}</span>`;
   if(s.p!=null||s.n!=null)return `<span class="lr weak">LR ≈ 1</span>`;
   return s.type==="rule"?`<span class="lr norule">rule</span>`:s.type==="vital"?`<span class="lr norule">vital</span>`:"";
 }
@@ -73,7 +73,7 @@ function ssBars(s){
   const bar=(l,v,c,t)=>`<div class="ssbar"><span>${l}</span><span class="tr">${v!=null?`<i style="width:${v}%;background:${c}"></i>`:""}</span><b class="num">${v!=null?esc(v)+"%":"–"}</b></div><p class="small muted ssnote">${t}</p>`;
   const snout=s.sens!=null&&s.sens>=90,spin=s.spec!=null&&s.spec>=90;
   return `<div class="stack" style="gap:10px"><span class="eyebrow">Sensitivity and specificity</span>
-   ${bar("Sensitivity",s.sens,"var(--insp)",s.sens!=null?`Of 100 patients who have the target condition, about ${Math.round(s.sens)} test positive.`:"Not reliably reported.")}
+   ${bar("Sensitivity",s.sens,"var(--insp)",s.sens!=null?`Of 100 patients who ${s.type==="rule"?"have it":"have the target condition"}, about ${Math.round(s.sens)} ${s.type==="rule"?"are flagged by the rule":"test positive"}.`:"Not reliably reported.")}
    ${bar("Specificity",s.spec,"var(--accent)",s.spec!=null?`Of 100 patients without it, about ${Math.round(s.spec)} test negative.`:"Not reliably reported.")}
    <p class="small">${snout&&spin?"<b>Both ends work:</b> high sensitivity (a negative helps rule out) and high specificity (a positive helps rule in).":snout?"<b>SnNout:</b> highly sensitive, so a <i>negative</i> result helps rule the diagnosis out. A positive proves little.":spin?"<b>SpPin:</b> highly specific, so a <i>positive</i> result helps rule the diagnosis in. A negative proves little.":"Neither sensitivity nor specificity reaches 90%, so on its own it neither rules in nor out; combine it with the story and other findings."}</p>
    ${s.p!=null&&s.n!=null&&s.sens!=null&&s.spec!=null&&s.spec<100&&s.spec>0?(()=>{const ip=s.sens/(100-s.spec),inn=(100-s.sens)/s.spec;const off=Math.max(ip/s.p,s.p/ip,inn/s.n,s.n/inn);return off>1.5?`<p class="tiny muted">Sensitivity and specificity here imply LR+ ${ip.toFixed(1)} and LR− ${inn.toFixed(2)}; the likelihood ratios shown come from a separately pooled analysis${srcOf(s)?` (${esc(srcOf(s))})`:""}.</p>`:"";})():""}</div>`;}
@@ -88,7 +88,7 @@ route("signs:sign",(id)=>SYS_SHORT[(SIGNS[id]||{}).sys]||"Sign",(root,id)=>{
   const mods=SYSTEMS.filter(m=>m.seq.some(st=>(st.signs||[]).includes(id)));
   const regs=REGIONS.filter(r=>r.tests.includes(id)||s.reg===r.id);
   const rg=regOf(id,s),dk=dxKey(s,id);
-  const related=dk?Object.entries(SIGNS).filter(([k,x])=>k!==id&&!x.hide&&dxKey(x,k)===dk).sort((a,b)=>strengthOf(b[1])-strengthOf(a[1])).slice(0,8):[];
+  const related=s.dx?Object.entries(SIGNS).filter(([k,x])=>k!==id&&!x.hide&&x.dx&&String(x.dx).toLowerCase()===String(s.dx).toLowerCase()).sort((a,b)=>strengthOf(b[1])-strengthOf(a[1])).slice(0,8):[];
   const sec=(t,v)=>v?`<div class="sec"><h3>${t}</h3><p>${esc(v)}</p></div>`:"";
   const r=Store.s.srs&&Store.s.srs["t:"+id];
   const A=(typeof ANGLES!=="undefined"&&ANGLES[id])||{};
@@ -103,7 +103,7 @@ route("signs:sign",(id)=>SYS_SHORT[(SIGNS[id]||{}).sys]||"Sign",(root,id)=>{
     <h1>${esc(s.name)}</h1><p class="quote">Use it for: ${esc(s.target)}</p></section>
    <section class="card bedside" aria-label="At the bedside">
     <div class="bs-head"><span class="eyebrow">At the bedside</span><span class="tiny muted">10-second summary</span></div>
-    ${d?`<div class="bs-verdict"><span class="bs-big lr ${lrClass(d.v)}">${d.k==="p"?"LR+":"LR−"} ${esc(d.v)}</span><p>${esc(dl)}${d.k==="p"&&s.n!=null?` A negative result: LR− ${esc(s.n)}.`:d.k==="n"&&s.p!=null?` A positive result: LR+ ${esc(s.p)}.`:""}</p></div>`:(s.p!=null||s.n!=null)?`<div class="bs-verdict"><p>${esc(dl||"Neither result moves probability much.")}</p></div>`:""}
+    ${d?`<div class="bs-verdict"><span class="bs-big lr ${d.k==="sens"||d.k==="spec"?"strong":lrClass(d.v)}">${esc(decisiveLabel(d))}</span><p>${esc(dl)}${d.k==="p"&&s.n!=null?` A negative result: LR− ${esc(s.n)}.`:d.k==="n"&&s.p!=null?` A positive result: LR+ ${esc(s.p)}.`:""}</p></div>`:(s.p!=null||s.n!=null)?`<div class="bs-verdict"><p>${esc(dl||"Neither result moves probability much.")}</p></div>`:""}
     ${evChips(s,id)}
     ${probShift(s)}
     ${rep?`<div class="bs-line bs-instead"><span class="k">Use instead</span><p>${esc(rep.now)}. <span class="muted">${esc(rep.why)}</span></p></div>`:""}
@@ -148,8 +148,10 @@ route("signs:imgsub",(id)=>(IMG_SUBJECTS[id]||[id])[0],(root,id)=>{
   if(SIGNS[id]){open("signs","sign",id);return;}
   const info=IMGSUB_INFO[id];
   const links=info?info[2].filter(([,go])=>{const [t,v,a]=go.split("/");return v==="dcond"?DCOND.some(c=>c.id===a):v==="calc"?TOOLS.some(x=>x.id===a):ROUTES[t+":"+v];}):[];
-  const sg=info?info[1].filter(k=>SIGNS[k]):[];
-  root.innerHTML=`<section class="ph"><span class="eyebrow">${esc(SYS_NAME[s[2]]||"Photographs")}</span><h1>${esc(s[0])}</h1><p class="lede">${info?esc(info[0]):"Openly licensed photographs from Wikimedia Commons."}</p>
+  const ii=(typeof IMG_INFO!=="undefined"&&IMG_INFO[id])||null;
+  const cap=ii&&ii.cap?ii.cap:info?info[0]:"";
+  const sg=[...new Set([...(ii&&ii.signs||[]),...(info?info[1]:[])])].filter(k=>SIGNS[k]);
+  root.innerHTML=`<section class="ph"><span class="eyebrow">${esc(SYS_NAME[s[2]]||"Photographs")}</span><h1>${esc(s[0])}</h1><p class="lede">${cap?esc(cap):"Openly licensed photographs from Wikimedia Commons."}</p>
    ${sg.length||links.length?`<div class="chips">${sg.map(signChip).join("")}${links.map(([t,go])=>`<button class="chip" data-go="${esc(go)}">${ic("chev")}${esc(t)}</button>`).join("")}</div>`:""}
    <p class="small muted">Photographs from Wikimedia Commons, open licences. Pin the clearest; hide the ones that mislead.${navigator.onLine===false?" You are offline: pinned photos are saved on this device; new ones need a connection.":""}</p></section>${Img.galleryHTML("s:"+id,s[1],{title:s[0]})}`;
   const g=$(".gal",root);if(g)g.dataset.n=36;Img.bindGalleries(root);
@@ -170,19 +172,34 @@ const ER_GROUPS=[
  ["Acute abdomen and scrotum","Surgical or not?",["rlq-tender","rovsing","psoas","alvarado","murphy","aaa-palp","carnett","cough-test","cremasteric","cmt","cva","cullen"],[["Alvarado","tools/calc/alvarado"],["AIR score","tools/calc/air"],["TWIST","tools/calc/twist"]]],
  ["Injured limb, neck or back","Image or not?",["ottawa-ankle","ottawa-knee","thompson","scaphoid","elbow-ext","c-spine-rule","cauda","log-roll","patellar-pubic","lachman"],[["Canadian C-spine","tools/calc/ccsr"],["NEXUS","tools/calc/nexus"],["Kocher (septic hip)","tools/calc/kocher"]]],
  ["Leg swelling and electrolytes","Clot, and the twitch signs",["wells-dvt","homans","chvostek","trousseau"],[["Wells DVT","tools/calc/wells-dvt"]]]];
+/* D04's ER_ESS (66-deep.js) is the source of which signs belong where; this adds the question and decision tools per group */
+const ER_META={chest:["Dissection, tamponade, clot or coronary?",[["HEART score","tools/calc/heart"],["Wells PE","tools/calc/wells-pe"],["PERC","tools/calc/perc"]]],
+ breath:["Heart, lungs, air or acid?",[["CURB-65","tools/calc/curb65"],["Wells PE","tools/calc/wells-pe"]]],
+ shock:["Who is sick, and how sick?",[["NEWS2","tools/calc/news2"],["qSOFA","tools/calc/qsofa"],["Shock index","tools/calc/shock-index"]]],
+ head:["Bleed, arteritis, stroke or delirium?",[["Ottawa SAH rule","tools/calc/ottawa-sah"]]],
+ dizzy:["Central or peripheral?",[]],
+ trauma:["Image or not?",[["Canadian CT head","tools/calc/cchr"],["Canadian C-spine","tools/calc/ccsr"],["NEXUS","tools/calc/nexus"],["GCS","tools/calc/gcs"]]],
+ abdo:["Surgical or not?",[["Alvarado","tools/calc/alvarado"],["AIR score","tools/calc/air"],["TWIST","tools/calc/twist"]]],
+ limb:["Fracture, compartment, cauda equina or clot?",[["Ottawa ankle","tools/calc/ottawa-ankle"],["Ottawa knee","tools/calc/ottawa-knee"],["Kocher (septic hip)","tools/calc/kocher"],["Wells DVT","tools/calc/wells-dvt"]]]};
+function erGroups(){
+  if(typeof ER_ESS!=="undefined"&&Array.isArray(ER_ESS)&&ER_ESS.length)return ER_ESS.filter(g=>g.id!=="myths").map(g=>[g.t,(ER_META[g.id]||[""])[0],g.ids,(ER_META[g.id]||[0,[]])[1]]);
+  return ER_GROUPS;
+}
+const erMythIds=()=>typeof ER_ESS!=="undefined"&&Array.isArray(ER_ESS)?((ER_ESS.find(g=>g.id==="myths")||{}).ids||[]):[];
 function erRow(k){const s=SIGNS[k];const d=DEEP&&DEEP[k];
   return `<button class="lrow" data-go="signs/sign/${k}"><span class="txt"><b>${esc(s.name)}</b><span>Use it for: ${esc(s.target)}</span>${d&&d.hook?`<span class="er-hook">${esc(d.hook)}</span>`:""}</span><span class="stack sl-r"><span class="v v-${s.v}">${VERDICT[s.v]||""}</span>${decisiveChip(s)}</span></button>`;}
 route("signs:er","ER essentials",(root)=>{
   const used=new Set(),myths=[];
-  const G=ER_GROUPS.map(([t,q,ids,tools])=>{const L=ids.filter(k=>SIGNS[k]&&!SIGNS[k].hide&&!used.has(k));L.forEach(k=>used.add(k));
+  const G=erGroups().map(([t,q,ids,tools])=>{const L=ids.filter(k=>SIGNS[k]&&!SIGNS[k].hide&&!used.has(k));L.forEach(k=>used.add(k));
     const good=L.filter(k=>!["low","archaic"].includes(SIGNS[k].v)).sort((a,b)=>vRank(SIGNS[a].v)-vRank(SIGNS[b].v)||strengthOf(SIGNS[b])-strengthOf(SIGNS[a]));
     L.filter(k=>["low","archaic"].includes(SIGNS[k].v)).forEach(k=>myths.push(k));
     const tl=tools.filter(([,go])=>TOOLS.some(x=>x.id===go.split("/")[2]));
     return {t,q,good,tl};}).filter(g=>g.good.length);
+  erMythIds().forEach(k=>{if(SIGNS[k]&&!SIGNS[k].hide&&!myths.includes(k))myths.push(k);});
   root.innerHTML=`<section class="ph"><span class="eyebrow">Emergency department</span><h1>ER essentials, by presentation</h1><p class="lede">The signs and rules you reach for on a shift, grouped by what walks through the door. Strongest evidence first; each row shows its decisive likelihood ratio. Weak signs that still get quoted are at the end.</p></section>
    <div class="hscroll chips er-jump">${G.map((g,i)=>`<button class="chip" data-jump="er${i}">${esc(g.t)}</button>`).join("")}${myths.length?`<button class="chip" data-jump="ermyth">Myths</button>`:""}</div>
    ${G.map((g,i)=>`<section class="section" id="er${i}"><span class="label">${esc(g.t)}</span><p class="small muted er-q">${esc(g.q)}</p><div class="list">${g.good.map(erRow).join("")}</div>${g.tl.length?`<div class="chips er-tools">${g.tl.map(([t,go])=>`<button class="chip" data-go="${go}">${ic("scale")}${esc(t)}</button>`).join("")}</div>`:""}</section>`).join("")}
-   ${myths.length?`<section class="section" id="ermyth"><span class="label">Myths and weak signs we still see</span><p class="small muted er-q">Know why they fail, so you can answer the ward round, and do not let them reassure you.</p><div class="list">${myths.map(erRow).join("")}</div></section>`:""}`;
+   ${myths.length?`<section class="section" id="ermyth"><span class="label">Myths and weak signs we still see</span><p class="small muted er-q">Know why they fail, so you can answer the ward round, and do not let them reassure you.</p><div class="list">${myths.map(k=>{const r=(typeof REPLACED!=="undefined"?REPLACED:[]).find(x=>x.ids.includes(k));return erRow(k)+(r?`<p class="small er-instead"><b>Use instead:</b> ${esc(r.now)}</p>`:"");}).join("")}</div></section>`:""}`;
   $$("[data-jump]",root).forEach(b=>b.addEventListener("click",()=>{const el=$("#"+b.dataset.jump,root);if(el)el.scrollIntoView({behavior:"smooth",block:"start"});}));
 });
 route("signs:verdicts","Verdicts",(root)=>{
@@ -205,9 +222,12 @@ const PRESETS=[
  {n:"Distended abdomen: ascites?",pre:30,ids:[["shifting-dullness","neg"]],why:"Absent shifting dullness makes ascites less likely; ultrasound decides."},
  {n:"Effusion and hypotension: tamponade?",pre:30,ids:["pulsus-paradoxus"],why:"Roy 2007: pulsus > 10 mmHg in a patient with a known effusion. Echo decides."},
  {n:"Acute vertigo: central?",pre:15,ids:["hints"],why:"Uses the headline HINTS figures. Accuracy depends heavily on who examines: trained examiners do far better than ordinary ED hands (see the HINTS page). If you are not trained in it, image or get expert review."},
- {n:"Twisted knee: ACL?",pre:40,ids:["lachman","pivot-shift"],why:"Lachman and pivot shift measure different laxities. The anterior drawer overlaps with Lachman; McMurray targets the meniscus, not the ACL."},
+ {n:"Twisted knee: ACL?",pre:40,ids:["lachman","ant-drawer-knee","pivot-shift"],why:"Lachman and pivot shift measure different laxities. The anterior drawer overlaps with Lachman, so only the stronger of the two counts; McMurray targets the meniscus, not the ACL."},
  {n:"Ankle injury: fracture? (rule negative)",pre:15,ids:[["ottawa-ankle","neg"]],why:"A negative Ottawa ankle rule: its value is the LR−."},
  {n:"Neck injury: C-spine? (rule negative)",pre:2,ids:[["c-spine-rule","neg"]],why:"A negative Canadian C-spine rule in an alert, stable adult."},
+ {n:"Chest pain: ACS?",pre:15,ids:["acs-radiation","chest-wall-tender"],why:"Swap 2005 LRs for acute coronary syndrome. No pain feature alone or combined allows discharge without an ECG and troponin."},
+ {n:"Older patient, headache: GCA?",pre:20,ids:["jaw-claudication","temporal-artery"],why:"Smetana 2002 LRs for a positive temporal artery biopsy. Check ESR and CRP and start steroids the same day if suspicion is high."},
+ {n:"Older patient, confused: delirium?",pre:25,ids:["four-at"],why:"4AT pooled accuracy in older adults (Tieges 2021). A positive screen means search for the cause."},
  {n:"Fever, headache: meningitis? (why Kernig fails)",pre:10,ids:["kernig","neck-stiffness"],why:"Both have LRs near 1 and overlap: the post-test barely moves. Lumbar puncture decides."}];
 const CALC={tests:{},once:true};
 Object.defineProperty(CALC,"pre",{get:()=>EV.pre,set:v=>{EV.pre=v;},enumerable:true});
@@ -292,7 +312,7 @@ route("learn:region",(id)=>(REGIONS.find(r=>r.id===id)||{}).name||"Region",(root
 function soundTabs(active){
   return `<div class="tabs" role="tablist">${[["library","Library"],["map","Chest map"],["compare","Compare"],["learn","Foundations"]].map(([k,l])=>`<button role="tab" aria-selected="${k===active}" data-st="${k}">${l}</button>`).join("")}</div>`;
 }
-function bindSoundTabs(root){$$(".tabs [data-st]",root).forEach(b=>b.addEventListener("click",()=>{const s=NAV.stacks.sounds;s.length=0;s.push({v:b.dataset.st});render(false);}));}
+function bindSoundTabs(root){$$(".tabs [data-st]",root).forEach(b=>b.addEventListener("click",()=>replace(b.dataset.st)));}
 function glyph(id){
   const d=getData(id,72),e=envOf(d,"open"),W=d.kind==="heart"?d.T*1.05:d.dur/2,n=44;let path="";
   for(let x=0;x<n;x++){let m=0;const b0=Math.floor((x/n*W-.02)*EBR),b1=Math.floor(((x+1)/n*W-.02)*EBR);for(let b=b0;b<=b1;b++){const v=e[((b%e.length)+e.length)%e.length];if(v>m)m=v;}const h=Math.max(.6,Math.min(1,m*1.2)*12);path+=`M${x+.5} ${13-h}V${13+h}`;}
@@ -304,7 +324,7 @@ route("sounds:library","Sounds",(root)=>{
   const realRows=b=>Object.keys(REAL).filter(k=>REAL[k].body===b).sort((a,c)=>REAL[a].name.localeCompare(REAL[c].name)).map(k=>{const r=REAL[k];
     return `<button class="lrow" data-go="sounds/sound/${k}"><span class="tag">REAL</span><span class="txt"><b>${esc(r.name)}</b><span>${esc(r.who)} · ${esc(r.site)}</span></span><span class="dot${Store.s.seen.includes(k)?" on":""}"></span></button>`;}).join("");
   const show=g=>SNDF==="all"||(SNDF==="heart"&&!["lung","er"].includes(g))||(SNDF==="lung"&&g==="lung")||(SNDF==="er"&&g==="er");
-  root.innerHTML=`<section class="ph"><span class="eyebrow">Auscultation</span><h1>Hear it, see it, know why</h1><p class="lede">${Object.keys(SOUNDS).length} teaching sounds synthesised live from their physiology, so you watch each event on the trace as you hear it, plus ${Object.keys(REAL).length} real recordings.</p></section>
+  root.innerHTML=`<section class="ph"><span class="eyebrow">Auscultation</span><h1>Hear it, see it, know why</h1><p class="lede">${Object.keys(SOUNDS).length} teaching sounds synthesised live from their physiology, and the trace is drawn through the same chest-piece filter you hear (Headphones plays it unprocessed), plus ${Object.keys(REAL).length} real recordings.</p></section>
   ${soundTabs("library")}
   <div class="row-x"><div class="seg" id="sndf">${[["all","All"],["heart","Heart"],["lung","Lungs"],["er","Emergency"],["real","Real"]].map(([k,l])=>`<button data-f="${k}" aria-pressed="${SNDF===k}">${l}</button>`).join("")}</div><span class="spacer"></span><button class="btn sm" data-go="practice/drill">${ic("bolt")}Drill</button></div>
   <div class="phones">${ic("ear")}<div>Use headphones. Most heart sounds sit between 20 and 200 Hz, where phone speakers produce almost nothing. On iPhone, turn off silent mode.</div></div>

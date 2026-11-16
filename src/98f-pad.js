@@ -62,6 +62,7 @@ const undoSnack=()=>{if(!$(".snack"))return false;if(typeof Hands!=="undefined"&
 
 /* ================= KEYBOARD ================= */
 const HOLD_TARGET=".railbrand,.brandmark,[data-pad-hold]";
+const HOLD_EGG="[data-egg-medal],.railbrand,.brandmark";
 function synthHold(el,ms){const r=el.getBoundingClientRect(),o={bubbles:true,cancelable:true,clientX:Math.round(clamp(r.left+r.width/2,1,innerWidth-1)),clientY:Math.round(clamp(r.top+r.height/2,1,innerHeight-1)),pointerType:"touch",isPrimary:true,button:0};
   el.dispatchEvent(new PointerEvent("pointerdown",o));const up=()=>el.dispatchEvent(new PointerEvent("pointerup",o));if(ms)setTimeout(up,ms);return up;}
 let _kHold=null,_ctxKey=0;
@@ -171,8 +172,9 @@ function padCtx(){if(PAL)return "pal";if(modalTop())return "modal";let r;try{r=c
 const gradeBtn=g=>{const b=$(`#view .grades [data-g="${g}"]`);if(b){b.click();return true;}return false;};
 /* the old code on the pad must not also press B (back) and A (open) underneath the reward */
 const KONAMI=["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","b","a"];
-function padCode(k){PAD.seq.push(k);if(PAD.seq.length>10)PAD.seq.shift();try{galenCode(k);}catch(e){}
-  const n=PAD.seq.length,want=k==="b"?8:k==="a"?9:-1;if(want<0||n<want+1)return false;
+function padCode(k){PAD.seq.push(k);if(PAD.seq.length>10)PAD.seq.shift();let gc=false;try{gc=typeof galenCode==="function"&&galenCode(k)===true;}catch(e){}
+  /* 98d says when the key is the code's B or A ending; our own record of the sequence is the fallback */
+  if(gc&&(k==="a"||k==="b"))return true;const n=PAD.seq.length,want=k==="b"?8:k==="a"?9:-1;if(want<0||n<want+1)return false;
   const tail=PAD.seq.slice(n-want-1);return tail.every((x,i)=>x===KONAMI[i]);}
 function padTick(){const pads=navigator.getGamepads?[...navigator.getGamepads()].filter(Boolean):[];if(!pads.length){PAD.alive=false;padLegend(true);return;}
   const g=pads[0],b=i=>!!(g.buttons[i]&&(g.buttons[i].pressed||g.buttons[i].value>.5)),now=performance.now();PAD.id=g.id||"";
@@ -190,9 +192,12 @@ function padTick(){const pads=navigator.getGamepads?[...navigator.getGamepads()]
     else if(ctx==="pal"){const q=$("#palq");if(q&&document.activeElement!==q)q.focus();padKey("Enter");PAD.aDown=null;}
     else if(!a||a===document.body||!padShown(a)){PAD.aDown=null;if(ctx==="card")$("#reveal")?.click();else padMove(0,1);}
     else PAD.aDown={el:a,t:now,up:null};}
-  else if(eA===-1&&PAD.aDown){const h=PAD.aDown;PAD.aDown=null;if(h.up)h.up();if(now-h.t<650){const el=h.el.isConnected?h.el:document.activeElement;if(el&&el!==document.body)padActivate(el);}}
+  else if(eA===-1&&PAD.aDown){const h=PAD.aDown;PAD.aDown=null;if(h.up)h.up();else if(h.held)h.el.dispatchEvent(new PointerEvent("pointerup",{bubbles:true}));if(now-h.t<650){const el=h.el.isConnected?h.el:document.activeElement;if(el&&el!==document.body)padActivate(el);}}
   /* a hold starts the touch-and-hold twin only after a quarter of a second, so a tap never fires pointer events */
-  if(PAD.aDown&&!PAD.aDown.up&&b(0)&&now-PAD.aDown.t>250&&PAD.aDown.el.isConnected&&!PAD.aDown.el.matches("input,select,textarea"))PAD.aDown.up=synthHold(PAD.aDown.el);
+  /* Galen's medallion and the rail brand wait for the long hold instead (the serpent's oath), so no hint pops up first */
+  if(PAD.aDown&&!PAD.aDown.up&&b(0)&&now-PAD.aDown.t>250&&PAD.aDown.el.isConnected&&!PAD.aDown.el.matches("input,select,textarea,"+HOLD_EGG))PAD.aDown.up=synthHold(PAD.aDown.el);
+  /* held for 1.6 s: send one explicit hold (98d listens for it); the release then does not click */
+  if(PAD.aDown&&!PAD.aDown.held&&b(0)&&now-PAD.aDown.t>=1600&&PAD.aDown.el.isConnected){PAD.aDown.held=true;PAD.aDown.el.dispatchEvent(new CustomEvent("galen:hold",{bubbles:true}));}
   if(!used[1]&&edge(1)===1){const swallow=padCode("b");
     if(!swallow){if(padCloseTop()){}else if(ctx==="grade")gradeBtn(0);else back();}}
   if(!used[2]&&edge(2)===1){if(ctx==="card")$("#reveal")?.click();else if(ctx==="grade")gradeBtn(1);else padKey(" ");}

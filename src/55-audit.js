@@ -48,7 +48,9 @@ const SIGN_FIX2={
 "think": "Present in some normal people with brisk reflexes; asymmetry means more than presence. Weak evidence for cervical myelopathy (LR+ 2.2, LR− 0.63). Gait disturbance, hand clumsiness, an inverted supinator jerk and lower-limb UMN signs are better pointers; MRI decides."
 },
 "cap-refill": {
-"think": "In adults it has no proven diagnostic value for hypovolaemia (McGee 1999 JAMA RCE): ambient temperature, age and the lighting change it more than volume. More useful in children and as a trend. Mottling, cool knees, the postural pulse and the lactate say more."
+"name": "Capillary refill time (adult)",
+"how": "Press the fingertip (or sternum) at heart level for 5 s and time the return of colour in good light. Two thresholds are in use: over 2 s is the classic abnormal value in hypovolaemia studies (upper limit of normal about 2 s in children and men, 3 s in women and 4.5 s in older adults, Schriger and Baraff 1988), and over 3 s is the threshold used to guide septic shock resuscitation (ANDROMEDA-SHOCK, Hernández 2019).",
+"think": "In adults it has no proven diagnostic value for hypovolaemia (McGee 1999 JAMA RCE): ambient temperature, age and the lighting change it more than volume. Its real adult use is as a trend in septic shock, where normalising a refill time over 3 s is a valid resuscitation target. More useful in children. Mottling, cool knees, the postural pulse and the lactate say more."
 },
 "hints": {
 "how": "Only in continuous vertigo with nystagmus (acute vestibular syndrome), and only if you have been trained in it. (1) Head Impulse: rapid 10–20° head turn while the patient fixes on your nose; a corrective saccade = peripheral (reassuring). (2) Nystagmus: direction-changing on lateral gaze = central. (3) Test of Skew: alternate cover; vertical corrective movement = central. Then test gait: inability to walk unaided is central until proven otherwise.",
@@ -155,7 +157,7 @@ const SIGN_DX={
  consolidation:["egophony","bronchial-breathing","whisper"],
  "pleural-effusion":["chest-expansion","percussion-dull","fremitus"],
  ascites:["fluid-wave","shifting-dullness","puddle"],
- "aortic-stenosis":["carotid-upstroke","a2-soft"],
+ "aortic-stenosis":["carotid-upstroke","a2-soft","murmur-rclav"],
  "aortic-regurgitation":["ar-murmur","ar-eponyms"],
  dvt:["homans","wells-dvt"],
  pe:["wells-pe"],
@@ -214,6 +216,7 @@ const SIGN_AKA={
  "ottawa-sah":["SAH","subarachnoid","thunderclap headache"],"four-at":["4AT","delirium","acute confusion","CAM"],
  "jaw-claudication":["GCA","temporal arteritis","giant cell arteritis"],"temporal-artery":["GCA","temporal arteritis","giant cell arteritis"],
  "ptx-signs":["pneumothorax","PTX"],"tension-ptx":["pneumothorax","tension","needle decompression"],compartment:["compartment syndrome","fasciotomy"],
+ "murmur-rclav":["aortic stenosis","AS","right clavicle"],"argyll-robertson":["light-near dissociation","neurosyphilis","tabes","pupil"],
  "cn3-pupil":["third nerve","oculomotor","CN III","aneurysm"],"pericardial-rub":["pericarditis","friction rub"],
  "irregular-pulse":["AF","atrial fibrillation"],"conj-pallor":["anaemia","anemia","pallor","Hb"],
  postural:["hypovolaemia","hypovolemia","blood loss","orthostatic"],"dry-axilla":["hypovolaemia","hypovolemia","dehydration"],"cap-refill":["CRT","hypovolaemia","hypovolemia","perfusion"],

@@ -93,3 +93,8 @@ button.lr.ev:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .reg-t{border-bottom:1px solid var(--line);padding-bottom:10px}
 .reg-t .lrow{border-bottom:0;padding-bottom:4px}
 .reg-t .evwrap{padding:0 14px}
+.er-instead{margin:0;padding:6px 14px 10px;border-bottom:1px solid var(--line);color:var(--ink2)}
+/* theatre label style (D15 handoff, t09#26/#28) */
+.bs-line .k{font-family:var(--f-sc);text-transform:lowercase;letter-spacing:.1em;font-weight:700;font-size:max(.84rem,12px);color:var(--muted)}
+.cav-i{font:700 max(.72rem,11px)/1 var(--f-body);width:16px;height:16px}
+.fg-ax text,.fg-t text{font-family:var(--f-body)}

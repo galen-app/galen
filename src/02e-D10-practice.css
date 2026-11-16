@@ -29,9 +29,13 @@
 .fcast i{display:block;width:100%;max-width:26px;min-height:2px;background:var(--accent);border-radius:5px 5px 2px 2px}
 .fcast span{font-family:var(--f-mono);font-size:.64rem;color:var(--muted)}
 /* hypothesis-driven debrief: labels on two lines, compact stepper on phones */
-.ppath .pl{font-family:var(--f-body,inherit);font-size:.66rem;line-height:1.15;text-align:center;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.3em}
+.ppath .pl{font-family:var(--f-body,inherit);font-size:max(.66rem,11px);line-height:1.15;text-align:center;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.3em}
 @media (max-width:420px){.stepper span{font-size:.64rem;padding:3px 6px}}
 .ses-hero .counts{display:flex;flex-direction:row;flex-wrap:wrap;gap:24px}.ses-hero .counts div{display:flex;flex-direction:column}
 @media (max-width:979px){.grades.three{position:sticky;bottom:calc(var(--nav-h) + 8px + env(safe-area-inset-bottom,0px));z-index:5;background:var(--surface);padding:6px;margin:0 -6px;border-radius:14px;box-shadow:0 -6px 18px rgb(0 0 0 / .08)}
   /* in a session the undo bar sits under the top bar, clear of the grade buttons */
   html.in-ses .snack{bottom:auto;top:calc(64px + env(safe-area-inset-top,0px))}}
+/* round 2: 12 px floor for small labels (D15), stepper numbers only on narrow phones (D20) */
+.fcast span,.hud b{font-family:var(--f-body);font-variant-numeric:tabular-nums;font-size:max(.75rem,12px)}
+.hud .mono{font-size:max(.75rem,12px)}
+@media (max-width:399px){.stepper .sw{display:none}}

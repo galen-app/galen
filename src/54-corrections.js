@@ -30,7 +30,7 @@ const SIGN_FIX={
 /* --- neurology, head and neck --- */
 "chvostek":{sens:71,spec:75,p:2.8,n:0.4,v:"low",note:"Old, weak data: absent in ≈ 29% of hypocalcaemic patients and present in 10–25% of healthy adults. Measure ionised calcium instead."},
 "kernig":{v:"low",src:"Thomas 2002 (Clin Infect Dis)"},
-"ct-head-rule":{sens:100,spec:69,p:3.2,n:0.01,target:"need for neurosurgical intervention after minor head injury",src:"Stiell 2001 (Lancet), high-risk criteria",note:"Stiell 2001. For clinically important brain injury (all 7 criteria): sens 98, spec 50, LR− ≈ 0.03."},
+"ct-head-rule":{sens:100,spec:69,p:3.2,n:null,target:"need for neurosurgical intervention after minor head injury",src:"Stiell 2001 (Lancet), high-risk criteria",note:"Stiell 2001. High-risk criteria: sens 100% for neurosurgical intervention, so the LR− cannot be estimated (a negative rule rules out). For clinically important brain injury (all 7 criteria): sens 98, spec 50, LR− ≈ 0.03."},
 "glabellar":{n:0.13,v:"low",single:true,src:"Rao 2003",note:"Rao 2003 LR+ 4.5, LR− 0.13, but with selection bias; against essential tremor it barely discriminates (78/36, LR+ ≈ 1.2)."},
 "hints":{sens:83,spec:44,p:1.5,n:0.39,v:"useful",src:"Ohle 2020 (meta-analysis): emergency physicians and mixed examiners",
  ed:{sens:83,spec:44,p:1.5,n:0.39,who:"emergency physicians and mixed examiners (Ohle 2020)"},
