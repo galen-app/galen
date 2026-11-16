@@ -373,11 +373,10 @@ document.addEventListener("keydown",e=>{
 function revertExtraNew(){try{const S=Store.s.settings,x=S.extraNew;
   if(x&&x.d!==dayNum()){S.newPerDay=Math.max(0,num(S.newPerDay)-num(x.n));delete S.extraNew;Store.save();}
   else if(!x&&num(S.newPerDay)>40){S.newPerDay=40;Store.save();}}catch(e){}}
-/* the one-day extra now lives in 70c-srs.js (notes "xn:<day>", added by dayPlan); grantExtraNew stays as a wrapper */
-function grantExtraNew(n){revertExtraNew();n=Math.max(0,Math.min(num(n,10),60));
-  if(typeof addExtraNew==="function"){addExtraNew(n);return n;}
-  const S=Store.s.settings,d=dayNum(),x=S.extraNew&&S.extraNew.d===d?S.extraNew:{d,n:0};
-  n=Math.min(n,60-num(x.n));S.newPerDay=num(S.newPerDay)+n;x.n=num(x.n)+n;S.extraNew=x;Store.save();return n;}
+/* 70c-srs.js addExtraNew() calls this; dayPlan() takes today's grant off the base limit and adds it back as the extra,
+   so the Settings value is never raised for good. Do not call addExtraNew from here (it delegates to this). */
+function grantExtraNew(n){revertExtraNew();const S=Store.s.settings,d=dayNum(),x=S.extraNew&&S.extraNew.d===d?S.extraNew:{d,n:0};
+  n=Math.max(0,Math.min(num(n,10),60-num(x.n)));S.newPerDay=num(S.newPerDay)+n;x.n=num(x.n)+n;S.extraNew=x;Store.save();return n;}
 onNav(i=>{if(i.to&&i.to.v==="home")revertExtraNew();});
 function greet(){const h=new Date().getHours();return h<5?"Late shift?":h<12?"Good morning":h<17?"Good afternoon":"Good evening";}
 const WD=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];

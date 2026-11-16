@@ -62,7 +62,7 @@ const HALLS=[
  "Back pain, the trapped root, the cord in danger and the cauda equina that must never be missed. Most backs need reassurance; a few need a scanner tonight."]},
 {id:"arm",rn:"X",n:"Hall of the Arm and Hand",short:"Arm",la:"Aula Brachii",patron:"Jules Tinel",sys:"msk",tint:"rgb(160 90 60 / .12)",
  maxim:["Manus instrumentum instrumentorum.","The hand is the instrument of instruments."],
- intro:["In 1915 the trenches sent back young men with shattered arms. In France and in Germany two doctors, on opposite sides of the war, both tapped over regrowing nerves and felt the patients flinch with tingling.",
+ intro:["In 1915 the trenches sent back young men with shattered arms. In Le Mans and in Germany two doctors, on opposite sides of the war, both tapped over regrowing nerves and felt the patients flinch with tingling.",
  "Shoulder, elbow, wrist and hand, and the three nerves that run through them. The hand is the instrument you examine with; learn to examine it."]},
 {id:"leg",rn:"XI",n:"Hall of the Gait",short:"Leg",la:"Aula Gressus",patron:"Friedrich Trendelenburg",sys:"msk",tint:"rgb(110 120 60 / .12)",
  maxim:["Solvitur ambulando.","It is solved by walking."],
@@ -108,14 +108,16 @@ function pickHall(linked,pref){if(!linked||!linked.length)return null;if(pref&&l
 function signHall(id){const s=typeof SIGNS!=="undefined"&&SIGNS[id];if(!s&&!_SH[id])return null;
   const fall=_SH[id]||(s&&s.reg&&REG_HALL[s.reg])||(s&&SYS_HALL[s.sys])||"table";
   return pickHall(outlineLinks().sign[id],fall)||fall;}
-const TECH_HALL_GROUP={"Ear, nose and eye":"senses","Peripheral nerve":"arm","Sensory":"mind","Reflexes and tone":"mind","Coordination and gait":"mind","Vestibular and eye movements":"cranial","Meninges and functional":"mind"};
-const TECH_HALL_ID={"swinging-torch":"cranial","confrontation-fields":"cranial","eye-movements":"cranial","mrc-power":"mind"};
+const TECH_HALL_GROUP={"Musculoskeletal":"arm","Ear, nose and eye":"senses","Peripheral nerve":"arm","Sensory":"mind","Reflexes and tone":"mind","Coordination and gait":"mind","Vestibular and eye movements":"cranial","Meninges and functional":"mind"};
+const TECH_HALL_ID={"swinging-torch":"cranial","confrontation-fields":"cranial","eye-movements":"cranial","mrc-power":"mind","shoulder-tests":"arm","knee-tests":"leg"};
 function techHall(t){if(typeof t==="string")t=(typeof TECH!=="undefined")&&TECH.find(x=>x.id===t);if(!t)return null;
   const fall=TECH_HALL_ID[t.id]||TECH_HALL_GROUP[t.group]||"mind";return pickHall(outlineLinks().tech[t.id],fall)||fall;}
 const PRES_HALL={};/* filled lazily: the outline first, then the presentation's name, then its system */
+/* presentations whose name or system would place them badly (the work and toxicology presentations belong to the whole patient) */
+const PRES_HALL_ID={heat:"table",nsi:"table",ftw:"table",envenom:"table",poison:"table",chestwork:"heart",seizure:"mind",gibleed:"belly"};
 const PRES_HINT=[[/back/i,"spine"],[/joint|knee|ankle|limp|hip/i,"leg"],[/hand|wrist|shoulder|arm/i,"arm"],[/neck lump|thyroid|lump in the neck|goitre/i,"neck"],[/red eye|vision|visual|\bears?\b|hearing|sore throat|\bnose\b/i,"senses"],[/dizz|vertigo|diplopia|double vision|facial/i,"cranial"],[/leg swell|calf|claudication/i,"vessels"],[/rash|itch|skin/i,"skin"]];
 function presHall(p){if(typeof p==="string")p=HIST.pres.find(x=>x.id===p);if(!p)return "table";if(PRES_HALL[p.id])return PRES_HALL[p.id];
-  let h=null;for(const [re,hh] of PRES_HINT)if(re.test(p.name)){h=hh;break;}
+  let h=PRES_HALL_ID[p.id]||null;if(!h)for(const [re,hh] of PRES_HINT)if(re.test(p.name)){h=hh;break;}
   const fall=h||SYS_HALL[p.sys]||"table";return PRES_HALL[p.id]=pickHall(outlineLinks().pres[p.id],fall)||fall;}
 
 /* ---- every card reaches a hall and a chapter ----
@@ -144,7 +146,10 @@ const slugT=t=>String(t).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$
 function cardRule(c){
   if((c.type==="trap"||c.type==="pearl")&&Array.isArray(c.ref)){const cs=(typeof OUTLINE!=="undefined"&&OUTLINE[c.ref[0]])||[];const i=cs.findIndex(x=>slugT(x.t)===c.ref[1]);if(i>=0)return [c.ref[0],null,null,i];}
   if(c.chap){const m=/^(\w+):(\d+)$/.exec(String(c.chap));if(m){const cs=(typeof OUTLINE!=="undefined"&&OUTLINE[m[1]])||[];const x=cs[+m[2]];return x?[m[1],null,null,+m[2]]:[m[1],""];}
-    const [h,re]=String(c.chap).split("/");return [h,re||""];}
+    const cs=String(c.chap),j=cs.indexOf("/"),h=j<0?cs:cs.slice(0,j),re=j<0?"":cs.slice(j+1);
+    const lit=/^\^.*\$$/.test(re)?re.slice(1,-1).toLowerCase():null;/* D09 writes the exact title as ^title$: match it literally first */
+    if(lit!=null){const i=((typeof OUTLINE!=="undefined"&&OUTLINE[h])||[]).findIndex(x=>x.t.toLowerCase()===lit);if(i>=0)return [h,null,null,i];}
+    return [h,re||""];}
   if((c.type==="lore"||c.type==="lsign")&&c.signs&&c.signs.length){for(const sid of c.signs){const hs=outlineLinks().sign[sid];if(hs&&(!c.hall||hs.includes(c.hall))){const h=c.hall||hs[0];const i=OUTLINE[h].findIndex(x=>(x.signs||[]).includes(sid));if(i>=0)return [h,null,null,i];}}}
   if((c.type==="twhy"||c.type==="terr")&&Array.isArray(c.ref)&&!outlineLinks().tech[c.ref[0]]){const sid=TECH_SIGN[c.ref[0]]||c.ref[0];const hs=outlineLinks().sign[sid];if(hs){const h=hs[0];const i=OUTLINE[h].findIndex(x=>(x.signs||[]).includes(sid));if(i>=0)return [h,null,null,i];}}
   switch(c.type){
@@ -160,7 +165,7 @@ function cardRule(c){
   return null;}
 /* find a chapter in a hall by title pattern(s); falls back to the first chapter of the hall */
 function chapByTitle(h,re,re2){const cs=(typeof OUTLINE!=="undefined"&&OUTLINE[h])||[];if(!cs.length)return -1;
-  for(const r of [re,re2])if(r){const rx=new RegExp(r,"i");const i=cs.findIndex(c=>rx.test(c.t));if(i>=0)return i;}
+  for(const r of [re,re2])if(r){let rx;try{rx=new RegExp(r,"i");}catch(e){const l=String(r).toLowerCase();rx={test:t=>t.toLowerCase().includes(l)};}const i=cs.findIndex(c=>rx.test(c.t));if(i>=0)return i;}
   return 0;}
 function cardHall(c){
   if(c.hall&&HALL[c.hall])return c.hall;
@@ -175,12 +180,17 @@ function cardHall(c){
   return SYS_HALL[c.sys]||"table";
 }
 /* chapter claims: chapter "cards" lists, then the rules. Returns [hall, index] or null. */
+/* a chapter's cards:[…] lists exact ids and prefixes ("cn:*", "a:abdomen:*", or the older "dc:") */
 let _CLAIM=null;
-function chapterClaims(){if(_CLAIM)return _CLAIM;const m={};if(typeof OUTLINE==="undefined")return m;
-  for(const [h,cs] of Object.entries(OUTLINE))cs.forEach((c,i)=>(c.cards||[]).forEach(k=>{(m[k]=m[k]||[]).push([h,i]);}));return _CLAIM=m;}
+function chapterClaims(){if(_CLAIM)return _CLAIM;const m={ex:{},pre:[]};if(typeof OUTLINE==="undefined")return m;
+  for(const [h,cs] of Object.entries(OUTLINE))cs.forEach((c,i)=>(c.cards||[]).forEach(k=>{k=String(k);
+    if(k.endsWith("*"))m.pre.push([k.slice(0,-1),h,i]);else if(k.endsWith(":"))m.pre.push([k,h,i]);else (m.ex[k]=m.ex[k]||[]).push([h,i]);}));
+  m.pre.sort((a,b)=>b[0].length-a[0].length);/* the longest prefix is the most specific claim */
+  return _CLAIM=m;}
+/* every chapter that claims a card, exact ids first: [[hall, index], …] */
+function cardClaims(c){const cl=chapterClaims(),out=(cl.ex[c.id]||[]).slice();cl.pre.forEach(([p,h,i])=>{if(c.id.startsWith(p)&&!out.some(x=>x[0]===h&&x[1]===i))out.push([h,i]);});return out;}
 function cardChapter(c){
-  const cl=chapterClaims();if(cl[c.id])return cl[c.id][0];
-  for(const k in cl)if(k.endsWith(":")&&c.id.startsWith(k))return cl[k][0];
+  const own=cardClaims(c);if(own.length)return own[0];
   const r=cardRule(c);if(!r)return null;const [h,re,re2,ix]=r;if(!HALL[h])return null;if(ix!=null&&OUTLINE[h]&&OUTLINE[h][ix])return [h,ix];const i=chapByTitle(h,re,re2);return i<0?null:[h,i];}
 function hallSigns(h){return Object.keys(SIGNS).filter(k=>!SIGNS[k].hide&&signHall(k)===h);}
 function hallTech(h){return typeof TECH==="undefined"?[]:TECH.filter(t=>techHall(t)===h);}
