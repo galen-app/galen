@@ -9,7 +9,7 @@ const reset=()=>{drive={files:{},next:1,stateWrites:0};HOOK={};FAIL={};EMAIL='am
 const md5=s=>crypto.createHash('md5').update(s||'').digest('hex');
 const iso=()=>new Date(Date.now()+(++clock)).toISOString();
 const mk=(name,parent,mime,content,props)=>{const id='f'+(drive.next++);const t=iso();drive.files[id]={id,name,parents:[parent],mimeType:mime,content:content||'',createdTime:t,modifiedTime:t,trashed:false,version:1,appProperties:props||{}};return drive.files[id];};
-const view=f=>({id:f.id,name:f.name,mimeType:f.mimeType,createdTime:f.createdTime,modifiedTime:f.modifiedTime,size:String(f.content.length),md5Checksum:f.mimeType===FOLDER?undefined:md5(f.content),version:String(f.version),appProperties:f.appProperties,trashed:f.trashed});
+const view=f=>({id:f.id,name:f.name,parents:f.parents,mimeType:f.mimeType,createdTime:f.createdTime,modifiedTime:f.modifiedTime,size:String(f.content.length),md5Checksum:f.mimeType===FOLDER?undefined:md5(f.content),version:String(f.version),appProperties:f.appProperties,trashed:f.trashed});
 const setContent=(f,c,props)=>{f.content=c;f.modifiedTime=iso();f.version++;if(props)f.appProperties=Object.assign({},f.appProperties,props);};
 async function handle(route){
   const req=route.request();const url=new URL(req.url());const m=req.method();
@@ -18,7 +18,8 @@ async function handle(route){
   if(FAIL.all)return route.fulfill({status:503,json:{error:{message:'backend'}}});
   if(url.pathname==='/drive/v3/files'&&m==='GET'){const q=url.searchParams.get('q')||'';const parent=(q.match(/'([^']+)' in parents/)||[])[1];const name=(q.match(/name = '([^']+)'/)||[])[1];const fo=q.includes("mimeType = '"+FOLDER+"'");
     if(process.env.TRACE)console.log('LIST',name,HOOK.armed,!!HOOK.list);if(HOOK.list)await HOOK.list(name);
-    const order=url.searchParams.get('orderBy')||'';const files=Object.values(drive.files).filter(f=>!f.trashed&&f.parents[0]===parent&&(!name||f.name===name)&&(!fo||f.mimeType===FOLDER))
+    const tagM=q.match(/appProperties has \{ key='citrusApp' and value='([^']+)' \}/);if(tagM)drive.tagQueries=(drive.tagQueries||0)+1;
+    const order=url.searchParams.get('orderBy')||'';const files=Object.values(drive.files).filter(f=>!f.trashed&&(tagM?f.mimeType===FOLDER&&(f.appProperties||{}).citrusApp===tagM[1]:f.parents[0]===parent&&(!name||f.name===name)&&(!fo||f.mimeType===FOLDER)))
       .sort((a,b)=>order.startsWith('createdTime')?a.createdTime.localeCompare(b.createdTime):b.modifiedTime.localeCompare(a.modifiedTime)).map(view);
     return route.fulfill({json:{files}});}
   if(url.pathname==='/drive/v3/files'&&m==='POST'){const b=JSON.parse(req.postData());const f=mk(b.name,b.parents[0],b.mimeType,'');return route.fulfill({json:{id:f.id}});}
@@ -28,7 +29,9 @@ async function handle(route){
   if(mm&&m==='GET'){const f=drive.files[mm[1]];if(!f)return route.fulfill({status:404,json:{error:{message:'File not found'}}});
     if(url.searchParams.get('alt')==='media')return route.fulfill({contentType:'application/json',body:f.content});
     if(HOOK.meta){const h=HOOK.meta;HOOK.meta=null;await h(f);}return route.fulfill({json:view(f)});}
-  if(mm&&m==='PATCH'){const f=drive.files[mm[1]];Object.assign(f,JSON.parse(req.postData()));return route.fulfill({json:view(f)});}
+  if(mm&&m==='PATCH'){const f=drive.files[mm[1]];if(!f)return route.fulfill({status:404,json:{error:{message:'File not found'}}});const b=JSON.parse(req.postData()||'{}');
+    /* like Drive: appProperties merge key by key */
+    if(b.appProperties){f.appProperties=Object.assign({},f.appProperties,b.appProperties);delete b.appProperties;}Object.assign(f,b);return route.fulfill({json:view(f)});}
   if(url.pathname.startsWith('/upload/drive/v3/files')){drive.inflight=(drive.inflight||0)+1;drive.maxInflight=Math.max(drive.maxInflight||0,drive.inflight);if(FAIL.slowUpload)await new Promise(r=>setTimeout(r,FAIL.slowUpload));drive.inflight--;const body=req.postData()||'';const bnd=(req.headers()['content-type'].match(/boundary=(\S+)/)||[])[1];
     const parts=body.split('--'+bnd).filter(p=>p.includes('Content-Type'));const meta=JSON.parse(parts[0].split('\r\n\r\n')[1].trim());const content=parts[1].split('\r\n\r\n').slice(1).join('\r\n\r\n').replace(/\r\n$/,'');
     let f;if(m==='PATCH'){const id=url.pathname.split('/')[5];f=drive.files[id];if(!f)return route.fulfill({status:404,json:{error:{message:'File not found'}}});setContent(f,content,meta.appProperties);}
@@ -172,6 +175,40 @@ let fails=0;const ok=(name,cond,extra)=>{if(!cond)fails++;console.log((cond?'PAS
   {reset();const A=await dev('A');await signin(A);FAIL.all=1;await grade(A,['t:jvp']);await A.waitForTimeout(9000);
    const st=await A.evaluate(()=>[Store.status,Hub.syncInfo().lastErr&&Hub.syncInfo().lastErr.kind]);ok('says Drive is unreachable and will retry',/unreachable/i.test(st[0])&&st[1]==='transient',st);
    FAIL.all=0;await sync(A);ok('recovers on the next sync',await A.evaluate(()=>Store.status)==='Synced'&&cards(remote()).includes('t:jvp'));await closeAll();}
+
+  console.log('--- 12 Drive layout: folders found by tag (claude/drive-layout.md), then moved by Citrus');
+  {reset();const A=await dev('A');await signin(A);await grade(A,['t:lay1']);await idle(A);await A.evaluate(()=>Hub.writeStatus(true));await A.waitForTimeout(500);
+   const tagOf=id=>((drive.files[id]||{}).appProperties||{}).citrusApp;
+   const data=folderId('Galen'),hubG=live().find(f=>f.name==='galen'&&f.mimeType===FOLDER);
+   ok('a fresh account: the data folder is made in the old place and tagged galen-data',!!data&&tagOf(data)==='galen-data',data&&drive.files[data].appProperties);
+   ok('the hub folder is tagged galen',!!hubG&&tagOf(hubG.id)==='galen');
+   const st=live().filter(f=>f.name==='status.json');
+   ok('status.json says drive.byTag',st.length===1&&JSON.parse(st[0].content).drive&&JSON.parse(st[0].content).drive.byTag===true,st.length&&JSON.parse(st[0].content).drive);
+   /* Citrus's plan in its old place, tagged by Citrus */
+   const today=await A.evaluate(()=>dayKey());const hub=folderId('hub');const cit=mk('citrus',hub,FOLDER,'',{citrusApp:'citrus'});
+   const plan=JSON.stringify({app:'citrus',updatedAt:new Date().toISOString(),days:{[today]:{shift:null,blocks:[{app:'galen',title:'Galen: daily round',date:today,start:'16:00',end:'16:20',minutes:20}]}}});mk('plan.json',cit.id,'application/json',plan);
+   /* Citrus organises: Citrus/Learning/Medicine/History & exam - Galen (the old hub/galen), the data folder inside it, plan in 00 Hub/Citrus */
+   const top=mk('Citrus','root',FOLDER,'',{citrusArea:'_root'}),learn=mk('Learning',top.id,FOLDER,'',{citrusArea:'study'}),med=mk('Medicine',learn.id,FOLDER,'',{citrusArea:'medicine'}),h00=mk('00 Hub',top.id,FOLDER,'',{citrusArea:'hub'});
+   Object.assign(drive.files[hubG.id],{name:'History & exam - Galen',parents:[med.id]});
+   Object.assign(drive.files[data],{name:'progress & photos',parents:[hubG.id]});
+   Object.assign(drive.files[cit.id],{name:'Citrus',parents:[h00.id]});
+   const before=live().length;await closeAll();
+   /* a fresh device after the move */
+   drive.tagQueries=0;const B=await dev('B');await signin(B);await B.evaluate(()=>Hub.readPlan());
+   ok('a fresh device finds the moved progress by tag',await B.evaluate(()=>!!Store.s.srs['t:lay1']));
+   ok('and reads plan.json from the moved Citrus folder',await B.evaluate(()=>{const p=Hub.todayFromPlan();return !!(p&&p.blocks.length===1&&p.blocks[0].minutes===20);}),await B.evaluate(()=>Hub.todayFromPlan()));
+   await grade(B,['t:lay2']);await idle(B);await sync(B);await B.evaluate(()=>Hub.writeStatus(true));await B.waitForTimeout(500);
+   const sf=stateFiles();
+   ok('one state.json, in the moved folder, with both cards',sf.length===1&&sf[0].parents[0]===data&&['t:lay1','t:lay2'].every(c=>cards(remote()).includes(c)),[sf.length,sf[0]&&sf[0].parents,cards(remote())]);
+   ok('no folder made again by path (no new Galen, galen or backups twins)',live().filter(f=>f.mimeType===FOLDER&&['Galen','galen'].includes(f.name)).length===0&&live().filter(f=>f.name==='backups').length<=1,live().filter(f=>f.mimeType===FOLDER).map(f=>f.name));
+   const st2=live().filter(f=>f.name==='status.json');
+   ok('one status.json, in the moved Galen folder',st2.length===1&&st2[0].parents[0]===hubG.id,st2.map(f=>f.parents));
+   ok('one tag lookup per folder per session (galen-data, galen, citrus)',drive.tagQueries===3,drive.tagQueries);
+   /* two folders tagged galen-data (a race): the oldest wins */
+   mk('progress & photos',med.id,FOLDER,'',{citrusApp:'galen-data'});await closeAll();
+   const C=await dev('C');await signin(C);await grade(C,['t:lay3']);await idle(C);
+   ok('with two tagged folders the oldest is used',stateFiles().length===1&&stateFiles()[0].parents[0]===data&&cards(remote()).includes('t:lay3'),stateFiles().map(f=>f.parents));
+   ok('no page errors',!errsOf(B,C).length,errsOf(B,C));await closeAll();}
 
   await b.close();console.log(fails?`${fails} FAILED`:'ALL PASS');process.exit(fails?1:0);
 })().catch(e=>{console.error(e);process.exit(2);});

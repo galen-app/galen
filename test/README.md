@@ -12,7 +12,7 @@ Needs Playwright with Chromium (`npm i playwright`).
 
 ## Added in 7.1 (all expect docs/ served on :8765 unless noted)
 - `merge.js`: node-only, 118+ checks of mergeStates (counters, tombstones, epochs, reset/undo, restore, clock skew, corrupt/newer data, quota, two tabs). `node test/merge.js src/70-store.js`
-- `sync.js`: 12 Drive attack scenarios. `node test/sync.js http://localhost:8765/`
+- `sync.js`: 13 Drive scenarios (12 attacks, plus the Drive layout: folders found by tag, a fresh device after Citrus moves them, twin tags). `node test/sync.js http://localhost:8765/`
 - `swupdate.js`: service worker install atomicity and the persistent update banner (serves its own copy on :18831). `node test/swupdate.js docs`
 - `audio.js`: OfflineAudioContext render checks (no NaN, levels, bell vs diaphragm, Greensleeves structure, ducking). About 150 s. `node test/audio.js 8765`
 - `cards.js`: card-quality audit (leaks, length bias, duplicates, rule-in/out keys vs LR, chapter coverage, 7.0.1 id survival with `--legacy test/legacy-ids.json`). About 2 min.

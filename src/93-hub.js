@@ -1,7 +1,13 @@
 "use strict";
 /* ================= THE CITRUS HUB =================
- Galen's own progress lives in <root>/Galen/state.json (merged with this device's copy).
- Galen tells Citrus Maxima where it is through <root>/hub/galen/status.json and reads what Citrus planned (<root>/hub/citrus/plan.json).
+ Galen's own progress lives in state.json in its data folder (merged with this device's copy).
+ Galen tells Citrus Maxima where it is through status.json in its hub folder and reads what Citrus planned (plan.json).
+ Drive layout (Citrus, 17/11/2026): every folder is found by its tag (appProperties.citrusApp), never by path, and Galen
+ never moves or renames one; Citrus does. If nothing is tagged yet, the old place is used (and Galen tags its own):
+   galen-data  <root>/Galen          state.json, backups/, photos/   (Galen's own)
+   galen       <root>/hub/galen      status.json                     (Galen's own; Citrus files it under Learning › Medicine)
+   citrus      <root>/hub/citrus     plan.json                       (Citrus's; read only)
+ status.json says drive.byTag=true, so Citrus knows it may move these folders.
 
  Sync transport (7.1). Store.push() pulls and merges when its last sync is older than 20 s, then calls provider.save().
  Around that, the provider guarantees:
@@ -15,7 +21,7 @@
  - a newer schema on Drive is never overwritten by an older build: sync stops and asks for an update;
  - a safety stop when this device would replace Drive with far fewer records than Drive holds (a reset, which stamps an
    epoch, is the one expected case: a safety copy of Drive is kept first);
- - rolling Drive backups: 7 daily and 4 weekly in <root>/Galen/backups/, with "Bring back". */
+ - rolling Drive backups: 7 daily and 4 weekly in backups/ inside the data folder, with "Bring back". */
 const Hub=(()=>{
   const APP="galen",TITLE="Galen",URL_PAGES="https://galen-app.github.io/galen/";
   const PLAN_KEY="galen.plan",STATUS_KEY="galen.status.fp",SYNC_KEY="galen.sync.meta",BK_KEY="galen.backup.day",DEV_KEY="galen.dev.id",QUAR_KEY="galen.sync.quarantined";
@@ -25,6 +31,11 @@ const Hub=(()=>{
   let lastStatusAt=0,lastFp="";
   try{lastFp=localStorage.getItem(STATUS_KEY)||"";}catch(e){}
   const path=()=>[G.root(),"Galen"];
+  const TAG_DATA="galen-data",TAG_HUB=APP,TAG_CITRUS="citrus";
+  /* Galen's data folder (state.json), or a folder inside it (backups, photos) */
+  const dataDir=(names=[],o={})=>G.inTagged(TAG_DATA,path(),names,{own:true,create:o.create});
+  const hubDir=()=>G.folderByTag(TAG_HUB,[G.root(),"hub",APP],{own:true});
+  const citrusDir=()=>G.folderByTag(TAG_CITRUS,[G.root(),"hub","citrus"],{create:false});
   const deviceId=(()=>{let d=ls.get(DEV_KEY,"");if(typeof d!=="string"||!/^[a-z0-9]{6,20}$/.test(d)){d=Math.random().toString(36).slice(2,12);ls.set(DEV_KEY,d);}return d;})();
   const stamp=(t=Date.now())=>{const d=new Date(t);return `${dayKey(t)}-${pad2(d.getHours())}${pad2(d.getMinutes())}`;};
 
@@ -135,7 +146,7 @@ const Hub=(()=>{
     load(){return withLock(async()=>{
       try{
         switchedStop();
-        const folder=await G.ensurePath(path(),{create:false});if(!folder){clearError();return null;}
+        const folder=await dataDir([],{create:false});if(!folder){clearError();return null;}
         const files=oldestFirst(await G.list(folder,{name:FILE,order:"createdTime"}));if(!files.length){clearError();return null;}
         let data=await readChecked(files[0],folder);
         for(const f of files.slice(1)){const d=await readChecked(f,folder,{dupe:true});if(d&&!d.dupeUnreadable)data=data?mergeStates(data,Store.merge(blankState(),d)):d;}
@@ -152,7 +163,7 @@ const Hub=(()=>{
   async function safeSave(){
     switchedStop();
     if(Store.readOnly)throw SyncStop("newer","This device holds progress from a newer Galen. Update Galen to sync.");
-    const folder=await G.ensurePath(path());
+    const folder=await dataDir();
     for(let round=0;round<4;round++){
       const files=oldestFirst(await G.list(folder,{name:FILE,order:"createdTime"}));
       const prim=files[0]||null,dupes=files.slice(1);let remote=null;
@@ -195,10 +206,9 @@ const Hub=(()=>{
   }
   Store.register(provider);
 
-  /* ---- Drive backups: <root>/Galen/backups ---- */
+  /* ---- Drive backups: backups/ in the data folder (tag galen-data) ---- */
   const BK_RE=/^galen-(daily|weekly|safety)-(\d{4}-\d{2}-\d{2})(?:-(\d{4}))?\.json$/;
-  const bkPath=()=>[...path(),"backups"];
-  async function safetyCopy(f,folder){try{const bf=await G.ensurePath(bkPath());await G.copy(f.id,`galen-safety-${stamp()}.json`,bf);await prune(bf);}catch(e){throw Object.assign(new Error("Could not keep a safety copy of Drive first: nothing was changed"),{transient:!!e.transient});}}
+  async function safetyCopy(f,folder){try{const bf=await dataDir(["backups"]);await G.copy(f.id,`galen-safety-${stamp()}.json`,bf);await prune(bf);}catch(e){throw Object.assign(new Error("Could not keep a safety copy of Drive first: nothing was changed"),{transient:!!e.transient});}}
   async function prune(folder){
     const files=(await G.list(folder,{pageSize:200})).filter(f=>BK_RE.test(f.name));
     const by=k=>files.filter(f=>BK_RE.exec(f.name)[1]===k).sort((a,b)=>b.name.localeCompare(a.name));
@@ -212,7 +222,7 @@ const Hub=(()=>{
     if(!G.canUse()||!G.wasSignedIn()||Store.mode!=="drive"||block||Store.passive)return false;
     const tag=dayKey()+"|"+G.email();if(!force&&ls.get(BK_KEY,"")===tag)return false;
     if(!count(Store.s))return false;
-    const folder=await G.ensurePath(bkPath());const have=new Set((await G.list(folder,{pageSize:200})).map(f=>f.name));
+    const folder=await dataDir(["backups"]);const have=new Set((await G.list(folder,{pageSize:200})).map(f=>f.name));
     const text=JSON.stringify(Store.s),props={n:String(count(Store.s)),v:String(Store.s.v||3),dev:deviceId};
     const day=`galen-daily-${dayKey()}.json`,week=`galen-weekly-${dayKey(weekStart().getTime())}.json`;
     if(!have.has(day))await G.writeJsonIn(folder,day,text,null,Object.assign({kind:"daily"},props));
@@ -220,7 +230,7 @@ const Hub=(()=>{
     await prune(folder);ls.set(BK_KEY,tag);return true;
   }
   async function listBackups(){
-    const files=await G.listIn(bkPath(),{pageSize:200});
+    const bf=await dataDir(["backups"],{create:false});const files=bf?await G.list(bf,{pageSize:200}):[];
     return files.filter(f=>BK_RE.test(f.name)).map(f=>{const m=BK_RE.exec(f.name);const [y,mo,d]=m[2].split("-");
       return {id:f.id,name:f.name,kind:m[1],day:m[2],label:`${d}/${mo}/${y}`+(m[3]?` ${m[3].slice(0,2)}:${m[3].slice(2)}`:""),n:+((f.appProperties||{}).n)||0,size:+f.size||0};})
       .sort((a,b)=>b.name.localeCompare(a.name));
@@ -270,6 +280,7 @@ const Hub=(()=>{
       next:{title:"Daily round",minutes:need.minutes},
       asks:todayDone?[]:[{date:null,title:"Galen: daily round",minutes:need.minutes,slot:shift&&shift.overnight?"postnight":"free"}],
       pending,
+      drive:{byTag:true},
       extra:{due:need.due,newToday:newToday(),mastery:mast,xp:Math.max(0,+s.xp||0),logUnverified:unverified}};
   }
   let statusTimer=null;
@@ -279,7 +290,7 @@ const Hub=(()=>{
     let st;try{st=hubStatus();}catch(e){console.warn("status",e);return false;}
     const fp=JSON.stringify(Object.assign({},st,{updatedAt:0}));
     if(!force&&(fp===lastFp||Date.now()-lastStatusAt<5*60*1000))return false;
-    try{await G.writeJson([G.root(),"hub",APP],"status.json",st);lastFp=fp;lastStatusAt=Date.now();try{localStorage.setItem(STATUS_KEY,fp);}catch(e){}
+    try{await G.writeJsonIn(await hubDir(),"status.json",st);lastFp=fp;lastStatusAt=Date.now();try{localStorage.setItem(STATUS_KEY,fp);}catch(e){}
       try{localStorage.setItem("citrus.status."+APP,JSON.stringify(st));}catch(e){} /* same-origin bridge for Citrus */
       return true;}catch(e){console.warn("status.json",e.message);return false;}
   }
@@ -299,7 +310,7 @@ const Hub=(()=>{
   function cachedPlan(){try{return sanitizePlan(JSON.parse(localStorage.getItem(PLAN_KEY)||"null"));}catch(e){return null;}}
   async function readPlan(){
     if(!G.canUse()||!G.wasSignedIn()||G.auth.switched)return cachedPlan();
-    try{const r=await G.readJson([G.root(),"hub","citrus"],"plan.json");const p=r&&r.data?sanitizePlan(r.data):null;if(p){try{localStorage.setItem(PLAN_KEY,JSON.stringify(p));}catch(e){}return p;}}catch(e){console.warn("plan.json",e.message);}
+    try{const cf=await citrusDir();const r=cf?await G.readJsonIn(cf,"plan.json"):null;const p=r&&r.data?sanitizePlan(r.data):null;if(p){try{localStorage.setItem(PLAN_KEY,JSON.stringify(p));}catch(e){}return p;}}catch(e){console.warn("plan.json",e.message);}
     return cachedPlan();
   }
   const mine=b=>b&&((b.app||"").toLowerCase()==="galen"||/galen|exam|bedside|physical/i.test(b.title||""));
@@ -309,11 +320,11 @@ const Hub=(()=>{
     const y=plan.days[key(addDays(new Date(),-1))];
     return {shift:d.shift||null,afterNight:!!(y&&y.shift&&y.shift.overnight),blocks:(d.blocks||[]).filter(mine),date:k,updatedAt:plan.updatedAt};
   }
-  /* ---- own clinical photos (<root>/Galen/photos) ---- */
+  /* ---- own clinical photos: photos/ in the data folder ---- */
   const urls=new Map(); /* one blob URL per photo, the oldest 30 released */
   async function uploadPhoto(file,meta){
     const name=`${Date.now()}-${(file.name||"photo").replace(/[^\w.\-]+/g,"_").slice(0,80)}`;
-    const r=await G.uploadBlob([...path(),"photos"],name,file);
+    const r=await G.uploadBlob(await dataDir(["photos"]),name,file);
     const id=r.id;Store.s.photos[id]={t:Date.now(),name,subject:meta.subject||"",caption:meta.caption||"",size:r.size||file.size};Store.save();return id;
   }
   async function photoUrl(id){
@@ -371,7 +382,7 @@ const Hub=(()=>{
 
   /* ---- Drive backups page ---- */
   if(typeof route==="function")route("tools:backups","Drive backups",(root)=>{
-    const head=`<section class="ph"><span class="eyebrow">Google Drive</span><h1>Drive backups</h1><p class="lede">Each day Galen keeps a copy of your progress in <b>${esc(G.root())}/Galen/backups</b>: the last ${KEEP_DAILY} days and the last ${KEEP_WEEKLY} weeks, plus a safety copy before Drive is ever replaced. <b>Bring back</b> adds a backup's progress to what you have now; nothing current is removed.</p></section>`;
+    const head=`<section class="ph"><span class="eyebrow">Google Drive</span><h1>Drive backups</h1><p class="lede">Each day Galen keeps a copy of your progress in the <b>backups</b> folder inside Galen's Drive folder: the last ${KEEP_DAILY} days and the last ${KEEP_WEEKLY} weeks, plus a safety copy before Drive is ever replaced. <b>Bring back</b> adds a backup's progress to what you have now; nothing current is removed.</p></section>`;
     if(!G.canUse()||!G.wasSignedIn()){root.innerHTML=head+`<div class="card"><p class="small">Sign in to Google in Tools to keep Drive backups.</p><button class="btn soft" data-go="tools/google">Google Drive</button></div>`;return;}
     root.innerHTML=head+`<div class="card stack" style="gap:10px" id="bk-list"><p class="small muted">Reading backups…</p></div><div class="row-x" style="margin-top:12px"><button class="btn soft" id="bk-now">Back up now</button></div>`;
     const box=$("#bk-list",root);

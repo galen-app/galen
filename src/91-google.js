@@ -78,7 +78,7 @@ const G=(()=>{
   const keepIds=()=>{try{localStorage.setItem(IDS_KEY,JSON.stringify(ids));}catch(e){}};
   const remember=(k,id)=>{ids[k]=id;keepIds();};
   const forget=pre=>{for(const k of Object.keys(ids))if(k===pre||k.startsWith(pre+"/"))delete ids[k];keepIds();};
-  function forgetAll(){ids={};keepIds();}
+  function forgetAll(){ids={};keepIds();for(const k of Object.keys(tagSeen))delete tagSeen[k];}
   async function list(parentId,o={}){const parts=["trashed = false",`'${q(parentId)}' in parents`];if(o.name)parts.push(`name = '${q(o.name)}'`);if(o.folders)parts.push(`mimeType = '${FOLDER}'`);if(o.extra)parts.push(o.extra);
     const order=o.order||"modifiedTime desc";
     const j=await authFetch(`${DRIVE}/files?q=${encodeURIComponent(parts.join(" and "))}&fields=${encodeURIComponent("files("+FIELDS+")")}&pageSize=${o.pageSize||200}&orderBy=${encodeURIComponent(order)}`);return (j&&j.files)||[];}
@@ -86,8 +86,9 @@ const G=(()=>{
   const meta=id=>authFetch(`${DRIVE}/files/${encodeURIComponent(id)}?fields=${encodeURIComponent(FIELDS+",trashed")}`);
   async function mkdir(name,parentId){const j=await authFetch(`${DRIVE}/files?fields=id`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,mimeType:FOLDER,parents:[parentId]})});return j.id;}
   const oldest=fs=>fs.slice().sort((a,b)=>String(a.createdTime||a.modifiedTime||"").localeCompare(String(b.createdTime||b.modifiedTime||""))||String(a.id).localeCompare(String(b.id)))[0];
+  /* parts are folder names under My Drive, or under o.from={id,key} (a folder found by its tag) */
   async function ensurePath(parts,o={}){const create=o.create!==false;
-    const run=async()=>{let parent="root",key="";for(const name of parts){key=key?key+"/"+name:name;let id=ids[key];
+    const run=async()=>{let parent=o.from?o.from.id:"root",key=o.from?o.from.key:"";for(const name of parts){key=key?key+"/"+name:name;let id=ids[key];
         if(!id){const found=await list(parent,{name,folders:true,order:"createdTime"});
           if(found.length)id=oldest(found).id;
           else if(create){const mine=await mkdir(name,parent);
@@ -96,7 +97,40 @@ const G=(()=>{
             if(pick.id!==mine)trash(mine).catch(()=>{});}
           else return null;remember(key,id);}
         parent=id;}return parent;};
-    try{return await run();}catch(e){if(e.status===404||/not found/i.test(e.message)){forget(parts[0]);return run();}throw e;}}
+    try{return await run();}catch(e){if(e.status===404||/not found/i.test(e.message)){if(o.from){forget(o.from.key);throw e;}forget(parts[0]);return run();}throw e;}}
+  /* ---- Drive layout (Citrus, claude/drive-layout.md, 17/11/2026) ----
+     Every app folder carries appProperties.citrusApp=<tag>; Citrus moves and renames folders, apps only follow the tag.
+     Found by tag first (the oldest if several), checked once per app session; if nothing is tagged yet, the old path.
+     Galen's own folders (o.own) are made there if missing and tagged at once; another app's folder is only read.
+     Never made by path once a tagged folder exists anywhere: that is how twins appear after a move. */
+  const tagSeen={},tagBusy={};
+  const tagQuery=tag=>`mimeType = '${FOLDER}' and trashed = false and appProperties has { key='citrusApp' and value='${q(tag)}' }`;
+  async function findTagged(tag){
+    const j=await authFetch(`${DRIVE}/files?spaces=drive&q=${encodeURIComponent(tagQuery(tag))}&fields=${encodeURIComponent("files(id,name,parents,createdTime,appProperties)")}&pageSize=50&orderBy=createdTime`);
+    const fs=((j&&j.files)||[]).filter(f=>f&&f.id);return fs.length?oldest(fs):null;}
+  const tagFolder=(id,tag)=>authFetch(`${DRIVE}/files/${encodeURIComponent(id)}?fields=id`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({appProperties:{citrusApp:tag}})});
+  async function folderByTag(tag,legacy,o={}){
+    if(tagSeen[tag])return tagSeen[tag];
+    if(tagBusy[tag])return tagBusy[tag];
+    const own=!!o.own,create=own&&o.create!==false,key="tag:"+tag;
+    const run=async()=>{
+      const hit=await findTagged(tag);
+      if(hit){if(ids[key]!==hit.id){forget(key);remember(key,hit.id);}tagSeen[tag]=hit.id;return hit.id;}
+      /* nothing tagged yet: the old place (made there only for our own folders) */
+      const id=await ensurePath(legacy,{create});if(!id)return null;
+      if(own){await tagFolder(id,tag);
+        /* another device may have tagged a different folder a moment ago: settle on the oldest tagged one */
+        const again=await findTagged(tag).catch(()=>null);const pick=again?again.id:id;
+        forget(key);remember(key,pick);tagSeen[tag]=pick;return pick;}
+      return id;};/* another app's untagged folder: not cached, so its tag is picked up as soon as Citrus sets it */
+    tagBusy[tag]=run().finally(()=>{delete tagBusy[tag];});return tagBusy[tag];}
+  /* a folder (or a chain of folders) inside a tagged folder */
+  async function inTagged(tag,legacy,names,o={}){
+    const own=!!o.own,create=own&&o.create!==false;
+    const base=await folderByTag(tag,legacy,{own,create});if(!base)return null;if(!names.length)return base;
+    try{return await ensurePath(names,{create,from:{id:base,key:"tag:"+tag}});}
+    catch(e){if(e.status===404||/not found/i.test(e.message)){forgetTag(tag);const b2=await folderByTag(tag,legacy,{own,create});return b2?ensurePath(names,{create,from:{id:b2,key:"tag:"+tag}}):null;}throw e;}}
+  function forgetTag(tag){delete tagSeen[tag];forget("tag:"+tag);}
   const download=id=>authFetch(`${DRIVE}/files/${encodeURIComponent(id)}?alt=media`,{raw:true});
   const decode=buf=>new TextDecoder().decode(buf instanceof ArrayBuffer?buf:new Uint8Array(buf||[]));
   /* JSON.parse that cannot change prototypes */
@@ -115,7 +149,7 @@ const G=(()=>{
     return authFetch(url,{method:fileId?"PATCH":"POST",headers:{"Content-Type":`multipart/related; boundary=${boundary}`},body});}
   async function readJson(parts,name){const id=await ensurePath(parts,{create:false});return id?readJsonIn(id,name):null;}
   async function writeJson(parts,name,obj,appProperties){const id=await ensurePath(parts);return writeJsonIn(id,name,obj,undefined,appProperties);}
-  async function uploadBlob(parts,name,blob,fileId){const folderId=await ensurePath(parts);if(!fileId)fileId=((await list(folderId,{name}))[0]||{}).id||null;
+  async function uploadBlob(parts,name,blob,fileId){const folderId=typeof parts==="string"?parts:await ensurePath(parts);if(!fileId)fileId=((await list(folderId,{name}))[0]||{}).id||null;
     const m=fileId?{name}:{name,parents:[folderId]};const fd=new FormData();fd.append("metadata",new Blob([JSON.stringify(m)],{type:"application/json"}));fd.append("file",blob,name);
     const url=fileId?`${UPLOAD}/files/${fileId}?uploadType=multipart&fields=id,name,size,modifiedTime`:`${UPLOAD}/files?uploadType=multipart&fields=id,name,size,modifiedTime`;
     return authFetch(url,{method:fileId?"PATCH":"POST",body:fd,timeout:180000});}
@@ -129,5 +163,5 @@ const G=(()=>{
     const j=await authFetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${p}`);
     return (j.items||[]).filter(e=>e.status!=="cancelled").map(e=>({id:e.id,title:e.summary||"",start:new Date(e.start.dateTime||e.start.date+"T00:00:00"),end:new Date(e.end.dateTime||e.end.date+"T00:00:00"),allDay:!!e.start.date,description:e.description||"",citrus:(e.extendedProperties&&e.extendedProperties.private&&e.extendedProperties.private.citrus)||""}));}
   return {DEFAULT_CLIENT_ID,cfg,setConfig,auth,canUse,isSignedIn,wasSignedIn,email:()=>(token&&token.email)||"",lastEmail,onAuthChange:f=>{listeners.add(f);return ()=>listeners.delete(f);},signIn,signOut,userInfo,
-    ensurePath,list,meta,readFile,readJson,writeJson,readJsonIn,writeJsonIn,uploadBlob,listIn,download,downloadBlobUrl,trash,copy,parse,listEvents,root:()=>cfg.root||"My Apps"};
+    ensurePath,folderByTag,inTagged,forgetTag,list,meta,readFile,readJson,writeJson,readJsonIn,writeJsonIn,uploadBlob,listIn,download,downloadBlobUrl,trash,copy,parse,listEvents,root:()=>cfg.root||"My Apps"};
 })();
